@@ -231,6 +231,7 @@ of QP and SQP methods.
     * The full benchmark sweep can be run using `tools/run-comparison-benchmark-hpc.sh`
 * `SOFA`: The SOFA scene files used to compare against [SOFA](https://www.sofa-framework.org/)
 * `Utopia`: The mesh and IPC script used to compare against Utopia [Krause and Zulian 2016]
+* `Houdini`: The Houdini files used to generate the chain comparison
 
 ## Tests
 
