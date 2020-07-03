@@ -14,6 +14,7 @@ This is the opensource reference implementation of the SIGGRAPH 2020 paper [Incr
 * `output/`: output data (will be created)
 * `tests/`: unit-tests
 * `tools/`: Python and Bash scripts for generating and processing results
+* `wiki/`: images used in Github wiki page
 
 * `build.py`: a python script to automatically build IPC with default compiler
 * `batch.py`: a python script to automatically run a batch of examples (in `input/n/` by default) with `n` threads for each linear solver in the program
@@ -68,7 +69,7 @@ of the sub-project (e.g. `DIAGNOSTIC`, `MESH_PROCESSING`). You can also set thes
 
 ## Run
 
-Please see our [quick start guide](https://docs.google.com/document/d/1pJV5oF-SsQoQYGXGyWgcbyFyj3xnuTxw9v4GFk8FdoE/edit?usp=sharing) for a `hello world` example with various settings. The output of each script will be saved into a separate folder in `output/`.
+Please see our [quick start guide](https://github.com/ipc-sim/IPC/wiki) for a `hello world` example with various settings. The output of each script will be saved into a separate folder in `output/`.
 
 ### HPC
 
@@ -105,7 +106,7 @@ in `src/Projects/`.
 
 ## Script Settings
 
-See our [quick start guide](https://docs.google.com/document/d/1pJV5oF-SsQoQYGXGyWgcbyFyj3xnuTxw9v4GFk8FdoE/edit?usp=sharing) for detailed examples of minimal settings needed for a simulation.
+See our [quick start guide](https://github.com/ipc-sim/IPC/wiki) for detailed examples of minimal settings needed for a simulation.
 
 * `energy {FCR | NH}`
     * `NH`: Neo-Hookean elasticity energy (default)
