@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<Node name="root" gravity="0 0 0" dt="1e-3">
+    <RequiredPlugin pluginName='SofaExporter'/> <!-- Needed to use components [OBJExporter, ]-->
+    <DefaultAnimationLoop/>
+    <RequiredPlugin name="SofaOpenglVisual"/>
+    <DefaultPipeline verbose="0" draw="0"/>
+    <BruteForceDetection name="N2" />
+    <NewProximityIntersection name="Proximity" alarmDistance="0.3" contactDistance="0.2" />
+    <DefaultContactManager name="Response" response="default" />
+    <Node name="Simulation">
+        <Node name="Funnel">
+            <MeshObjLoader name="loaderMeca" filename="./funnel.obj" />
+            <MeshObjLoader name="loaderVisual" filename="./funnel.obj" />
+            <MeshTopology src="@loaderMeca" />
+            <MechanicalObject src="@loaderMeca" dx="176" dy="40" dz="50" scale="150" rz="90" />
+            <TriangleCollisionModel simulated="0" moving="0" />
+            <OglModel name="Visual" src="@loaderVisual" color="white" dx="176" dy="40" dz="50" scale="150" rz="90" />
+        </Node>
+        <Node name="Dolphin">
+        	<EulerImplicitSolver rayleighStiffness="0.01"  rayleighMass="0.1" />
+        	<CGLinearSolver iterations="25" threshold="1e-08" tolerance="1e-05" />
+        	<MeshGmshLoader name="meshLoader" filename="./dolphin5K.msh"/>
+        	<MeshTopology src="@meshLoader" />
+        	<MechanicalObject dx="0" dy="0" dz="0" rx="0" ry="0" rz="40" scale="1" />
+        	<UniformMass totalMass="1" />
+        	<TetrahedronFEMForceField name="FEM" youngModulus="2000" poissonRatio="0.4" computeGlobalMatrix="false" method="polar"/>
+            <!-- <TetrahedronHyperelasticityFEMForceField name="FEM" ParameterSet="1000 1000" materialName="NeoHookean"/> -->
+        	<Node name="Visu">
+        		<MeshObjLoader name="meshVisualLoader" filename="./dolphin5K.obj"/>
+        		<OglModel name="Visual" src="@meshVisualLoader" color="#FF69B4" dx="0" dy="0" dz="0" rx="0" ry="0" rz="40" scale="1"/>
+        		<BarycentricMapping input="@.." output="@Visual" />
+        	</Node>
+            <Node name="Surf2">
+                <MeshObjLoader name="meshCollisionLoader" filename="./dolphin5K.obj"/>
+                <MeshTopology src="@meshCollisionLoader"/>
+                <MechanicalObject dx="0" dy="0" dz="0" rx="0" ry="0" rz="40" scale="1"/>
+                <TriangleCollisionModel />
+                <BarycentricMapping />
+            </Node>
+            <BoxROI name="Pull" box="60 25 25 70 75 75" drawBoxes="true"/>
+            <ConstantForceField indices="@Pull.indices" totalForce="10000 0 0"/>
+            <!-- <BoxROI name="Fixed" box="-60 0 0 -50 100 100" drawBoxes="true"/>
+            <FixedConstraint indices="@Fixed.indices"/> -->
+        </Node>
+    </Node>
+    <OBJExporter name='exporter1' printLog='true' filename='output/frame' exportEveryNumberOfSteps='10' exportAtBegin='true' />
+</Node>

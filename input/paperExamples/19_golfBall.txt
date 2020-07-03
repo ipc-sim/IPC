@@ -1,0 +1,24 @@
+energy NH
+timeIntegration NM
+dampingStiff 4e-16
+warmStart 0
+size 0.04
+time 0.004 0.00002
+density 1150
+stiffness 1e7 0.45
+script DCOBallHitWall 1 67
+turnOffGravity
+
+shapes input 1
+input/tetMeshes/sphere19K.msh 0 0 0  0 0 0  1 1 1
+
+halfSpace  0.1 0 0  -1 0 0  50  0
+
+selfCollisionOn
+
+zoom 0.6
+
+view orthographic
+playBackSpeed 0.0005
+
+constraintSolver interiorPoint

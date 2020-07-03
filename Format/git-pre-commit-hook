@@ -1,0 +1,3 @@
+#!/bin/bash
+
+"@PYTHON_PATH@" "@SCRIPT@" "--pre-commit" "@GIT_PATH@" "@CLANGFORMAT_PATH@" "-style=@CLANGFORMAT_STYLE@" "-ignore=@IGNORE_LIST@"

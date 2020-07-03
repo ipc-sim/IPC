@@ -1,0 +1,20 @@
+shapes input 2
+input/tetMeshes/mat40x40.msh 0 0 0  90 0 45  1 1 1
+input/tetMeshes/mat40x40.msh 0 1.01 0  90 0 -45  1 1 1
+
+script fall
+energy NH
+timeIntegration BE
+warmStart 0
+size 1.0
+time 2.5 0.025
+density 1000
+stiffness 1e4 0.4
+
+ground 0 0.5 50.0
+constraintSolver interiorPoint
+selfCollisionOn
+
+view perspective
+
+cameraTracking

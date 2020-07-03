@@ -1,0 +1,27 @@
+energy NH
+warmStart 0
+size 2
+time 10 0.01
+density 1000
+stiffness 10000 0.4
+script DCORotCylinders
+
+shapes input 5
+input/triMeshes/cylinder.obj 0.5 -0.5 0  0 0 0  2 2 2
+input/triMeshes/cylinder.obj 0.5 -0.5 0.5  0 0 0  2 2 2
+input/triMeshes/cylinder.obj 0 -1 0.5  0 90 0  2 2 2
+input/triMeshes/cylinder.obj 0.5 -1 0.5  0 90 0  2 2 2
+input/tetMeshes/sphere5K.msh 0.25 0.25 0.25      0 0 0  1 1 1
+
+selfCollisionOn
+selfFric 0.5
+
+halfSpace  0 -1.5 0  0 1 0  50  0
+
+zoom 1
+
+view perspective
+
+constraintSolver interiorPoint
+
+cameraTracking

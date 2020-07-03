@@ -1,0 +1,51 @@
+constraintSolver SQP
+energy FCR
+timeStepper Newton
+inexactSolve 0
+resolution 1000
+size 1
+time 5 1e-2
+density 1000
+stiffness 1e6 0.4
+script fall
+
+shapes input 5
+input/tetMeshes/cube.msh  0 1 0  0 0 0  1 1 1
+input/tetMeshes/cube.msh  0 3 0  0 0 0  1 1 1
+input/tetMeshes/cube.msh  0 5 0  0 0 0  1 1 1
+input/tetMeshes/cube.msh  0 7 0  0 0 0  1 1 1
+input/tetMeshes/cube.msh  0 9 0  0 0 0  1 1 1
+zoom 0.6
+
+view orthographic
+
+# halfSpace 0 0.4 0  0 1 0  50 0
+meshCO input/triMeshes/plane.obj  0 0.4 0  10  50  0 rotate 0 0 0
+
+selfCollisionOn
+
+
+section interiorPoint
+tuning 2
+1e-4
+5e-1
+#1e0, 1e-1, 1e-2 oscillation, probably constraint deletion not robust
+#1e-3 armijo step size too tiny, earlier convergence sometimes comes right before huge gradient, probably constraint deletion bug
+#1e-4 ~ 1e-10 not SPD, probably because invalid constraint not deleted
+section end
+
+section SQP QP
+time 10 1e-2
+
+tol 1
+1e-3
+section end
+warmStart 1
+tol 1
+1e-3
+# Sweep parameters
+constraintOffset 1e-3
+constraintType graphics
+QPSolver Gurobi
+useActiveSetConvergence
+

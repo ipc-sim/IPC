@@ -1,0 +1,39 @@
+energy FCR
+warmStart 0
+size 1
+time 5 0.025
+density 1000
+stiffness 1e8 0.4
+script fall
+
+shapes input 7
+input/tetMeshes/mat20x20.msh 0 0 0      0 0 75  1 1 1
+input/tetMeshes/mat20x20.msh 0.275 0 0      0 0 -75  1 1 1
+input/tetMeshes/mat20x20.msh 0.55 0 0      0 0 75  1 1 1
+input/tetMeshes/mat20x20.msh 0.825 0 0      0 0 -75  1 1 1
+input/tetMeshes/mat20x20.msh 0.4125 0.495 0      0 0 0  1.1 1 1.1
+input/tetMeshes/mat20x20.msh 0.275 0.99 0      0 0 75  1 1 1
+input/tetMeshes/mat20x20.msh 0.55 0.99 0      0 0 -75  1 1 1
+zoom 2
+
+view orthographic
+cameraTracking
+
+halfSpace 0 0.636 0  0 1 0  50 0.1
+selfCollisionOn
+selfFric 0.1
+
+constraintSolver interiorPoint
+#constraintSolver SQP
+
+tuning 6
+0
+1e-3
+1e-3
+1e-9
+1e-5
+1e-5
+
+
+tol 1
+1e-4

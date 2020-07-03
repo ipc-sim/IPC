@@ -1,0 +1,39 @@
+energy FCR
+
+
+warmStart 0
+
+size 1
+time 2.5 0.025
+density 1000
+stiffness 100000 0.4
+script fall
+
+shapes input 2
+input/tetMeshes/tet.msh 0 0 0      0 0 0  1 1 1
+input/tetMeshes/tet.msh 0 1.1 0      0 0 0  1 1 1
+
+meshCO input/triMeshes/cube.obj -0.505 0 0.5  1  50  0
+meshCO input/triMeshes/cube.obj 0.5 0 -0.505  1  50  0
+meshCO input/triMeshes/cube.obj 1.505 0 0.5  1  50  0
+zoom 0.3
+
+view perspective
+#view orthographic
+
+# halfSpace 0 -0.5 0  0 1 0  50 0
+meshCO input/triMeshes/plane.obj  0 -0.5 0  10  50  0 rotate 0 0 0
+
+selfCollisionOn
+constraintSolver interiorPoint
+
+tuning 2
+1e6
+1e-2
+
+section SQP QP
+time 10 5e-3
+warmStart 1
+constraintType graphics
+constraintOffset 1e-3
+section end

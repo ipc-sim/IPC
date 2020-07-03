@@ -1,0 +1,115 @@
+include(DownloadProject)
+
+# With CMake 3.8 and above, we can hide warnings about git being in a
+# detached head by passing an extra GIT_CONFIG option
+if(NOT (${CMAKE_VERSION} VERSION_LESS "3.8.0"))
+  set(IPC_EXTRA_OPTIONS "GIT_CONFIG advice.detachedHead=false")
+else()
+  set(IPC_EXTRA_OPTIONS "")
+endif()
+
+function(custom_download_project name)
+  download_project(
+    PROJ         ${name}
+    SOURCE_DIR   ${IPC_EXTERNAL}/${name}
+    DOWNLOAD_DIR ${IPC_EXTERNAL}/.cache/${name}
+    QUIET
+    ${IPC_EXTRA_OPTIONS}
+    ${ARGN}
+  )
+endfunction()
+
+################################################################################
+
+# OSQP
+function(download_osqp)
+  custom_download_project(osqp
+    GIT_REPOSITORY https://github.com/oxfordcontrol/osqp.git
+    # GIT_TAG        657a3b117320c4f8ecb57e27011e75e63f61ce4d
+    GIT_TAG        v0.4.1
+  )
+endfunction()
+
+# libigl
+function(download_libigl)
+  custom_download_project(libigl
+    GIT_REPOSITORY https://github.com/libigl/libigl.git
+    GIT_TAG        b0d7740e0b7e887a7e93601c4c557ecf762b389b
+  )
+endfunction()
+
+# TBB
+function(download_tbb)
+  custom_download_project(tbb
+    # GIT_REPOSITORY https://github.com/intel/tbb.git
+    # GIT_TAG        2018_U5
+    GIT_REPOSITORY https://github.com/wjakob/tbb.git
+    GIT_TAG        344fa84f34089681732a54f5def93a30a3056ab9
+  )
+endfunction()
+
+# exact-ccd
+function(download_exact_ccd)
+  custom_download_project(exact-ccd
+    GIT_REPOSITORY https://github.com/jiangzhongshi/exact-ccd.git
+    GIT_TAG        305bb6f0e57d399b283161dc3669c260f90fb7f5
+  )
+endfunction()
+
+# Logger
+function(download_spdlog)
+    custom_download_project(spdlog
+       GIT_REPOSITORY https://github.com/gabime/spdlog.git
+       GIT_TAG        v1.4.2
+    )
+endfunction()
+
+# AMGCL
+function(download_amgcl)
+    custom_download_project(amgcl
+       GIT_REPOSITORY https://github.com/ddemidov/amgcl.git
+       GIT_TAG        461a66ce6d197a3816218bf94ffd114a367c1ef1
+    )
+endfunction()
+
+# Catch2
+function(download_catch2)
+    custom_download_project(Catch2
+        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+        GIT_TAG        v2.10.2
+    )
+endfunction()
+
+# finite-diff
+function(download_finite_diff)
+    custom_download_project(finite-diff
+        GIT_REPOSITORY https://github.com/zfergus/finite-diff.git
+        GIT_TAG        a1b8b560252960a6e2d0027a898bbd077e4f8003
+    )
+endfunction()
+
+# CLI11
+function(download_cli11)
+    custom_download_project(cli11
+        GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
+        GIT_TAG        b979d3a37098da7ad6291d9bd3c4fdec3a705043
+    )
+endfunction()
+
+# Eigen Gurobi Wrapper
+function(download_eigen_gurobi)
+  custom_download_project(eigen-gurobi
+    GIT_REPOSITORY https://github.com/zfergus/eigen-gurobi.git
+    GIT_TAG        51b1aacb3c5733555d09fe362887d618ee97826d
+  )
+endfunction()
+
+
+
+# Rational CCD
+function(download_rational_ccd)
+  custom_download_project(rational_ccd
+    GIT_REPOSITORY https://github.com/teseoch/Exact-CDD.git
+    GIT_TAG        01277f58432b422277004d724df4096d8e768134
+  )
+endfunction()

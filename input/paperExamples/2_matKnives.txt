@@ -1,0 +1,40 @@
+energy NH
+warmStart 0
+size 1
+time 6 0.04
+density 1000
+stiffness 20000 0.4
+script DCOFix
+
+shapes input 10
+input/tetMeshes/mat40x40.msh 0.5 1 0.1      0 0 0.05  1.2 1.2 1.2
+input/triMeshes/triangle.obj 0.2 -0.1 -0.7  0 0 90  1 1 1
+input/triMeshes/triangle.obj 0.4 -0.1 -0.7  0 0 90  1 1 1
+input/triMeshes/triangle.obj 0.6 -0.1 -0.7  0 0 90  1 1 1
+input/triMeshes/triangle.obj 0.8 -0.1 -0.7  0 0 90  1 1 1
+input/triMeshes/triangle.obj 0.1 -0.1 0.3  0 180 90  1 1 1
+input/triMeshes/triangle.obj 0.3 -0.1 0.3  0 180 90  1 1 1
+input/triMeshes/triangle.obj 0.5 -0.1 0.3  0 180 90  1 1 1
+input/triMeshes/triangle.obj 0.7 -0.1 0.3  0 180 90  1 1 1
+input/triMeshes/triangle.obj 0.9 -0.1 0.3  0 180 90  1 1 1
+selfCollisionOn
+
+
+halfSpace 0 -0.01 0  0 1 0  50 0
+
+zoom 1
+
+view perspective
+
+constraintSolver interiorPoint
+
+cameraTracking
+
+section QP
+time 10 5e-3
+warmStart 1
+constraintType graphics
+constraintOffset 1e-3
+tol 1
+1e-4
+section

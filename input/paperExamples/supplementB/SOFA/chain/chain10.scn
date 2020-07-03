@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<Node name="root" dt="1e-4">
+    <RequiredPlugin pluginName='SofaExporter'/> <!-- Needed to use components [OBJExporter, ]-->
+    <RequiredPlugin name="SofaOpenglVisual"/>
+    <DefaultPipeline verbose="0" draw="0"/>
+    <BruteForceDetection name="N2" />
+    <NewProximityIntersection name="Proximity" alarmDistance="0.3" contactDistance="0.2" />
+    <DefaultContactManager name="Response" response="default" />
+    <Node name="Simulation">
+        <Node name="fixedRing">
+            <MeshObjLoader name="loaderMeca" filename="../../../input/triMeshes/torus.obj" />
+            <MeshObjLoader name="loaderVisual" filename="../../../input/triMeshes/torus.obj" />
+            <MeshTopology src="@loaderMeca" />
+            <MechanicalObject src="@loaderMeca" dy="5.1" scale="10"/>
+            <TriangleCollisionModel simulated="0" moving="0" />
+            <OglModel name="Visual" src="@loaderVisual" color="white" dy="5.1" scale="10" />
+        </Node>
+        <include name="FEM" href="./femRing.xml" dy="0"    ry="90" />
+        <include name="FEM" href="./femRing.xml" dy="-5.1" ry="0" />
+        <include name="FEM" href="./femRing.xml" dy="-10.2" ry="90" />
+        <include name="FEM" href="./femRing.xml" dy="-15.3" ry="0" />
+        <include name="FEM" href="./femRing.xml" dy="-20.4" ry="90" />
+        <include name="FEM" href="./femRing.xml" dy="-25.5" ry="0" />
+        <include name="FEM" href="./femRing.xml" dy="-30.6" ry="90" />
+        <include name="FEM" href="./femRing.xml" dy="-35.7" ry="0" />
+        <include name="FEM" href="./femRing.xml" dy="-40.8" ry="90" />
+        <include name="FEM" href="./femRing.xml" dy="-45.9" ry="0" />
+    </Node>
+    <OBJExporter name='exporter1' printLog='true' filename='/Users/zachary/Desktop/output/frame' exportEveryNumberOfSteps='10' exportAtBegin='true' />
+</Node>

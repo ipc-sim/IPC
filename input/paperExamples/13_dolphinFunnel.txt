@@ -1,0 +1,21 @@
+energy NH
+warmStart 0
+size 1
+time 32 0.04
+density 1000
+stiffness 10000 0.4
+script dragright
+turnOffGravity
+
+shapes input 1
+input/tetMeshes/dolphin5K.msh 0 0 0      0 0 0  1 1 1
+rotateModel 0 0 1 40
+selfCollisionOn
+
+meshCO input/triMeshes/funnel.obj 1.76 0.86 0.42  1.5  50  0  rotate 0 0 90
+
+zoom 1
+
+view perspective
+
+constraintSolver interiorPoint

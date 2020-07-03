@@ -1,0 +1,31 @@
+energy NH
+timeIntegration BE
+warmStart 0
+size 0.1
+time 2 0.001
+density 1000
+stiffness 7e4 0.4
+script DCOBallHitWall 1 5
+playBackSpeed 0.01
+turnOffGravity
+
+shapes input 1
+input/tetMeshes/doug_j_squishy_ball.msh 0 0 0  0 0 0  1 1 1
+
+halfSpace  0.12 0 0  -1 0 0  50  0
+
+selfCollisionOn
+
+zoom 0.7
+
+view orthographic
+
+constraintSolver interiorPoint
+
+tuning 3
+0
+1e-4
+1e-4
+
+tol 1
+4e-2

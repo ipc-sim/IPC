@@ -1,0 +1,7 @@
+shapes input 2
+input/tetMeshes/cube.msh 0 3 0  0 0 0  1 1 1
+input/tetMeshes/cube.msh 0 1 0  0 0 0  1 1 1  NBC -0.1 -0.1 -0.1  0.1 1.1 0.1  -50 0 -50  NBC 0.9 -0.1 0.9  1.1 1.1 1.1  50 0 50
+
+selfFric 0.1
+
+ground 0.1 0

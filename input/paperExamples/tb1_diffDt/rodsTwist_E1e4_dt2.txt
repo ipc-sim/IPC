@@ -1,0 +1,22 @@
+energy FCR
+warmStart 0
+size 1
+time 6 2
+density 1000
+stiffness 10000 0.4
+script twist
+turnOffGravity
+
+shapes input 4
+input/tetMeshes/rod.msh 0 -0.1 -0.1      0 0 0  1 1 1
+input/tetMeshes/rod.msh 0 -0.1 0.1      0 0 0  1 1 1
+input/tetMeshes/rod.msh 0 0.1 -0.1      0 0 0  1 1 1
+input/tetMeshes/rod.msh 0 0.1 0.1      0 0 0  1 1 1
+
+zoom 1
+
+view perspective
+
+selfCollisionOn
+
+constraintSolver interiorPoint

@@ -1,0 +1,26 @@
+energy NH
+warmStart 0
+size 5
+time 8 0.04
+density 1000
+stiffness 10000 0.4
+script DCOSegBedSquash
+
+shapes input 1
+input/tetMeshes/sphere5K.msh 10 4 10      0 0 0  4 4 4
+
+shapeMatrix input 21 1 21
+input/segMeshes/edge.seg 1 1 1  0 0 90  1 1 1
+
+shapeMatrix input 21 1 21  0 20 0
+input/segMeshes/edge.seg 1 1 1  0 0 90  1 1 1
+
+selfCollisionOn
+
+zoom 1
+
+view perspective
+
+constraintSolver interiorPoint
+
+cameraTracking

@@ -1,0 +1,22 @@
+energy FCR
+warmStart 0
+size 1
+time 5 0.025
+density 1000
+stiffness 100000 0.4
+script fall
+
+shapes input 5
+input/tetMeshes/cube.msh 0 0 0      0 0 0  1 1 1
+input/tetMeshes/cube.msh 0 1.01 0      0 0 0  1 1 1
+input/tetMeshes/cube.msh 0 2.02 0      0 0 0  1 1 1
+input/tetMeshes/cube.msh 0 3.03 0      0 0 0  1 1 1
+input/tetMeshes/cube.msh 0 4.04 0      0 0 0  1 1 1
+zoom 0.6
+
+view perspective
+
+halfSpace 0 0.5 0  0 1 0  50 0
+selfCollisionOn
+
+constraintSolver interiorPoint

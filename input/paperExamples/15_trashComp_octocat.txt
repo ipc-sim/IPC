@@ -1,0 +1,26 @@
+energy FCR
+warmStart 0
+size 1
+time 2.5 0.01
+density 1000
+stiffness 10000 0.4
+script DCOSquash6
+turnOffGravity
+
+shapes input 7
+input/triMeshes/plane.obj -1 1.5 -1.5  0 0 -90  3 3 3
+input/triMeshes/plane.obj 1 1.5 -1.5  0 0 -90  3 3 3
+input/triMeshes/plane.obj -1.5 -1 -1.5  0 0 0  3 3 3
+input/triMeshes/plane.obj -1.5 1 -1.5  0 0 0  3 3 3
+input/triMeshes/plane.obj -1.5 1.5 -1  90 0 0  3 3 3
+input/triMeshes/plane.obj -1.5 1.5 1  90 0 0  3 3 3
+input/tetMeshes/32770_octocat.msh 0 -0.2 0      -90 0 0  0.02 0.02 0.02
+
+zoom 1
+
+view orthographic
+
+selfCollisionOn
+
+constraintSolver interiorPoint
+

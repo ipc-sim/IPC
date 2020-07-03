@@ -1,0 +1,35 @@
+energy NH
+warmStart 0
+size 5
+time 5 0.025
+density 1000
+stiffness 1e8 0.4
+script fall
+
+shapes input 9
+input/tetMeshes/mat20x20.msh 0 0 0      0 0 60  1 1 1
+input/tetMeshes/mat20x20.msh 0.515 0 0      0 0 -60  1 1 1
+input/tetMeshes/mat20x20.msh 1.03 0 0      0 0 60  1 1 1
+input/tetMeshes/mat20x20.msh 1.545 0 0      0 0 -60  1 1 1
+input/tetMeshes/mat20x20.msh 0.78 0.445 0      0 0 0  1.1 1 1.1
+input/tetMeshes/mat20x20.msh 0.515 0.89 0      0 0 60  1 1 1
+input/tetMeshes/mat20x20.msh 1.03 0.89 0      0 0 -60  1 1 1
+input/tetMeshes/cube.msh 0.2 6 -0.2      0 0 0  0.4 0.4 0.4
+input/tetMeshes/cube.msh 0.5 9 -0.3      0 0 0  0.4 0.4 0.4
+zoom 8
+
+view orthographic
+
+halfSpace 0 2.568 0  0 1 0  50 1.0
+selfCollisionOn
+selfFric 1.0
+
+constraintSolver interiorPoint
+
+tuning 6
+0
+1e-4
+1e-4
+1e-9
+1.000001e-5
+1e-5

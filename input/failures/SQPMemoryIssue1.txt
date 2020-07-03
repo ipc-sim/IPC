@@ -1,0 +1,31 @@
+script fall
+energy FCR
+timeIntegration BE
+timeStepper Newton
+resolution 1000
+size 1.0
+time 10 5e-3
+stiffness 1.0e5 0.4
+density 1000
+
+shapes input 1
+input/tetMeshes/erleben/spike.msh  0 0 0  180 0 0  1 1 1
+
+meshCO input/triMeshes/erleben/wedge.obj 0.1666666667 -0.3333333333 0.1666666667  1  50  1.0 rotate 0 0 0
+
+constraintSolver SQP
+warmStart 0
+
+view orthographic
+zoom 0.3
+
+section SQP QP
+time 10 1e-2
+warmStart 1
+constraintType graphics
+constraintOffset 1e-2
+tol 1
+1e-3
+useActiveSetConvergence
+QPSolver Gurobi
+section end

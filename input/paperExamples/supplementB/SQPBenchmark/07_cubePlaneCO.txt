@@ -1,0 +1,29 @@
+script fall
+
+energy FCR
+timeIntegration BE
+size 1.0
+time 10 5e-3
+
+stiffness 1.0e5 0.4
+density 1000
+
+shape input input/tetMeshes/cube.msh
+
+meshCO input/triMeshes/plane.obj 0 0.0 0  10  50  0  rotate 0 0 0
+
+constraintSolver interiorPoint
+warmStart 0
+selfCollisionOn
+
+section SQP QP
+time 10 5e-3
+warmStart 1
+constraintType graphics
+constraintOffset 1e-3
+tol 1
+1e-3
+section end
+
+view orthographic
+zoom 1.0

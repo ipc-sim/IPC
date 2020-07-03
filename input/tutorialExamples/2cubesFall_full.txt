@@ -1,0 +1,15 @@
+shapes input 2
+input/tetMeshes/cube.msh 0 3 0  0 0 0  1 1 1  material 1000 1e5 0.4
+input/tetMeshes/cube.msh 0 1 0  0 0 0  1 1 1  material 1000 1e5 0.4
+
+density 1000
+stiffness 1e5 0.4
+
+selfFric 0.1
+
+ground 0.1 0
+
+timeIntegration BE
+dampingRatio 0
+
+time 5 0.025

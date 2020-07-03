@@ -1,0 +1,31 @@
+energy NH
+warmStart 0
+size 0.1
+time 2 0.001
+density 1000
+stiffness 1e5 0.4
+script pushRightMost1
+
+shapes input 1
+input/tetMeshes/rod.msh 0 0 0       0 0 89.5  1 1 1
+
+halfSpace 0 -1e-9 0  0 1 0   50 0.35
+
+zoom 0.5
+
+view orthographic
+
+selfCollisionOn
+playBackSpeed 0.02
+constraintSolver interiorPoint
+
+tuning 6
+0
+1e-3
+1e-3
+1e-9
+1e-6
+1e-6
+
+tol 1
+1e-4

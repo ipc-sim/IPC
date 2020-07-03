@@ -1,0 +1,14 @@
+shapes input 1
+input/tetMeshes/Armadillo13K.msh 0 0 0  0 180 90  1 1 1
+script twist
+energy NH
+timeIntegration BE
+warmStart 0
+size 1.0
+time 10 0.025
+density 1000
+stiffness 5e3 0.4
+turnOffGravity
+constraintSolver interiorPoint
+selfCollisionOn
+view perspective

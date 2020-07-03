@@ -1,0 +1,35 @@
+energy FCR
+timeStepper Newton
+inexactSolve 0
+warmStart 1
+resolution 1000
+size 1
+time 10 5e-3
+density 1e3
+stiffness 1e6 0.4
+script fall
+
+shapes input 2
+input/tetMeshes/tet-perp-edges.msh  1 0 0  0 0 0  1 1 1
+input/tetMeshes/tet-perp-edges.msh  1 2 0  0 0 0  1 1 1
+rotateModel  1 0 0  0
+selfCollisionOn
+
+# ground  0.0  0.0  50.0
+meshCO input/triMeshes/plane.obj  0 0 0  10  50.0  0.0 rotate 0 0 0
+
+constraintSolver SQP
+
+view orthographic
+zoom 0.6
+
+section SQP QP
+time 10 1e-2
+warmStart 1
+constraintType graphics
+constraintOffset 1e-2
+tol 1
+1e-3
+useActiveSetConvergence
+QPSolver Gurobi
+section end

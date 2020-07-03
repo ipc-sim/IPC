@@ -1,0 +1,108 @@
+<?xml version="1.0"?>
+<Node name="root" gravity="0 -9.81 0" dt="1e-3">
+    <RequiredPlugin pluginName='SofaExporter'/> <!-- Needed to use components [OBJExporter, ]-->
+    <DefaultAnimationLoop/>
+    <!-- <FreeMotionAnimationLoop/> -->
+    <!-- <MultiStepAnimationLoop collisionSteps="100" integrationSteps="20" /> -->
+    <RequiredPlugin name="SofaOpenglVisual"/>
+    <DefaultPipeline verbose="0" draw="0"/>
+    <BruteForceDetection name="N2" />
+    <NewProximityIntersection name="Proximity" alarmDistance="0.3" contactDistance="0.2" />
+    <DefaultContactManager name="Response" response="default" />
+    <Node name="Simulation">
+        <Node name="Knife1">
+            <MeshObjLoader name="loaderMeca" filename="./triangle.obj" />
+            <MeshObjLoader name="loaderVisual" filename="./triangle.obj" />
+            <MeshTopology src="@loaderMeca" />
+            <MechanicalObject src="@loaderMeca" dx="-30" dy="0" dz="0" scale="100" rz="90" />
+            <TriangleCollisionModel simulated="0" moving="0" />
+            <OglModel name="Visual" src="@loaderVisual" color="white" dx="-30" dy="0" dz="0" scale="100" rz="90" />
+        </Node>
+        <Node name="Knife2">
+            <MeshObjLoader name="loaderMeca" filename="./triangle.obj" />
+            <MeshObjLoader name="loaderVisual" filename="./triangle.obj" />
+            <MeshTopology src="@loaderMeca" />
+            <MechanicalObject src="@loaderMeca" dx="-10" dy="0" dz="0" scale="100" rz="90" />
+            <TriangleCollisionModel simulated="0" moving="0" />
+            <OglModel name="Visual" src="@loaderVisual" color="white" dx="-10" dy="0" dz="0" scale="100" rz="90" />
+        </Node>
+        <Node name="Knife3">
+            <MeshObjLoader name="loaderMeca" filename="./triangle.obj" />
+            <MeshObjLoader name="loaderVisual" filename="./triangle.obj" />
+            <MeshTopology src="@loaderMeca" />
+            <MechanicalObject src="@loaderMeca" dx="10" dy="0" dz="0" scale="100" rz="90" />
+            <TriangleCollisionModel simulated="0" moving="0" />
+            <OglModel name="Visual" src="@loaderVisual" color="white" dx="10" dy="0" dz="0" scale="100" rz="90" />
+        </Node>
+        <Node name="Knife4">
+            <MeshObjLoader name="loaderMeca" filename="./triangle.obj" />
+            <MeshObjLoader name="loaderVisual" filename="./triangle.obj" />
+            <MeshTopology src="@loaderMeca" />
+            <MechanicalObject src="@loaderMeca" dx="30" dy="0" dz="0" scale="100" rz="90" />
+            <TriangleCollisionModel simulated="0" moving="0" />
+            <OglModel name="Visual" src="@loaderVisual" color="white" dx="30" dy="0" dz="0" scale="100" rz="90" />
+        </Node>
+        <Node name="Knife5">
+            <MeshObjLoader name="loaderMeca" filename="./triangle.obj" />
+            <MeshObjLoader name="loaderVisual" filename="./triangle.obj" />
+            <MeshTopology src="@loaderMeca" />
+            <MechanicalObject src="@loaderMeca" dx="-40" dy="0" dz="0" scale="100" rx="180" rz="90" />
+            <TriangleCollisionModel simulated="0" moving="0" />
+            <OglModel name="Visual" src="@loaderVisual" color="white" dx="-40" dy="0" dz="0" scale="100" rx="180" rz="90" />
+        </Node>
+        <Node name="Knife6">
+            <MeshObjLoader name="loaderMeca" filename="./triangle.obj" />
+            <MeshObjLoader name="loaderVisual" filename="./triangle.obj" />
+            <MeshTopology src="@loaderMeca" />
+            <MechanicalObject src="@loaderMeca" dx="-20" dy="0" dz="0" scale="100" rx="180" rz="90" />
+            <TriangleCollisionModel simulated="0" moving="0" />
+            <OglModel name="Visual" src="@loaderVisual" color="white" dx="-20" dy="0" dz="0" scale="100" rx="180" rz="90" />
+        </Node>
+        <Node name="Knife7">
+            <MeshObjLoader name="loaderMeca" filename="./triangle.obj" />
+            <MeshObjLoader name="loaderVisual" filename="./triangle.obj" />
+            <MeshTopology src="@loaderMeca" />
+            <MechanicalObject src="@loaderMeca" dx="0" dy="0" dz="0" scale="100" rx="180" rz="90" />
+            <TriangleCollisionModel simulated="0" moving="0" />
+            <OglModel name="Visual" src="@loaderVisual" color="white" dx="0" dy="0" dz="0" scale="100" rx="180" rz="90" />
+        </Node>
+        <Node name="Knife8">
+            <MeshObjLoader name="loaderMeca" filename="./triangle.obj" />
+            <MeshObjLoader name="loaderVisual" filename="./triangle.obj" />
+            <MeshTopology src="@loaderMeca" />
+            <MechanicalObject src="@loaderMeca" dx="20" dy="0" dz="0" scale="100" rx="180" rz="90" />
+            <TriangleCollisionModel simulated="0" moving="0" />
+            <OglModel name="Visual" src="@loaderVisual" color="white" dx="20" dy="0" dz="0" scale="100" rx="180" rz="90" />
+        </Node>
+        <Node name="Knife9">
+            <MeshObjLoader name="loaderMeca" filename="./triangle.obj" />
+            <MeshObjLoader name="loaderVisual" filename="./triangle.obj" />
+            <MeshTopology src="@loaderMeca" />
+            <MechanicalObject src="@loaderMeca" dx="40" dy="0" dz="0" scale="100" rx="180" rz="90" />
+            <TriangleCollisionModel simulated="0" moving="0" />
+            <OglModel name="Visual" src="@loaderVisual" color="white" dx="40" dy="0" dz="0" scale="100" rx="180" rz="90" />
+        </Node>
+        <Node name="Mat">
+        	<EulerImplicitSolver rayleighStiffness="0.01"  rayleighMass="0.1" />
+        	<CGLinearSolver iterations="3000" threshold="1e-12" tolerance="1e-12" />
+        	<MeshGmshLoader name="meshLoader" filename="./mat40x40.msh"/>
+        	<MeshTopology src="@meshLoader" />
+        	<MechanicalObject dx="0" dy="110" dz="0" rx="0" ry="0" rz="0" scale="100" />
+        	<UniformMass totalMass="5" />
+        	<TetrahedronFEMForceField name="FEM" youngModulus="2" poissonRatio="0.4" computeGlobalMatrix="false" method="polar"/>
+        	<Node name="Visu">
+        		<MeshObjLoader name="meshVisualLoader" filename="../../../input/triMeshes/mat40x40.obj"/>
+        		<OglModel name="Visual" src="@meshVisualLoader" color="red" dx="0" dy="110" dz="0" rx="0" ry="0" rz="0" scale="100"/>
+        		<BarycentricMapping input="@.." output="@Visual" />
+        	</Node>
+            <Node name="Surf2">
+                <MeshObjLoader name="meshCollisionLoader" filename="../../../input/triMeshes/mat40x40.obj"/>
+                <MeshTopology src="@meshCollisionLoader"/>
+                <MechanicalObject dx="0" dy="110" dz="0" rx="0" ry="0" rz="0" scale="100"/>
+                <TriangleCollisionModel />
+                <BarycentricMapping />
+            </Node>
+        </Node>
+    </Node>
+    <OBJExporter name='exporter1' printLog='true' filename='output/frame' exportEveryNumberOfSteps='10' exportAtBegin='true' />
+</Node>

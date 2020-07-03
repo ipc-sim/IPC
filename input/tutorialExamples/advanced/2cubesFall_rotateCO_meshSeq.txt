@@ -1,0 +1,9 @@
+shapes input 2
+input/tetMeshes/cube.msh 0 3 0  0 0 0  1 1 1
+input/triMeshes/triangle.seg 0 1 0  0 0 0  2 2 2  meshSeq input/segMeshes/sequence
+
+selfFric 0.1
+
+ground 0.1 0
+
+zoom 0.3

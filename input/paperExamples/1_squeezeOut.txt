@@ -1,0 +1,25 @@
+energy NH
+warmStart 0
+size 4
+time 15 0.01
+density 1000
+stiffness 5e4 0.4
+script DCOSqueezeOut
+
+shapes input 6
+input/triMeshes/plane.obj -1 2.25 -1     0 0 0  2 2 2
+input/triMeshes/coneBox.obj 0 -2 0  0 0 -90  1.15 1.15 1.15
+input/tetMeshes/alien.msh 0 -1.05 0  0 0 0  0.45 0.45 0.45
+input/tetMeshes/hollowCat7.5K.msh 1.2 0.2 -0.1  -90 0 0  0.22 0.22 0.22
+input/tetMeshes/monkey8K.msh -0.03 1.05 0  -90 0 0  0.012 0.012 0.012
+input/tetMeshes/32770_octocat.msh 0 1.9 0  -90 0 0  0.01 0.01 0.01
+
+halfSpace 0 -0.8 0  0 1 0  50 0.1
+
+selfCollisionOn
+
+zoom 2
+
+view perspective
+
+constraintSolver interiorPoint

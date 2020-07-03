@@ -1,0 +1,25 @@
+energy NH
+warmStart 0
+size 3
+time 4 0.04
+density 1000
+stiffness 100000 0.4
+script fixLowerHalf
+
+shapes input 1
+input/tetMeshes/ANSYS1e-3Corner_coarse.msh 0 0 0  0 0 0  1 1 1
+
+selfCollisionOn
+
+halfSpace  0 -1e-3 0  0 1 0  50  0
+
+zoom 1
+
+view perspective
+
+constraintSolver interiorPoint
+
+tuning 3
+0
+1e-5
+1e-5

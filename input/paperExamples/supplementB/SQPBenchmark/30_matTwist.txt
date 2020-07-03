@@ -1,0 +1,32 @@
+shapes input 1
+input/tetMeshes/mat20x20.msh 0 0 0  90 0 0  1 1 1
+
+script twist
+energy FCR
+timeIntegration BE
+warmStart 0
+size 1.0
+time 5 0.025
+density 1000
+stiffness 1e4 0.4
+turnOffGravity
+
+#ground 0 0.5 50.0
+#halfSpace 0.8 0 0  -1 0 0  50 0
+#halfSpace -0.02 0 0  1 0 0  50 0
+#halfSpace 0 0 -0.02  0 0 1  50 0
+#halfSpace 0 0 0.8  0 0 -1  50 0
+constraintSolver interiorPoint
+selfCollisionOn
+
+view perspective
+
+section SQP QP
+time 10 5e-3
+warmStart 1
+constraintType graphics
+constraintOffset 0
+QPSolver OSQP
+tol 1
+1e-3
+section end

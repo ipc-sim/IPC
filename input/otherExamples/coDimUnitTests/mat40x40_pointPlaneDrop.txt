@@ -1,0 +1,23 @@
+energy NH
+warmStart 0
+size 4
+time 8 0.04
+density 1000
+stiffness 10000 0.4
+script DCOFix
+
+shapes input 1
+input/tetMeshes/mat40x40.msh 9.5 3 10     0 0 0  5 5 5
+
+shapeMatrix input 20 1 21
+input/triMeshes/point.pt 1 1 1  0 0 0  1 1 1
+
+selfCollisionOn
+
+zoom 1
+
+view perspective
+
+constraintSolver interiorPoint
+
+cameraTracking

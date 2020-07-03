@@ -1,0 +1,35 @@
+energy FCR
+warmStart 0
+size -1
+time 10 0.025
+density 1000
+stiffness 1e5 0.2
+script DCOVerschoorRoller
+
+shapes input 7
+input/triMeshes/verschoor/roller0.obj 0 0 0  0 0 0  1 1 1
+input/triMeshes/verschoor/roller1.obj 0 0 0  0 0 0  1 1 1
+input/triMeshes/verschoor/roller2.obj 0 0 0  0 0 0  1 1 1
+input/triMeshes/verschoor/roller3.obj 0 0 0  0 0 0  1 1 1
+input/triMeshes/verschoor/roller4.obj 0 0 0  0 0 0  1 1 1
+input/triMeshes/verschoor/roller5.obj 0 0 0  0 0 0  1 1 1
+input/tetMeshes/armadillo_verschoor.msh 0 0 0      0 0 0  1 1 1
+
+selfCollisionOn
+selfFric 0.5
+
+halfSpace  0 0.2 0  0 1 0  50  0.5
+
+zoom 1
+
+view perspective
+
+constraintSolver interiorPoint
+
+tuning 6
+0
+1e-3
+1e-3
+1e-9
+1e-3
+1e-3

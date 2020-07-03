@@ -1,0 +1,7 @@
+shapes input 2
+input/tetMeshes/cube.msh 0 3 0  0 0 0  1 1 1
+input/tetMeshes/cube.msh 0 1 0  0 0 0  1 1 1 linearVelocity 1 1 1
+
+selfFric 0.1
+
+ground 0.1 0

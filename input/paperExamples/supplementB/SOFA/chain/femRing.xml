@@ -1,0 +1,22 @@
+<Node name="femRing">
+	<EulerImplicitSolver rayleighStiffness="0.01"  rayleighMass="0.1" />
+	<CGLinearSolver iterations="25" threshold="0.00000001" tolerance="1e-05" />
+	<MeshGmshLoader name="meshLoader" filename="./torus.msh"/>
+	<MeshTopology src="@meshLoader" />
+	<MechanicalObject dx="0" dy="0" dz="0" rx="0" ry="0" rz="0" scale="10" />
+	<UniformMass totalMass="5" />
+	<TetrahedronFEMForceField name="FEM" youngModulus="1000" poissonRatio="0.3" computeGlobalMatrix="false" method="polar"/>
+	<!-- <TetrahedronHyperelasticityFEMForceField name="FEM" ParameterSet="1e5 1e4"/> -->
+	<Node name="Visu">
+		<MeshObjLoader name="meshVisualLoader" filename="../../../input/triMeshes/torus.obj"/>
+		<OglModel name="Visual" src="@meshVisualLoader" color="red" dx="0" dy="0" dz="0" rx="0" ry="0" rz="0" scale="10"/>
+		<BarycentricMapping input="@.." output="@Visual" />
+	</Node>
+	<Node name="Surf2">
+		<MeshObjLoader name="meshCollisionLoader" filename="../../../input/triMeshes/torus.obj"/>
+		<MeshTopology src="@meshCollisionLoader"/>
+		<MechanicalObject dx="0" dy="0" dz="0" rx="0" ry="0" rz="0" scale="10"/>
+		<TriangleCollisionModel />
+		<BarycentricMapping />
+	</Node>
+</Node>

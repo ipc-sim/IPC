@@ -1,0 +1,32 @@
+energy NH
+warmStart 0
+size 3.04
+time 10 4e-2
+density 1e3
+stiffness 1e5 0.4
+script fallNoShift
+
+shapes input 5
+input/tetMeshes/torus.msh  0 -0 0  0 90 0  1 1 1
+input/tetMeshes/torus.msh  0 -0.51 0  0 0 0  1 1 1
+input/tetMeshes/torus.msh  0 -1.02 0  0 90 0  1 1 1
+input/tetMeshes/torus.msh  0 -1.53 0  0 0 0  1 1 1
+input/tetMeshes/torus.msh  0 -2.04 0  0 90 0  1 1 1
+selfCollisionOn
+
+meshCO input/triMeshes/torus.obj  0.5 3.1008 0.5  1  50 0
+
+constraintSolver interiorPoint
+
+view orthographic
+zoom 0.3
+
+section SQP QP
+energy FCR
+time 10 1e-3
+warmStart 1
+constraintType graphics
+constraintOffset 1e-2
+tol 1
+1e-3
+section end
