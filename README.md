@@ -22,7 +22,13 @@ This is the opensource reference implementation of the SIGGRAPH 2020 paper [Incr
 
 ## Build
 
-* `python build.py`
+You can either use `python build.py` or
+```
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+make -j4
+```
 
 ### Dependancies
 
@@ -39,6 +45,10 @@ installed at a system level
         * For program efficiency, we strongly recommend compiling SuiteSparse using [Intel MKL](https://software.intel.com/content/www/us/en/develop/tools/math-kernel-library.html) LAPACK and BLAS (on an Intel machine): `make library BLAS='-lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread -lpthread -lm -lmkl_blas95_lp64 -liomp5' LAPACK='-lmkl_lapack95_lp64' -j 8`
     * IPC also supports using [Eigen](http://eigen.tuxfamily.org/) or [AMGCL](https://github.com/ddemidov/amgcl) as linear solver, which can be set via `IPC_LINSYSSOLVER` in `CMakeLists.txt`. To use custom linear solvers, you can implement a new interface (subclass) to our `LinSysSolver` class.
 * [libigl](https://libigl.github.io/), [OSQP](https://osqp.org/), [AMGCL](https://github.com/ddemidov/amgcl), and [TBB](https://software.intel.com/content/www/us/en/develop/tools/threading-building-blocks.html): downloaded and built through CMake
+
+### Without OpenGL
+
+If your system does not have the required OpenGL libraries, you can disable the viewer using the CMake argument `-DIPC_WITH_OPENGL=OFF`. It is important to then run IPC in offline mode (see below).
 
 ### 2D?
 
@@ -70,6 +80,12 @@ of the sub-project (e.g. `DIAGNOSTIC`, `MESH_PROCESSING`). You can also set thes
 ## Run
 
 Please see our [quick start guide](https://github.com/ipc-sim/IPC/wiki) for a `hello world` example with various settings. The output of each script will be saved into a separate folder in `output/`.
+
+### Offline Mode
+
+It is possible to run IPC with and without the viewer. By default, the `batch.py` script runs IPC with the viewer. If you provide the argument `--offline` to `batch.py` then it will run IPC in offline mode (i.e. without the viewer).
+
+If you are running the `IPC_bin` executable directly then the first argument controls the mode. Mode `10` runs IPC with the viewer and is the default in the `batch.py`. Mode `100` runs IPC in offline mode (without the viewer). See `IPC_bin --help` for more detail.
 
 ### HPC
 

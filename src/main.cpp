@@ -607,11 +607,9 @@ bool preDrawFunc()
 }
 
 struct CLIArgs {
-    int progMode = 0;
-    std::string meshFileName = "cone2.0.obj";
-    double lambda = 0.0;
-    double delta = 4.0;
-    std::string folderTail = "";
+    int progMode;
+    std::string inputFileName;
+    std::string folderTail;
     int logLevel = 0; // trace (all logs)
 };
 
@@ -621,7 +619,7 @@ void init_cli_app(CLI::App& app, CLIArgs& args)
         "program mode 0=optimization, 10=auto-switch, "
         "11=auto-switch (save png), 100=offline",
         true);
-    app.add_option("meshFileName", args.meshFileName, "input file name", true);
+    app.add_option("inputFileName", args.inputFileName, "input file name", true);
     app.add_option(
         "folderTail", args.folderTail, "output folder name tail/suffix", true);
     app.add_set("--logLevel,--log", args.logLevel, { 0, 1, 2, 3, 4, 5, 6 },
@@ -686,15 +684,15 @@ int main(int argc, char* argv[])
 
     // Optimization mode
     std::string meshFilePath;
-    if (args.meshFileName.at(0) == '/') {
+    if (args.inputFileName.at(0) == '/') {
         spdlog::info("The input script file name is gloabl mesh file path.");
-        meshFilePath = args.meshFileName;
-        args.meshFileName = args.meshFileName.substr(args.meshFileName.find_last_of('/') + 1);
+        meshFilePath = args.inputFileName;
+        args.inputFileName = args.inputFileName.substr(args.inputFileName.find_last_of('/') + 1);
     }
     else {
-        meshFilePath = args.meshFileName;
+        meshFilePath = args.inputFileName;
     }
-    std::string meshName = args.meshFileName.substr(0, args.meshFileName.find_last_of('.'));
+    std::string meshName = args.inputFileName.substr(0, args.inputFileName.find_last_of('.'));
     // Load mesh
     Eigen::MatrixXd V, UV, N;
     Eigen::MatrixXi F, FUV, FN, E;
@@ -1222,7 +1220,7 @@ int main(int argc, char* argv[])
 #endif
         viewer.launch();
 #else
-        spdlog::critical("Not offiline mode supported only with opengl");
+        spdlog::critical("Only offline mode is supported when OpenGL is disabled. See --help for more details.");
 #endif
     }
 
