@@ -58,3 +58,4 @@ appendStr largeScale_dHat1um
 tol 1
 1e-4
 
+fricIterAmt -1
