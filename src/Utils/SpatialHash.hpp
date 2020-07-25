@@ -586,7 +586,7 @@ public: // API
         }
     }
 
-    void build(const Mesh<dim>& mesh, const Eigen::VectorXd& searchDir, double curMaxStepSize, double voxelSize, bool use_V_prev = false)
+    void build(const Mesh<dim>& mesh, const Eigen::VectorXd& searchDir, double& curMaxStepSize, double voxelSize, bool use_V_prev = false)
     {
         // Can't do it as we sometimes still need to use the Legacy meshCO
         // Eigen::VectorXd searchDir = p_searchDir;
@@ -599,6 +599,23 @@ public: // API
         // for (int svI = 0; svI < mesh.SVI.size(); ++svI) {
         //     searchDir.template segment<dim>(mesh.SVI[svI] * dim) -= avgSD;
         // }
+
+        double pSize = 0;
+        for (int svI = 0; svI < mesh.SVI.size(); ++svI) {
+            int vI = mesh.SVI[svI];
+            pSize += std::abs(searchDir[vI * dim]);
+            pSize += std::abs(searchDir[vI * dim + 1]);
+            if constexpr (dim == 3) {
+                pSize += std::abs(searchDir[vI * dim + 2]);
+            }
+        }
+        pSize /= mesh.SVI.size() * dim;
+
+        const double spanSize = curMaxStepSize * pSize / voxelSize;
+        if (spanSize > 1) {
+            curMaxStepSize /= spanSize;
+            // curMaxStepSize reduced for CCD spatial hash efficiency
+        }
 
         const Eigen::MatrixXd& V = use_V_prev ? mesh.V_prev : mesh.V;
         Eigen::MatrixXd SVt(mesh.SVI.size(), dim);

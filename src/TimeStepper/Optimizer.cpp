@@ -1511,6 +1511,10 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
             for (int i = 0; i < MMLambda_lastH.back().size(); ++i) {
                 compute_g_b(constraintVal[startCI + i], dHat, MMLambda_lastH.back()[i]);
                 MMLambda_lastH.back()[i] *= -mu_IP * 2.0 * std::sqrt(constraintVal[startCI + i]);
+                if (MMActiveSet.back()[i][3] < -1) {
+                    // PP or PE duplication
+                    MMLambda_lastH.back()[i] *= -MMActiveSet.back()[i][3];
+                }
             }
 
             SelfCollisionHandler<dim>::computeDistCoordAndTanBasis(
@@ -1570,6 +1574,10 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
                 for (int i = 0; i < MMLambda_lastH.back().size(); ++i) {
                     compute_g_b(constraintVal[startCI + i], dHat, MMLambda_lastH.back()[i]);
                     MMLambda_lastH.back()[i] *= -mu_IP * 2.0 * std::sqrt(constraintVal[startCI + i]);
+                    if (MMActiveSet.back()[i][3] < -1) {
+                        // PP or PE duplication
+                        MMLambda_lastH.back()[i] *= -MMActiveSet.back()[i][3];
+                    }
                 }
 
                 SelfCollisionHandler<dim>::computeDistCoordAndTanBasis(

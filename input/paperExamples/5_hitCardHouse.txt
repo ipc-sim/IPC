@@ -20,9 +20,9 @@ zoom 8
 
 view orthographic
 
-halfSpace 0 2.568 0  0 1 0  50 1.0
+halfSpace 0 2.568 0  0 1 0  50 0.9
 selfCollisionOn
-selfFric 1.0
+selfFric 0.9
 
 constraintSolver interiorPoint
 

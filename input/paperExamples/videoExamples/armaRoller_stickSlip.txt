@@ -33,3 +33,5 @@ tuning 6
 1e-9
 1e-3
 1e-3
+
+fricIterAmt 2
