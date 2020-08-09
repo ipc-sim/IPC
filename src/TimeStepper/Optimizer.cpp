@@ -386,7 +386,7 @@ void Optimizer<dim>::setTime(double duration, double dt)
 {
     this->dt = dt;
     dtSq = dt * dt;
-    frameAmt = duration / dt;
+    frameAmt = std::ceil(duration / dt);
     updateTargetGRes();
     gravityDtSq = dtSq * gravity;
     computeXTilta();
