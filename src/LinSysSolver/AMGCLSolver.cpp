@@ -152,7 +152,7 @@ bool AMGCLSolver<vectorTypeI, vectorTypeS>::factorize(void)
         delete solver;
     }
     Solver::params prm;
-    prm.solver.tol = 1e-3; // relative
+    prm.solver.tol = 1e-5; // relative
     prm.solver.maxiter = 1000;
     prm.precond.coarsening.aggr.eps_strong = 0.0;
     prm.solver.M = 100;

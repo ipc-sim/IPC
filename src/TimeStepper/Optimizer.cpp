@@ -1789,7 +1789,7 @@ bool Optimizer<dim>::solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
         spdlog::info("mu = {:g}, dHat = {:g}, {:g}, subproblem ||g||^2 = {:g}", mu_IP, dHat, fricDHat, gradSqNorm);
         spdlog::info("distToOpt_PN = {:g}, targetGRes = {:g}", distToOpt_PN, targetGRes);
         bool gradVanish = (distToOpt_PN < targetGRes);
-        if (k && gradVanish && (animScripter.getCompletedStepSize() > 1.0 - 1.0e-3)
+        if (!useGD && k && gradVanish && (animScripter.getCompletedStepSize() > 1.0 - 1.0e-3)
             && (animScripter.getCOCompletedStepSize() > 1.0 - 1.0e-3)) {
             // subproblem converged
             logFile << k << " Newton-type iterations for mu = " << mu_IP << ", dHat = " << dHat << std::endl;
@@ -1907,8 +1907,15 @@ bool Optimizer<dim>::solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
             logFile << "tiny step size after armijo " << alpha_feasible << " " << alpha << std::endl;
         }
 
-        // if (alpha < 1.0e-8) { // only for debugging tiny step size issue
+#ifdef LINSYSSOLVER_USE_AMGCL
+        if (alpha < 1.0e-8) { // only for debugging tiny step size issue
+            // output system in AMGCL format 
+            // Eigen::VectorXd minusG = -gradient;
+            // dynamic_cast<AMGCLSolver<Eigen::VectorXi, Eigen::VectorXd>*>(linSysSolver)->write_AMGCL("Stiff", minusG);
+            // exit(-1);
+#else
         if (false) {
+#endif
             // tiny step size issue
             // if (useGD) {
             // MMCVID i = paraEEMMCVIDSet.back()[0];
