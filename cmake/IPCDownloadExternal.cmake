@@ -84,7 +84,7 @@ endfunction()
 function(download_finite_diff)
     custom_download_project(finite-diff
         GIT_REPOSITORY https://github.com/zfergus/finite-diff.git
-        GIT_TAG        a1b8b560252960a6e2d0027a898bbd077e4f8003
+        GIT_TAG        dac4e629defb0edef050e56050eefb00574ecbaa
     )
 endfunction()
 
@@ -110,6 +110,6 @@ endfunction()
 function(download_rational_ccd)
   custom_download_project(rational_ccd
     GIT_REPOSITORY https://github.com/teseoch/Exact-CDD.git
-    GIT_TAG        01277f58432b422277004d724df4096d8e768134
+    GIT_TAG        63fdb92b917c8d7349c9403656f1497df6fa6ce5
   )
 endfunction()

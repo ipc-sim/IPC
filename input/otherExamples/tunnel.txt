@@ -1,0 +1,13 @@
+time 10 0.01
+
+dHat 1e-2
+
+turnOffGravity
+
+shapes input 3
+input/tetMeshes/cube.msh -0.5 0 -4  0 90 0  1 1 1  initVel 0 0 10  0 0 0
+input/triMeshes/plane.obj  -5 -0.0001 -5  0 0 0  10 10 10  linearVelocity 0 0 0
+input/triMeshes/plane.obj  -5  1.0001 -5  0 0 0  10 10 10  linearVelocity 0 0 0
+
+density 1000
+stiffness 1e11 0.4
