@@ -7,12 +7,13 @@
     * `3`: uniformly accelerated warm start
     * `4`: symplectic Euler warm start
     * `5`: Jacobi warm start
-* `exactCCD {none | rootParity | BSC | rationalRootParity}`: By default, IPC uses floating-point version of CCD together with edge-triangle intersection checks as safeguard, which is much faster than exact CCD and does not have any failure cases so far in practice
-    * which method of exact CCD to use (default: `none`)
-    * `none`: do not use exact CCD
-    * `rootParity`: use the root parity method of Brochu et al. [2012], which in fact has failure cases in our experiments (e.g. sphere roller)
+* `CCDMethod {FloatPointRootFinder | RootParity | BSC | RationalRootParity | ...}`: By default, IPC uses floating-point version of CCD together with edge-triangle intersection checks as safeguard, which is much faster than exact CCD and does not have any failure cases so far in practice
+    * which method of exact CCD to use (default: `FloatPointRootFinder`)
+    * `FloatPointRootFinder`: use the floating-point root finder method implemented by Etienne Vouga
+    * `RootParity`: use the root parity method of Brochu et al. [2012], which in fact has failure cases in our experiments (e.g. sphere roller)
     * `BSC`: use the Bernstein sign classification method of Tang et al. [2014], which in fact has failure cases in our experiments (e.g. sphere roller)
-    * `rationalRootParity`: use our reimplementation with rational numbers of the root parity method in Brochu et al. [2012], which is free from failure cases but much slower
+    * `RationalRootParity`: use our reimplementation with rational numbers of the root parity method in Brochu et al. [2012], which is in fact does not handle double collisions in a single time-step (a limitation of the original [Brochu et al. 2012])
+    * For more options see https://github.com/zfergus/ccd-wrapper
 * `tuning <positive-integer>`: please use `dHat`, `epsv`, `fricIterAmt`, and `tol` to control accuracies instead
     * number of accuracy parameters to be set followed by that number of realNumber
 * `meshCO  <mesh-file-path>  <x> <y> <z>  <scale>  <stiffness>  <friction-coefficient>`
@@ -35,4 +36,4 @@
 * `handleRatio <ratio>`
     * a legacy way of specifying the proportion of fixed vertices for setting Dirichlet boundary conditions
     * `ratio` must be greater than zero and less than one
-    * please use `shapes` command with `DBC` extra keyword instead 
+    * please use `shapes` command with `DBC` extra keyword instead

@@ -99,6 +99,8 @@ if(IPC_WITH_GUROBI AND NOT TARGET EigenGurobi::EigenGurobi)
   add_library(EigenGurobi::EigenGurobi ALIAS EigenGurobi)
 endif()
 
-# Rational CCD
-download_rational_ccd()
-add_subdirectory(${IPC_EXTERNAL}/rational_ccd)
+# CCD Wrapper
+if(NOT TARGET CCDWrapper)
+  download_ccd_wrapper()
+  add_subdirectory(${IPC_EXTERNAL}/ccd-wrapper)
+endif()

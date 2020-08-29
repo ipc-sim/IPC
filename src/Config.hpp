@@ -11,7 +11,7 @@
 #include "AnimScripter.hpp"
 #include "CollisionObject.h"
 #include "CollisionConstraints.hpp"
-#include "ExactCCD.hpp"
+#include <ccd.hpp>
 
 #include <iostream>
 #include <map>
@@ -107,7 +107,7 @@ public:
     std::vector<double> scriptParams; // the parameters for setting script if any,
     // like initial velocity, position, etc
 
-    ExactCCD::Method exactCCDMethod = ExactCCD::Method::NONE;
+    ccd::CCDMethod ccdMethod = ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER;
 
     /// @brief Constraint type for SQP method of handling collisions.
     CollisionConstraintType constraintType = CollisionConstraintType::VOLUME;
@@ -119,7 +119,6 @@ public:
     static const std::vector<std::string> energyTypeStrs;
     static const std::vector<std::string> timeIntegrationTypeStrs;
     static const std::vector<std::string> constraintSolverTypeStrs;
-    static const std::vector<std::string> exactCCDTypeStrs;
     static const std::vector<std::string> constraintTypeStrs;
     static const std::vector<std::string> QPSolverTypeStrs;
 
@@ -139,7 +138,7 @@ public:
     static std::string getStrByTimeIntegrationType(TimeIntegrationType timeIntegrationType);
     static ConstraintSolverType getConstraintSolverTypeByStr(const std::string& str);
     static std::string getStrByConstraintSolverType(ConstraintSolverType constraintSolverType);
-    static ExactCCD::Method getExactCCDTypeByStr(const std::string& str);
+    static ccd::CCDMethod getCCDMethodTypeByStr(const std::string& str);
     static CollisionConstraintType getConstraintTypeByStr(const std::string& str);
     static QPSolverType getQPSolverTypeByStr(const std::string& str);
 };

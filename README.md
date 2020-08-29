@@ -261,8 +261,7 @@ of QP and SQP methods.
 The `tests` directory contains a very limited number of unit-tests. These tests
 use [Catch2](https://github.com/catchorg/Catch2) which is downloaded through
 CMake unless the option `-DIPC_WITH_TESTS=OFF` is provided. Currently, these
-test contain test for the CCD (both exact and inexact) and the collision
-constraints used by the SQP solver.
+test contain test the collision constraints used by the SQP solver.
 
 ## Tools
 

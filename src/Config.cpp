@@ -35,9 +35,6 @@ const std::vector<std::string> Config::timeIntegrationTypeStrs = {
 const std::vector<std::string> Config::constraintSolverTypeStrs = {
     "QP", "SQP", "interiorPoint"
 };
-const std::vector<std::string> Config::exactCCDTypeStrs = {
-    "none", "rootParity", "BSC", "rationalRootParity"
-};
 const std::vector<std::string> Config::constraintTypeStrs = {
     "volume", "graphics", "nonsmoothNewmark", "gapFunction", "CMR", "Verschoor", "STIV"
 };
@@ -498,10 +495,10 @@ int Config::loadFromFile(const std::string& p_filePath)
                 ss >> constraintOffset;
                 spdlog::info("Using collision constraint offset: {:g}", constraintOffset);
             }
-            else if (token == "exactCCD") {
+            else if (token == "CCDMethod") {
                 std::string type;
                 ss >> type;
-                this->exactCCDMethod = this->getExactCCDTypeByStr(type);
+                this->ccdMethod = this->getCCDMethodTypeByStr(type);
             }
             else if (token == "section") {
                 std::string section;
@@ -635,16 +632,17 @@ std::string Config::getStrByConstraintSolverType(ConstraintSolverType constraint
     assert(constraintSolverType < constraintSolverTypeStrs.size());
     return constraintSolverTypeStrs[constraintSolverType];
 }
-ExactCCD::Method Config::getExactCCDTypeByStr(const std::string& str)
+ccd::CCDMethod Config::getCCDMethodTypeByStr(const std::string& str)
 {
-    for (int i = 0; i < exactCCDTypeStrs.size(); i++) {
-        if (str == exactCCDTypeStrs[i]) {
-            return ExactCCD::Method(i);
+    for (int i = 0; i < ccd::CCDMethod::NUM_CCD_METHODS; i++) {
+        if (str == ccd::method_names[i]) {
+            return ccd::CCDMethod(i);
         }
     }
-    spdlog::error("Uknown exact CCD method: {:s}", str);
-    spdlog::info("Using default exact CCD method: none");
-    return ExactCCD::Method::NONE;
+    spdlog::error("Uknown exact CCD method: {}", str);
+    spdlog::info("Using default exact CCD method: {}",
+        ccd::method_names[ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER]);
+    return ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER;
 }
 CollisionConstraintType Config::getConstraintTypeByStr(const std::string& str)
 {

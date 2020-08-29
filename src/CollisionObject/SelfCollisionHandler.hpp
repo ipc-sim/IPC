@@ -13,7 +13,7 @@
 #include "SpatialHash.hpp"
 #include "LinSysSolver.hpp"
 #include "Mesh.hpp"
-#include "ExactCCD.hpp"
+#include <ccd.hpp>
 
 namespace IPC {
 
@@ -112,7 +112,7 @@ public:
     static void largestFeasibleStepSize_exact(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh,
         const Eigen::VectorXd& searchDir,
-        const ExactCCD::Method method,
+        const ccd::CCDMethod method,
         const std::vector<std::pair<int, int>>& constraintSet,
         double& stepSize);
     // CCD based
@@ -122,7 +122,7 @@ public:
         double& stepSize);
     static void largestFeasibleStepSize_CCD_exact(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh, const Eigen::VectorXd& searchDir,
-        const ExactCCD::Method method, double& stepSize);
+        const ccd::CCDMethod method, double& stepSize);
 
     static void updateConstraints_QP(const Mesh<dim>& mesh,
         const std::vector<MMCVID>& activeSet,
@@ -217,7 +217,7 @@ public:
     static bool isIntersected(
         const Mesh<dim>& mesh,
         const Eigen::MatrixXd& V0,
-        const ExactCCD::Method method);
+        const ccd::CCDMethod method);
 };
 
 } // namespace IPC

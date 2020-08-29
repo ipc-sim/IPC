@@ -678,7 +678,7 @@ template <int dim>
 void SelfCollisionHandler<dim>::largestFeasibleStepSize_exact(const Mesh<dim>& mesh,
     const SpatialHash<dim>& sh,
     const Eigen::VectorXd& searchDir,
-    const ExactCCD::Method method,
+    const ccd::CCDMethod method,
     const std::vector<std::pair<int, int>>& constraintSet,
     double& stepSize)
 {
@@ -710,7 +710,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_exact(const Mesh<dim>& m
                 if (MMCVIDI[0] >= 0) {
                     // edge-edge
                     largestAlphasAS[cI] = stepSize;
-                    while (ExactCCD::edgeEdgeCCD(
+                    while (ccd::edgeEdgeCCD(
                         mesh.V.row(MMCVIDI[0]).transpose(),
                         mesh.V.row(MMCVIDI[1]).transpose(),
                         mesh.V.row(MMCVIDI[2]).transpose(),
@@ -745,7 +745,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_exact(const Mesh<dim>& m
                     assert(MMCVIDI[1] >= 0);
 
                     largestAlphasAS[cI] = stepSize;
-                    while (ExactCCD::vertexFaceCCD(
+                    while (ccd::vertexFaceCCD(
                         mesh.V.row(vI).transpose(),
                         mesh.V.row(MMCVIDI[1]).transpose(),
                         mesh.V.row(MMCVIDI[2]).transpose(),
@@ -949,7 +949,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD(const Mesh<dim>& mes
                     }
 
 #ifdef CHECK_RATIONAL_CCD
-                    if (ExactCCD::vertexFaceCCD(mesh.V.row(vI).transpose(),
+                    if (ccd::vertexFaceCCD(mesh.V.row(vI).transpose(),
                             mesh.V.row(sfVInd[0]).transpose(),
                             mesh.V.row(sfVInd[1]).transpose(),
                             mesh.V.row(sfVInd[2]).transpose(),
@@ -957,12 +957,12 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD(const Mesh<dim>& mes
                             mesh.V.row(sfVInd[0]).transpose() + searchDir.segment<dim>(sfVInd[0] * dim),
                             mesh.V.row(sfVInd[1]).transpose() + searchDir.segment<dim>(sfVInd[1] * dim),
                             mesh.V.row(sfVInd[2]).transpose() + searchDir.segment<dim>(sfVInd[2] * dim),
-                            ExactCCD::Method::RATIONAL_ROOT_PARITY)
+                            ccd::CCDMethod::RATIONAL_ROOT_PARITY)
                         && largestAlpha == 1.0) {
                         std::cout << "PT false negative type1" << std::endl;
                     }
 
-                    if (ExactCCD::vertexFaceCCD(mesh.V.row(vI).transpose(),
+                    if (ccd::vertexFaceCCD(mesh.V.row(vI).transpose(),
                             mesh.V.row(sfVInd[0]).transpose(),
                             mesh.V.row(sfVInd[1]).transpose(),
                             mesh.V.row(sfVInd[2]).transpose(),
@@ -970,7 +970,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD(const Mesh<dim>& mes
                             mesh.V.row(sfVInd[0]).transpose() + largestAlpha * searchDir.segment<dim>(sfVInd[0] * dim),
                             mesh.V.row(sfVInd[1]).transpose() + largestAlpha * searchDir.segment<dim>(sfVInd[1] * dim),
                             mesh.V.row(sfVInd[2]).transpose() + largestAlpha * searchDir.segment<dim>(sfVInd[2] * dim),
-                            ExactCCD::Method::RATIONAL_ROOT_PARITY)) {
+                            ccd::CCDMethod::RATIONAL_ROOT_PARITY)) {
                         std::cout << "PT false negative type2" << std::endl;
                     }
 #endif // CHECK_RATIONAL_CCD
@@ -1108,28 +1108,30 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD(const Mesh<dim>& mes
                     timer_mt.stop();
 
 #ifdef CHECK_RATIONAL_CCD
-                    if (ExactCCD::edgeEdgeCCD(mesh.V.row(meshEI.first).transpose(),
-                            mesh.V.row(meshEI.second).transpose(),
-                            mesh.V.row(meshEJ.first).transpose(),
-                            mesh.V.row(meshEJ.second).transpose(),
-                            mesh.V.row(meshEI.first).transpose() + searchDir.segment<dim>(meshEI.first * dim),
-                            mesh.V.row(meshEI.second).transpose() + searchDir.segment<dim>(meshEI.second * dim),
-                            mesh.V.row(meshEJ.first).transpose() + searchDir.segment<dim>(meshEJ.first * dim),
-                            mesh.V.row(meshEJ.second).transpose() + searchDir.segment<dim>(meshEJ.second * dim),
-                            ExactCCD::Method::RATIONAL_ROOT_PARITY)
+                    if (ccd::edgeEdgeCCD(mesh.V.row(meshEI.first).transpose(),
+                                         mesh.V.row(meshEI.second).transpose(),
+                                         mesh.V.row(meshEJ.first).transpose(),
+                                         mesh.V.row(meshEJ.second).transpose(),
+                                         mesh.V.row(meshEI.first).transpose() + searchDir.segment<dim>(meshEI.first * dim),
+                                         mesh.V.row(meshEI.second).transpose() + searchDir.segment<dim>(meshEI.second * dim),
+                                         mesh.V.row(meshEJ.first).transpose() + searchDir.segment<dim>(meshEJ.first * dim),
+                                         mesh.V.row(meshEJ.second).transpose() + searchDir.segment<dim>(meshEJ.second * dim),
+                                         ccd
+                                         : CCDMethod::RATIONAL_ROOT_PARITY)
                         && largestAlpha == 1.0) {
                         std::cout << "EE false negative type1" << std::endl;
                     }
 
-                    if (ExactCCD::edgeEdgeCCD(mesh.V.row(meshEI.first).transpose(),
-                            mesh.V.row(meshEI.second).transpose(),
-                            mesh.V.row(meshEJ.first).transpose(),
-                            mesh.V.row(meshEJ.second).transpose(),
-                            mesh.V.row(meshEI.first).transpose() + largestAlpha * searchDir.segment<dim>(meshEI.first * dim),
-                            mesh.V.row(meshEI.second).transpose() + largestAlpha * searchDir.segment<dim>(meshEI.second * dim),
-                            mesh.V.row(meshEJ.first).transpose() + largestAlpha * searchDir.segment<dim>(meshEJ.first * dim),
-                            mesh.V.row(meshEJ.second).transpose() + largestAlpha * searchDir.segment<dim>(meshEJ.second * dim),
-                            ExactCCD::Method::RATIONAL_ROOT_PARITY)) {
+                    if (ccd::edgeEdgeCCD(mesh.V.row(meshEI.first).transpose(),
+                                         mesh.V.row(meshEI.second).transpose(),
+                                         mesh.V.row(meshEJ.first).transpose(),
+                                         mesh.V.row(meshEJ.second).transpose(),
+                                         mesh.V.row(meshEI.first).transpose() + largestAlpha * searchDir.segment<dim>(meshEI.first * dim),
+                                         mesh.V.row(meshEI.second).transpose() + largestAlpha * searchDir.segment<dim>(meshEI.second * dim),
+                                         mesh.V.row(meshEJ.first).transpose() + largestAlpha * searchDir.segment<dim>(meshEJ.first * dim),
+                                         mesh.V.row(meshEJ.second).transpose() + largestAlpha * searchDir.segment<dim>(meshEJ.second * dim),
+                                         ccd
+                                         : CCDMethod::RATIONAL_ROOT_PARITY)) {
                         std::cout << "EE false negative type2" << std::endl;
                     }
 #endif
@@ -1176,7 +1178,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD(const Mesh<dim>& mes
 template <int dim>
 void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(const Mesh<dim>& mesh,
     const SpatialHash<dim>& sh, const Eigen::VectorXd& searchDir,
-    const ExactCCD::Method method, double& stepSize)
+    const ccd::CCDMethod method, double& stepSize)
 {
     // point-point,edge,triangle
     timer_temp3.start(12);
@@ -1210,7 +1212,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(const Mesh<dim
                         continue;
                     }
 
-                    while (ExactCCD::vertexFaceCCD(
+                    while (ccd::vertexFaceCCD(
                         mesh.V.row(vI).transpose(),
                         mesh.V.row(sfVInd[0]).transpose(),
                         mesh.V.row(sfVInd[1]).transpose(),
@@ -1288,7 +1290,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(const Mesh<dim
                     }
 
                     timer_mt.start(5);
-                    while (ExactCCD::edgeEdgeCCD(
+                    while (ccd::edgeEdgeCCD(
                         mesh.V.row(meshEI.first).transpose(),
                         mesh.V.row(meshEI.second).transpose(),
                         mesh.V.row(meshEJ.first).transpose(),
@@ -2776,10 +2778,10 @@ bool SelfCollisionHandler<dim>::checkEdgeTriIntersectionIfAny(const Mesh<dim>& m
 template <int dim>
 bool SelfCollisionHandler<dim>::isIntersected(
     const Mesh<dim>& mesh, const Eigen::MatrixXd& V0,
-    const ExactCCD::Method method)
+    const ccd::CCDMethod method)
 {
 #ifdef USE_EXACT_CCD
-    if (method == ExactCCD::Method::NONE) {
+    if (method == ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER) {
         return false;
     }
 
@@ -2806,7 +2808,7 @@ bool SelfCollisionHandler<dim>::isIntersected(
             if (vI == sfVInd[0] || vI == sfVInd[1] || vI == sfVInd[2]) {
                 continue; // Skip triangles that contain the point
             }
-            if (ExactCCD::vertexFaceCCD(
+            if (ccd::vertexFaceCCD(
                     V0.row(vI).transpose(),
                     V0.row(sfVInd[0]).transpose(),
                     V0.row(sfVInd[1]).transpose(),
@@ -2840,7 +2842,7 @@ bool SelfCollisionHandler<dim>::isIntersected(
                 || edge1.second == edge2.first || edge1.second == edge2.second) {
                 continue;
             }
-            if (ExactCCD::edgeEdgeCCD(
+            if (ccd::edgeEdgeCCD(
                     V0.row(edge1.first).transpose(),
                     V0.row(edge1.second).transpose(),
                     V0.row(edge2.first).transpose(),

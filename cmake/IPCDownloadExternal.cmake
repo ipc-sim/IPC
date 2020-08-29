@@ -104,12 +104,10 @@ function(download_eigen_gurobi)
   )
 endfunction()
 
-
-
-# Rational CCD
-function(download_rational_ccd)
-  custom_download_project(rational_ccd
-    GIT_REPOSITORY https://github.com/teseoch/Exact-CDD.git
-    GIT_TAG        63fdb92b917c8d7349c9403656f1497df6fa6ce5
+# CCD Wrapper (includes Rational CCD)
+function(download_ccd_wrapper)
+  custom_download_project(ccd-wrapper
+    GIT_REPOSITORY git@github.com:zfergus/ccd-wrapper.git
+    GIT_TAG        4829fd275226ffb7759050efc84e8a42580684ec
   )
 endfunction()

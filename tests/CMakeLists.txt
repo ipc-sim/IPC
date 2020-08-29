@@ -4,10 +4,6 @@ cmake_minimum_required(VERSION 3.1)
 add_executable(${PROJECT_NAME}_tests
     main.cpp
 
-    # Test CCD
-    CCD/CCDTests.cpp
-    CCD/ExactCCDTests.cpp
-
     # Test SQP Constraints
     Collisions/CollisionConstraintTests.cpp
 )

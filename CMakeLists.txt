@@ -114,22 +114,8 @@ target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME}_dev)
 target_link_libraries(${PROJECT_NAME}_bin PUBLIC CLI11::CLI11)
 
 ################################################################################
-# Etienne Vouga's CTCD Library
-################################################################################
-
-add_library(EVCTCD "src/CCD/EVCTCD/CTCD.cpp")
-target_include_directories(EVCTCD PUBLIC "src/CCD/EVCTCD/")
-# Link against Eigen in libigl
-target_link_libraries(EVCTCD PUBLIC igl::core)
-# Turn of floating point contraction for CCD robustness
-target_compile_options(EVCTCD PUBLIC "-ffp-contract=off")
-
-################################################################################
 # Required Libraries
 ################################################################################
-
-# EVCTCD
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC EVCTCD)
 
 # SuiteSparse
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC ${SUITESPARSE_LIBRARIES})
@@ -151,7 +137,7 @@ if(LIBIGL_WITH_PREDICATES)
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_PREDICATES)
 endif()
 
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC RationalCCD)
+target_link_libraries(${PROJECT_NAME}_dev PUBLIC CCDWrapper)
 
 # tbb
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC TBB::tbb)

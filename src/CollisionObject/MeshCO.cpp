@@ -728,7 +728,7 @@ template <int dim>
 void MeshCO<dim>::largestFeasibleStepSize_exact(const Mesh<dim>& mesh,
     const SpatialHash<dim>& sh,
     const Eigen::VectorXd& searchDir,
-    const ExactCCD::Method method,
+    const ccd::CCDMethod method,
     const std::vector<std::pair<int, int>>& constraintSet,
     double& stepSize)
 {
@@ -748,7 +748,7 @@ void MeshCO<dim>::largestFeasibleStepSize_exact(const Mesh<dim>& mesh,
                         int vI = -constraintSet[cI].second - 1;
                         const RowVector3i& sfVInd = mesh.SF.row(-constraintSet[cI].first - 1);
 
-                        while (ExactCCD::vertexFaceCCD(
+                        while (ccd::vertexFaceCCD(
                             Base::V.row(vI).transpose(),
                             mesh.V.row(sfVInd[0]).transpose(),
                             mesh.V.row(sfVInd[1]).transpose(),
@@ -766,7 +766,7 @@ void MeshCO<dim>::largestFeasibleStepSize_exact(const Mesh<dim>& mesh,
                         int vI = mesh.SVI[-constraintSet[cI].first - 1];
                         const RowVector3i& sfVInd = Base::F.row(constraintSet[cI].second);
 
-                        while (ExactCCD::vertexFaceCCD(
+                        while (ccd::vertexFaceCCD(
                             mesh.V.row(vI).transpose(),
                             Base::V.row(sfVInd[0]).transpose(),
                             Base::V.row(sfVInd[1]).transpose(),
@@ -785,7 +785,7 @@ void MeshCO<dim>::largestFeasibleStepSize_exact(const Mesh<dim>& mesh,
                     const auto& meshEI = mesh.SFEdges[constraintSet[cI].first];
                     const auto& meshEJ = edges[constraintSet[cI].second];
 
-                    while (ExactCCD::edgeEdgeCCD(
+                    while (ccd::edgeEdgeCCD(
                         mesh.V.row(meshEI.first).transpose(),
                         mesh.V.row(meshEI.second).transpose(),
                         Base::V.row(meshEJ.first).transpose(),
@@ -1127,7 +1127,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD(const Mesh<dim>& mesh,
 template <int dim>
 void MeshCO<dim>::largestFeasibleStepSize_CCD_exact(const Mesh<dim>& mesh,
     const SpatialHash<dim>& sh, const Eigen::VectorXd& searchDir,
-    const ExactCCD::Method method, double& stepSize)
+    const ccd::CCDMethod method, double& stepSize)
 {
     // point-triangle
     Eigen::VectorXd largestAlphaPT(Base::F.rows());
@@ -1150,7 +1150,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_exact(const Mesh<dim>& mesh,
             {
                 int vI = mesh.SVI[svI];
 
-                while (ExactCCD::vertexFaceCCD(
+                while (ccd::vertexFaceCCD(
                     mesh.V.row(vI).transpose(),
                     Base::V.row(sfVInd[0]).transpose(),
                     Base::V.row(sfVInd[1]).transpose(),
@@ -1190,7 +1190,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_exact(const Mesh<dim>& mesh,
             {
                 const RowVector3i& sfVInd = mesh.SF.row(sfI);
 
-                while (ExactCCD::vertexFaceCCD(
+                while (ccd::vertexFaceCCD(
                     Base::V.row(vI).transpose(),
                     mesh.V.row(sfVInd[0]).transpose(),
                     mesh.V.row(sfVInd[1]).transpose(),
@@ -1230,7 +1230,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_exact(const Mesh<dim>& mesh,
 #else
         for (const auto& meshEI : mesh.SFEdges) {
 #endif
-                while (ExactCCD::edgeEdgeCCD(
+                while (ccd::edgeEdgeCCD(
                     mesh.V.row(meshEI.first).transpose(),
                     mesh.V.row(meshEI.second).transpose(),
                     Base::V.row(meshEJ.first).transpose(),
@@ -2478,10 +2478,10 @@ template <int dim>
 bool MeshCO<dim>::isIntersected(
     const Mesh<dim>& mesh,
     const Eigen::MatrixXd& V0,
-    const ExactCCD::Method method) const
+    const ccd::CCDMethod method) const
 {
 #ifdef USE_EXACT_CCD
-    if (method == ExactCCD::Method::NONE) {
+    if (method == ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER) {
         return false;
     }
 
@@ -2509,7 +2509,7 @@ bool MeshCO<dim>::isIntersected(
         for (int svI = 0; svI < mesh.SVI.size(); ++svI) {
 #endif
             int vI = mesh.SVI[svI];
-            if (ExactCCD::vertexFaceCCD(
+            if (ccd::vertexFaceCCD(
                     V0.row(vI).transpose(),
                     this->V.row(MCTriVInd[0]).transpose(),
                     this->V.row(MCTriVInd[1]).transpose(),
@@ -2536,7 +2536,7 @@ bool MeshCO<dim>::isIntersected(
         for (int sfI = 0; sfI < mesh.SF.rows(); ++sfI) {
 #endif
             const RowVector3i& sfVInd = mesh.SF.row(sfI);
-            if (ExactCCD::vertexFaceCCD(
+            if (ccd::vertexFaceCCD(
                     this->V.row(vI).transpose(),
                     V0.row(sfVInd[0]).transpose(),
                     V0.row(sfVInd[1]).transpose(),
@@ -2567,7 +2567,7 @@ bool MeshCO<dim>::isIntersected(
         for (int seI = 0; seI < mesh.SFEdges.size(); ++seI) {
 #endif
             const std::pair<int, int>& mesh_edge = mesh.SFEdges[seI];
-            if (ExactCCD::edgeEdgeCCD(
+            if (ccd::edgeEdgeCCD(
                     V0.row(mesh_edge.first).transpose(),
                     V0.row(mesh_edge.second).transpose(),
                     this->V.row(co_edge.first).transpose(),

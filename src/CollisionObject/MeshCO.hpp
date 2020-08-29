@@ -125,7 +125,7 @@ public:
     void largestFeasibleStepSize_exact(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh,
         const Eigen::VectorXd& searchDir,
-        const ExactCCD::Method method,
+        const ccd::CCDMethod method,
         const std::vector<std::pair<int, int>>& constraintSet,
         double& stepSize) override;
 
@@ -134,7 +134,7 @@ public:
         double slackness, double& stepSize) override;
     void largestFeasibleStepSize_CCD_exact(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh, const Eigen::VectorXd& searchDir,
-        const ExactCCD::Method method, double& stepSize) override;
+        const ccd::CCDMethod method, double& stepSize) override;
 
     void computeConstraintSet(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh, double dHat,
@@ -206,7 +206,7 @@ public:
     virtual bool isIntersected(
         const Mesh<dim>& mesh,
         const Eigen::MatrixXd& V0,
-        ExactCCD::Method method) const override;
+        ccd::CCDMethod method) const override;
 
     virtual void move(const Eigen::Matrix<double, dim, 1>& deltaX,
         const Mesh<dim>& mesh, const SpatialHash<dim>& sh,

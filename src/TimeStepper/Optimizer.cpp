@@ -490,7 +490,7 @@ int Optimizer<dim>::solve(int maxIter)
 
         if (animScripter.stepAnimScript(result, sh,
                 animConfig.collisionObjects, animConfig.meshCollisionObjects,
-                animConfig.exactCCDMethod, dt, dHat, energyTerms, animConfig.isSelfCollision,
+                animConfig.ccdMethod, dt, dHat, energyTerms, animConfig.isSelfCollision,
                 /*forceIntersectionLineSearch=*/solveIP)) {
             result.saveBCNodes(outputFolderPath + "/BC_" + std::to_string(globalIterNum) + ".txt");
             updatePrecondMtrAndFactorize();
@@ -1101,21 +1101,21 @@ void Optimizer<dim>::initX(int option, std::vector<std::vector<int>>& p_activeSe
 #endif
             for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); coI++) {
                 MMActiveSet_next[coI].resize(0);
-                if (animConfig.exactCCDMethod == ExactCCD::Method::NONE) {
+                if (animConfig.ccdMethod == ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER) {
                     animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_CCD(result, sh, searchDir, slackness_m, stepSize);
                 }
                 else {
-                    animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_CCD_exact(result, sh, searchDir, animConfig.exactCCDMethod, stepSize);
+                    animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_CCD_exact(result, sh, searchDir, animConfig.ccdMethod, stepSize);
                 }
             }
             if (animConfig.isSelfCollision) {
                 MMActiveSet_next.back().resize(0);
-                if (animConfig.exactCCDMethod == ExactCCD::Method::NONE) {
+                if (animConfig.ccdMethod == ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER) {
                     std::vector<std::pair<int, int>> newCandidates;
                     SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD(result, sh, searchDir, slackness_m, newCandidates, stepSize);
                 }
                 else {
-                    SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(result, sh, searchDir, animConfig.exactCCDMethod, stepSize);
+                    SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(result, sh, searchDir, animConfig.ccdMethod, stepSize);
                 }
             }
 
@@ -1819,20 +1819,20 @@ bool Optimizer<dim>::solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
 #endif
         // full CCD or partial CCD
         for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
-            if (animConfig.exactCCDMethod == ExactCCD::Method::NONE) {
+            if (animConfig.ccdMethod == ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER) {
                 animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize(result, sh, searchDir, slackness_m, MMActiveSet_CCD[coI], alpha);
             }
             else {
-                animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_exact(result, sh, searchDir, animConfig.exactCCDMethod, MMActiveSet_CCD[coI], alpha);
+                animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_exact(result, sh, searchDir, animConfig.ccdMethod, MMActiveSet_CCD[coI], alpha);
             }
         }
         std::vector<std::pair<int, int>> newCandidates;
         if (animConfig.isSelfCollision) {
-            if (animConfig.exactCCDMethod == ExactCCD::Method::NONE) {
+            if (animConfig.ccdMethod == ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER) {
                 SelfCollisionHandler<dim>::largestFeasibleStepSize(result, sh, searchDir, slackness_m, MMActiveSet_CCD.back(), newCandidates, alpha);
             }
             else {
-                SelfCollisionHandler<dim>::largestFeasibleStepSize_exact(result, sh, searchDir, animConfig.exactCCDMethod, MMActiveSet_CCD.back(), alpha);
+                SelfCollisionHandler<dim>::largestFeasibleStepSize_exact(result, sh, searchDir, animConfig.ccdMethod, MMActiveSet_CCD.back(), alpha);
             }
         }
 
@@ -1858,19 +1858,19 @@ bool Optimizer<dim>::solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
                     timer_temp3.stop();
 #endif
                     for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
-                        if (animConfig.exactCCDMethod == ExactCCD::Method::NONE) {
+                        if (animConfig.ccdMethod == ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER) {
                             animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_CCD(result, sh, searchDir, slackness_m, alpha);
                         }
                         else {
-                            animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_CCD_exact(result, sh, searchDir, animConfig.exactCCDMethod, alpha);
+                            animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_CCD_exact(result, sh, searchDir, animConfig.ccdMethod, alpha);
                         }
                     }
                     if (animConfig.isSelfCollision) {
-                        if (animConfig.exactCCDMethod == ExactCCD::Method::NONE) {
+                        if (animConfig.ccdMethod == ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER) {
                             SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD(result, sh, searchDir, slackness_m, newCandidates, alpha);
                         }
                         else {
-                            SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(result, sh, searchDir, animConfig.exactCCDMethod, alpha);
+                            SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(result, sh, searchDir, animConfig.ccdMethod, alpha);
                         }
                     }
 
@@ -2549,7 +2549,7 @@ bool Optimizer<dim>::lineSearch(double& stepSize,
 
 #ifdef OUTPUT_CCD_FAIL
     bool output = false;
-    if (solveIP && animConfig.exactCCDMethod != ExactCCD::Method::NONE) {
+    if (solveIP && animConfig.ccdMethod != ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER) {
         result.saveSurfaceMesh(outputFolderPath + "before" + std::to_string(numOfCCDFail) + ".obj");
         output = true;
     }
@@ -2664,7 +2664,7 @@ bool Optimizer<dim>::lineSearch(double& stepSize,
     result.V = resultV0;
     sh.build(result, searchDir, stepSize, result.avgEdgeLen / 3.0);
     double stepSize_rational = stepSize;
-    SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(result, sh, searchDir, ExactCCD::Method::RATIONAL_ROOT_PARITY, stepSize_rational);
+    SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(result, sh, searchDir, ccd::CCDMethod::RATIONAL_ROOT_PARITY, stepSize_rational);
     if (stepSize_rational != stepSize) {
         std::cout << "rational CCD detects interpenetration but inexact didn't" << std::endl;
     }

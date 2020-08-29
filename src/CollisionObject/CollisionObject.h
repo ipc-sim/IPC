@@ -14,7 +14,8 @@
 #include "MeshCollisionUtils.hpp"
 #include "CollisionConstraints.hpp"
 #include "SpatialHash.hpp"
-#include "ExactCCD.hpp"
+
+#include <ccd.hpp>
 
 #include <igl/writeOBJ.h>
 
@@ -271,7 +272,7 @@ public:
     virtual void largestFeasibleStepSize_exact(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh,
         const Eigen::VectorXd& searchDir,
-        ExactCCD::Method method,
+        ccd::CCDMethod method,
         const std::vector<std::pair<int, int>>& constraintSet,
         double& stepSize) {}
 
@@ -280,7 +281,7 @@ public:
         double slackness, double& stepSize) {}
     virtual void largestFeasibleStepSize_CCD_exact(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh, const Eigen::VectorXd& searchDir,
-        ExactCCD::Method method, double& stepSize) {}
+        ccd::CCDMethod method, double& stepSize) {}
 
     // for meshCO when SQP is used
     virtual void updateConstraints_QP(
@@ -361,7 +362,7 @@ public:
     virtual bool isIntersected(
         const Mesh<dim>& mesh,
         const Eigen::MatrixXd& V0,
-        const ExactCCD::Method method = ExactCCD::Method::NONE) const
+        const ccd::CCDMethod method = ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER) const
     {
         Eigen::VectorXd constraint_vals;
         this->evaluateConstraints_all(mesh, constraint_vals, 1.0);
