@@ -109,6 +109,14 @@ public:
         const std::vector<std::pair<int, int>>& constraintSet,
         std::vector<std::pair<int, int>>& candidates,
         double& stepSize);
+    static void largestFeasibleStepSize_TightIntervals(
+        const Mesh<dim>& mesh,
+        const SpatialHash<dim>& sh,
+        const Eigen::VectorXd& searchDir,
+        double tolerance,
+        const std::vector<std::pair<int, int>>& constraintSet,
+        std::vector<std::pair<int, int>>& candidates,
+        double& stepSize);
     static void largestFeasibleStepSize_exact(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh,
         const Eigen::VectorXd& searchDir,
@@ -119,6 +127,13 @@ public:
     static void largestFeasibleStepSize_CCD(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh, const Eigen::VectorXd& searchDir,
         double slackness, std::vector<std::pair<int, int>>& candidates,
+        double& stepSize);
+    static void largestFeasibleStepSize_CCD_TightIntervals(
+        const Mesh<dim>& mesh,
+        const SpatialHash<dim>& sh,
+        const Eigen::VectorXd& searchDir,
+        double tolerance,
+        std::vector<std::pair<int, int>>& candidates,
         double& stepSize);
     static void largestFeasibleStepSize_CCD_exact(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh, const Eigen::VectorXd& searchDir,

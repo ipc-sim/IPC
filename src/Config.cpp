@@ -495,10 +495,13 @@ int Config::loadFromFile(const std::string& p_filePath)
                 ss >> constraintOffset;
                 spdlog::info("Using collision constraint offset: {:g}", constraintOffset);
             }
-            else if (token == "CCDMethod") {
+            else if (token == "CCDMethod" || token == "ccdMethod") {
                 std::string type;
                 ss >> type;
                 this->ccdMethod = this->getCCDMethodTypeByStr(type);
+            }
+            else if (token == "CCDTolerance" || token == "ccdTolerance") {
+                ss >> this->ccdTolerance;
             }
             else if (token == "section") {
                 std::string section;
@@ -639,8 +642,8 @@ ccd::CCDMethod Config::getCCDMethodTypeByStr(const std::string& str)
             return ccd::CCDMethod(i);
         }
     }
-    spdlog::error("Uknown exact CCD method: {}", str);
-    spdlog::info("Using default exact CCD method: {}",
+    spdlog::error("Uknown CCD method: {}", str);
+    spdlog::info("Using default CCD method: {}",
         ccd::method_names[ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER]);
     return ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER;
 }

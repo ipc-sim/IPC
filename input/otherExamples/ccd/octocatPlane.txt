@@ -1,0 +1,27 @@
+script fall
+
+time 1.4 0.07
+
+constraintSolver IP
+warmStart 0
+selfCollisionOn
+
+CCDMethod FloatPointRootFinder
+CCDTolerance 1e-8
+
+shapes input 1
+input/tetMeshes/32770_octocat.msh  0 0 0  -90 0 0  0.1 0.1 0.1
+
+meshCO input/triMeshes/plane.obj 0 0 0  20  50  1.0 rotate 0 0 0
+
+view orthographic
+# zoom 0.3
+
+section SQP QP
+time 1 1e-2
+warmStart 1
+constraintType Verschoor
+constraintOffset 1e-1
+tol 1
+1e-1
+section end

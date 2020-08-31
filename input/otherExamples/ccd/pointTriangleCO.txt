@@ -1,0 +1,27 @@
+script fall
+
+time 10 5e-3
+
+constraintSolver IP
+warmStart 0
+#selfCollisionOn
+
+CCDMethod TightIntervals
+
+shapes input 1
+input/tetMeshes/tet-pyramid.msh  0 0 0  0 0 0  1 1 1
+rotateModel 1 0 0 90
+
+meshCO input/triMeshes/plane.obj 0.5 0 0.5  10  50  1.0 rotate 0 0 0
+
+view orthographic
+zoom 0.3
+
+section SQP QP
+time 5 1e-2
+warmStart 1
+constraintType Verschoor
+constraintOffset 0.01
+tol 1
+1e-1
+section end

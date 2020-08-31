@@ -108,6 +108,7 @@ public:
     // like initial velocity, position, etc
 
     ccd::CCDMethod ccdMethod = ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER;
+    double ccdTolerance = 1e-6;
 
     /// @brief Constraint type for SQP method of handling collisions.
     CollisionConstraintType constraintType = CollisionConstraintType::VOLUME;
