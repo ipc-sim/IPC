@@ -31,7 +31,7 @@ namespace IPC {
 
 template <int dim>
 const std::vector<std::string> AnimScripter<dim>::animScriptTypeStrs = {
-    "null", "scaleF", "hang", "hang2", "hangTopLeft", "swing",
+    "null", "scaleF", "hang", "hang2", "hangTopLeft", "hangLeft", "swing",
     "stamp", "stampTopLeft", "stampBoth", "undstamp", "stampInv",
     "stand", "standInv", "topbottomfix", "fixLowerHalf",
     "corner", "push", "tear", "upndown", "stretch", "stretchAndPause", "squash", "stretchnsquash",
@@ -153,6 +153,21 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
 
         for (const auto& vI : mesh.borderVerts_primitive[0]) {
             if (mesh.V(vI, 1) > topRight[1] - range[1] * 0.01 && (mesh.V(vI, 2) > topRight[2] - range[2] * 0.01 || mesh.V(vI, 2) < bottomLeft[2] + range[2] * 0.01)) {
+                mesh.addFixedVert(vI);
+            }
+        }
+        break;
+    }
+
+    case AST_HANGLEFT: {
+        mesh.resetFixedVert();
+
+        Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
+        Eigen::RowVectorXd topRight = mesh.V.colwise().maxCoeff();
+        Eigen::RowVectorXd range = topRight - bottomLeft;
+
+        for (const auto& vI : mesh.borderVerts_primitive[0]) {
+            if ((mesh.V(vI, 2) <= topRight[2]) && (mesh.V(vI, 2) >= bottomLeft[2])) {
                 mesh.addFixedVert(vI);
             }
         }
@@ -1477,6 +1492,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
     case AST_HANG:
     case AST_HANG2:
     case AST_HANGTOPLEFT:
+    case AST_HANGLEFT:
         break;
 
     case AST_STAMP:

@@ -1,0 +1,16 @@
+shapes input 5
+input/tetMeshes/bar-6.msh 0 28 0  0 0 0  1 1 1
+input/tetMeshes/bar-186.msh 0 21 0  0 0 0  1 1 1
+input/tetMeshes/bar-651.msh 0 14 0  0 0 0  1 1 1
+input/tetMeshes/bar-2523.msh 0 7 0  0 0 0  1 1 1
+input/tetMeshes/bar-14114.msh 0 0 0  0 0 0  1 1 1
+
+script hangLeft
+
+stiffness 1e7 0.2
+
+time 20 0.25
+
+view perspective
+
+timeIntegration BE

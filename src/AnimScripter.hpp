@@ -25,6 +25,7 @@ enum AnimScriptType {
     AST_HANG,
     AST_HANG2,
     AST_HANGTOPLEFT,
+    AST_HANGLEFT,
     AST_SWING,
     AST_STAMP,
     AST_STAMPTOPLEFT,
