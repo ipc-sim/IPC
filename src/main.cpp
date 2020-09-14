@@ -35,6 +35,7 @@ bool offlineMode = false;
 bool autoSwitch = false;
 bool contactHandling = false;
 bool optimization_on = false;
+bool show_lines = true;
 int iterNum = 0;
 int converged = 0;
 bool outerLoopFinished = false;
@@ -468,6 +469,13 @@ bool key_down(igl::opengl::glfw::Viewer& viewer, unsigned char key, int modifier
 
         case '/': {
             toggleOptimization();
+            break;
+        }
+
+        case 'l':
+        case 'L': {
+            show_lines = !show_lines;
+            viewer.data().show_lines = show_lines;
             break;
         }
 
