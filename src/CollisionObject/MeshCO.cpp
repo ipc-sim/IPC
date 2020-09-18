@@ -10,6 +10,9 @@
 // Etienne Vouga's CCD using a root finder in floating points
 #include <CTCD.h>
 #include <interval_ccd/interval_ccd.hpp>
+#include <interval_ccd/interval_root_finder.hpp>
+// #define USE_NEW_STRATEGY
+#define CCD_MAX_ITER 1e6
 
 #include "get_feasible_steps.hpp"
 #include "IglUtils.hpp"
@@ -736,9 +739,25 @@ void MeshCO<dim>::largestFeasibleStepSize_TightIntervals(
     const std::vector<std::pair<int, int>>& constraintSet,
     double& stepSize)
 {
+    std::vector<Eigen::Vector3d> bbox_vertices = { {
+        Eigen::Vector3d(+20, +20, +20),
+        Eigen::Vector3d(+20, +20, -20),
+        Eigen::Vector3d(+20, -20, +20),
+        Eigen::Vector3d(+20, -20, -20),
+        Eigen::Vector3d(-20, +20, +20),
+        Eigen::Vector3d(-20, +20, -20),
+        Eigen::Vector3d(-20, -20, +20),
+        Eigen::Vector3d(-20, -20, -20),
+    } };
+    std::array<double, 3> vf_err = intervalccd::get_numerical_error(
+        bbox_vertices, /*check_vf=*/true, /*using_minimum_separation=*/true);
+    std::array<double, 3> ee_err = intervalccd::get_numerical_error(
+        bbox_vertices, /*check_vf=*/false, /*using_minimum_separation=*/true);
+
 #if (CFL_FOR_CCD != 0)
     if (constraintSet.size()) {
         Eigen::VectorXd largestAlphasAS(constraintSet.size());
+        largestAlphasAS.setOnes();
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)constraintSet.size(), 1, [&](int cI)
 #else
@@ -751,6 +770,25 @@ void MeshCO<dim>::largestFeasibleStepSize_TightIntervals(
                         int vI = -constraintSet[cI].second - 1;
                         const RowVector3i& sfVInd = mesh.SF.row(-constraintSet[cI].first - 1);
 
+#ifdef USE_NEW_STRATEGY
+                        double min_trajectory_length = std::numeric_limits<double>::infinity();
+                        for (int i = 0; i < 3; i++) {
+                            min_trajectory_length = std::min(
+                                min_trajectory_length,
+                                searchDir.segment<dim>(sfVInd[i] * dim).norm());
+                        }
+#else
+                    double d_sqrt; // d is squared distance
+                    computePointTriD(
+                        Base::V.row(vI),
+                        mesh.V.row(sfVInd[0]),
+                        mesh.V.row(sfVInd[1]),
+                        mesh.V.row(sfVInd[2]),
+                        d_sqrt);
+                    d_sqrt = std::sqrt(d_sqrt);
+#endif
+
+                        double _output_tolerance;
                         bool has_collision = intervalccd::vertexFaceCCD_double(
                             Base::V.row(vI).transpose(),
                             mesh.V.row(sfVInd[0]).transpose(),
@@ -760,10 +798,43 @@ void MeshCO<dim>::largestFeasibleStepSize_TightIntervals(
                             mesh.V.row(sfVInd[0]).transpose() + searchDir.segment<dim>(sfVInd[0] * dim),
                             mesh.V.row(sfVInd[1]).transpose() + searchDir.segment<dim>(sfVInd[1] * dim),
                             mesh.V.row(sfVInd[2]).transpose() + searchDir.segment<dim>(sfVInd[2] * dim),
-                            /*err=*/{ -1, -1, -1 },
-                            /*ms=*/0,
+                            /*err=*/vf_err,
+#ifdef USE_NEW_STRATEGY
+                            /*ms=*/0.2 * min_trajectory_length,
+#else
+                        /*ms=*/0.2 * d_sqrt,
+#endif
                             /*toi=*/largestAlphasAS[cI],
-                            tolerance);
+                            tolerance,
+                            /*pre_check_t=*/0,
+                            /* max_itr=*/CCD_MAX_ITER,
+                            _output_tolerance,
+                            /*CCD_TYPE=*/1);
+
+#ifndef USE_NEW_STRATEGY
+                        if (has_collision && largestAlphasAS[cI] < 1e-6) {
+                            has_collision = intervalccd::vertexFaceCCD_double(
+                                Base::V.row(vI).transpose(),
+                                mesh.V.row(sfVInd[0]).transpose(),
+                                mesh.V.row(sfVInd[1]).transpose(),
+                                mesh.V.row(sfVInd[2]).transpose(),
+                                Base::V.row(vI).transpose(),
+                                mesh.V.row(sfVInd[0]).transpose() + searchDir.segment<dim>(sfVInd[0] * dim),
+                                mesh.V.row(sfVInd[1]).transpose() + searchDir.segment<dim>(sfVInd[1] * dim),
+                                mesh.V.row(sfVInd[2]).transpose() + searchDir.segment<dim>(sfVInd[2] * dim),
+                                /*err=*/vf_err,
+                                /*ms=*/0,
+                                /*toi=*/largestAlphasAS[cI],
+                                tolerance,
+                                /*pre_check_t=*/0,
+                                /* max_itr=*/-1,
+                                _output_tolerance,
+                                /*CCD_TYPE=*/1);
+                            if (has_collision) {
+                                largestAlphasAS[cI] *= 0.8;
+                            }
+                        }
+#endif
 
                         // Reset largestAlphasAS[cI] for safety
                         if (!has_collision) {
@@ -775,6 +846,20 @@ void MeshCO<dim>::largestFeasibleStepSize_TightIntervals(
                         int vI = mesh.SVI[-constraintSet[cI].first - 1];
                         const RowVector3i& sfVInd = Base::F.row(constraintSet[cI].second);
 
+#ifdef USE_NEW_STRATEGY
+                        double min_trajectory_length = searchDir.segment<dim>(vI * dim).norm();
+#else
+                    double d_sqrt;
+                    computePointTriD(
+                        mesh.V.row(vI),
+                        Base::V.row(sfVInd[0]),
+                        Base::V.row(sfVInd[1]),
+                        Base::V.row(sfVInd[2]),
+                        d_sqrt);
+                    d_sqrt = std::sqrt(d_sqrt);
+#endif
+
+                        double _output_tolerance;
                         bool has_collision = intervalccd::vertexFaceCCD_double(
                             mesh.V.row(vI).transpose(),
                             Base::V.row(sfVInd[0]).transpose(),
@@ -784,10 +869,43 @@ void MeshCO<dim>::largestFeasibleStepSize_TightIntervals(
                             Base::V.row(sfVInd[0]).transpose(),
                             Base::V.row(sfVInd[1]).transpose(),
                             Base::V.row(sfVInd[2]).transpose(),
-                            /*err=*/{ -1, -1, -1 },
-                            /*ms=*/0,
+                            /*err=*/vf_err,
+#ifdef USE_NEW_STRATEGY
+                            /*ms=*/0.2 * min_trajectory_length,
+#else
+                        /*ms=*/0.2 * d_sqrt,
+#endif
                             /*toi=*/largestAlphasAS[cI],
-                            tolerance);
+                            tolerance,
+                            /*pre_check_t=*/0,
+                            /* max_itr=*/CCD_MAX_ITER,
+                            _output_tolerance,
+                            /*CCD_TYPE=*/1);
+
+#ifndef USE_NEW_STRATEGY
+                        if (has_collision && largestAlphasAS[cI] < 1e-6) {
+                            has_collision = intervalccd::vertexFaceCCD_double(
+                                mesh.V.row(vI).transpose(),
+                                Base::V.row(sfVInd[0]).transpose(),
+                                Base::V.row(sfVInd[1]).transpose(),
+                                Base::V.row(sfVInd[2]).transpose(),
+                                mesh.V.row(vI).transpose() + searchDir.segment<dim>(vI * dim),
+                                Base::V.row(sfVInd[0]).transpose(),
+                                Base::V.row(sfVInd[1]).transpose(),
+                                Base::V.row(sfVInd[2]).transpose(),
+                                /*err=*/vf_err,
+                                /*ms=*/0,
+                                /*toi=*/largestAlphasAS[cI],
+                                tolerance,
+                                /*pre_check_t=*/0,
+                                /* max_itr=*/-1,
+                                _output_tolerance,
+                                /*CCD_TYPE=*/1);
+                            if (has_collision) {
+                                largestAlphasAS[cI] *= 0.8;
+                            }
+                        }
+#endif
 
                         // Reset largestAlphasAS[cI] for safety
                         if (!has_collision) {
@@ -800,6 +918,17 @@ void MeshCO<dim>::largestFeasibleStepSize_TightIntervals(
                     const auto& meshEI = mesh.SFEdges[constraintSet[cI].first];
                     const auto& meshEJ = edges[constraintSet[cI].second];
 
+#ifdef USE_NEW_STRATEGY
+                    double min_trajectory_length = std::min(
+                        searchDir.segment<dim>(meshEI.first * dim).norm(),
+                        searchDir.segment<dim>(meshEI.second * dim).norm());
+#else
+                double d_sqrt;
+                computeEdgeEdgeD(mesh.V.row(meshEI.first), mesh.V.row(meshEI.second),
+                    Base::V.row(meshEJ.first), Base::V.row(meshEJ.second), d_sqrt);
+                d_sqrt = std::sqrt(d_sqrt);
+#endif
+                    double _output_tolerance;
                     bool has_collision = intervalccd::edgeEdgeCCD_double(
                         mesh.V.row(meshEI.first).transpose(),
                         mesh.V.row(meshEI.second).transpose(),
@@ -809,15 +938,61 @@ void MeshCO<dim>::largestFeasibleStepSize_TightIntervals(
                         mesh.V.row(meshEI.second).transpose() + searchDir.segment<dim>(meshEI.second * dim),
                         Base::V.row(meshEJ.first).transpose(),
                         Base::V.row(meshEJ.second).transpose(),
-                        /*err=*/{ -1, -1, -1 },
-                        /*ms=*/0,
+                        /*err=*/ee_err,
+#ifdef USE_NEW_STRATEGY
+                        /*ms=*/0.2 * min_trajectory_length,
+#else
+                    /*ms=*/0.2 * d_sqrt,
+#endif
                         /*toi=*/largestAlphasAS[cI],
-                        tolerance);
+                        tolerance,
+                        /*pre_check_t=*/0,
+                        /* max_itr=*/CCD_MAX_ITER,
+                        _output_tolerance,
+                        /*CCD_TYPE=*/1);
 
+#ifndef USE_NEW_STRATEGY
+                    if (has_collision && largestAlphasAS[cI]) {
+                        double _output_tolerance;
+                        bool has_collision = intervalccd::edgeEdgeCCD_double(
+                            mesh.V.row(meshEI.first).transpose(),
+                            mesh.V.row(meshEI.second).transpose(),
+                            Base::V.row(meshEJ.first).transpose(),
+                            Base::V.row(meshEJ.second).transpose(),
+                            mesh.V.row(meshEI.first).transpose() + searchDir.segment<dim>(meshEI.first * dim),
+                            mesh.V.row(meshEI.second).transpose() + searchDir.segment<dim>(meshEI.second * dim),
+                            Base::V.row(meshEJ.first).transpose(),
+                            Base::V.row(meshEJ.second).transpose(),
+                            /*err=*/ee_err,
+                            /*ms=*/0,
+                            /*toi=*/largestAlphasAS[cI],
+                            tolerance,
+                            /*pre_check_t=*/0,
+                            /* max_itr=*/-1,
+                            _output_tolerance,
+                            /*CCD_TYPE=*/1);
+
+                        if (has_collision) {
+                            largestAlphasAS[cI] *= 0.8;
+                        }
+                    }
+#endif
                     // Reset largestAlphasAS[cI] for safety
                     if (!has_collision) {
                         largestAlphasAS[cI] = 1.0;
                     }
+
+                    // if (largestAlphasAS[cI] < 1e-7) {
+                    //     std::cout << "EE " << cI << " toi=" << largestAlphasAS[cI] << std::endl;
+                    //     std::cout << mesh.V.row(meshEI.first) << std::endl;
+                    //     std::cout << mesh.V.row(meshEI.second) << std::endl;
+                    //     std::cout << Base::V.row(meshEJ.first) << std::endl;
+                    //     std::cout << Base::V.row(meshEJ.second) << std::endl;
+                    //     std::cout << (mesh.V.row(meshEI.first).transpose() + searchDir.segment<dim>(meshEI.first * dim)).transpose() << std::endl;
+                    //     std::cout << (mesh.V.row(meshEI.second).transpose() + searchDir.segment<dim>(meshEI.second * dim)).transpose() << std::endl;
+                    //     std::cout << Base::V.row(meshEJ.first) << std::endl;
+                    //     std::cout << Base::V.row(meshEJ.second) << std::endl;
+                    // }
                 }
             }
 #ifdef USE_TBB
@@ -1238,6 +1413,21 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightIntervals(
     const Eigen::VectorXd& searchDir,
     double tolerance, double& stepSize)
 {
+    std::vector<Eigen::Vector3d> bbox_vertices = { {
+        Eigen::Vector3d(+20, +20, +20),
+        Eigen::Vector3d(+20, +20, -20),
+        Eigen::Vector3d(+20, -20, +20),
+        Eigen::Vector3d(+20, -20, -20),
+        Eigen::Vector3d(-20, +20, +20),
+        Eigen::Vector3d(-20, +20, -20),
+        Eigen::Vector3d(-20, -20, +20),
+        Eigen::Vector3d(-20, -20, -20),
+    } };
+    std::array<double, 3> vf_err = intervalccd::get_numerical_error(
+        bbox_vertices, /*check_vf=*/true, /*using_minimum_separation=*/true);
+    std::array<double, 3> ee_err = intervalccd::get_numerical_error(
+        bbox_vertices, /*check_vf=*/false, /*using_minimum_separation=*/true);
+
     // point-triangle
     Eigen::VectorXd largestAlphaPT(Base::F.rows());
 #ifdef USE_TBB
@@ -1257,9 +1447,23 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightIntervals(
 #endif
             int vI = mesh.SVI[svI];
 
-            double largestAlpha;
+#ifdef USE_NEW_STRATEGY
+            double min_trajectory_length = searchDir.segment<dim>(vI * dim).norm();
+#else
+            double d_sqrt;
+            computePointTriD(
+                mesh.V.row(vI),
+                Base::V.row(sfVInd[0]),
+                Base::V.row(sfVInd[1]),
+                Base::V.row(sfVInd[2]),
+                d_sqrt);
+            d_sqrt = std::sqrt(d_sqrt);
+#endif
+
+            double largestAlpha = 1.0;
+            double _output_tolerance;
             bool has_collision = intervalccd::vertexFaceCCD_double(
-                Base::V.row(vI).transpose(),
+                mesh.V.row(vI).transpose(),
                 Base::V.row(sfVInd[0]).transpose(),
                 Base::V.row(sfVInd[1]).transpose(),
                 Base::V.row(sfVInd[2]).transpose(),
@@ -1267,10 +1471,46 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightIntervals(
                 Base::V.row(sfVInd[0]).transpose(),
                 Base::V.row(sfVInd[1]).transpose(),
                 Base::V.row(sfVInd[2]).transpose(),
-                /*err=*/{ -1, -1, -1 },
-                /*ms=*/0,
+                /*err=*/vf_err,
+#ifdef USE_NEW_STRATEGY
+                /*ms=*/0.2 * min_trajectory_length,
+#else
+                /*ms=*/0.2 * d_sqrt,
+#endif
                 /*toi=*/largestAlpha,
-                tolerance);
+                tolerance,
+                /*pre_check_t=*/0,
+                /* max_itr=*/CCD_MAX_ITER,
+                _output_tolerance,
+                /*CCD_TYPE=*/1);
+
+#ifndef USE_NEW_STRATEGY
+            if (has_collision && largestAlpha < 1e-6) {
+                has_collision = intervalccd::vertexFaceCCD_double(
+                    mesh.V.row(vI).transpose(),
+                    Base::V.row(sfVInd[0]).transpose(),
+                    Base::V.row(sfVInd[1]).transpose(),
+                    Base::V.row(sfVInd[2]).transpose(),
+                    mesh.V.row(vI).transpose() + searchDir.template segment<dim>(vI * dim),
+                    Base::V.row(sfVInd[0]).transpose(),
+                    Base::V.row(sfVInd[1]).transpose(),
+                    Base::V.row(sfVInd[2]).transpose(),
+                    /*err=*/vf_err,
+                    /*ms=*/0,
+                    /*toi=*/largestAlpha,
+                    tolerance,
+                    /*pre_check_t=*/0,
+                    /* max_itr=*/-1,
+                    _output_tolerance,
+                    /*CCD_TYPE=*/1);
+                if (has_collision) {
+                    largestAlpha *= 0.8;
+                }
+                else {
+                    largestAlpha = 1.0;
+                }
+            }
+#endif
 
             if (has_collision) {
                 largestAlphaPT[sfI] = std::min(largestAlpha, largestAlphaPT[sfI]);
@@ -1302,7 +1542,26 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightIntervals(
 #endif
             const RowVector3i& sfVInd = mesh.SF.row(sfI);
 
-            double largestAlpha;
+#ifdef USE_NEW_STRATEGY
+            double min_trajectory_length = std::numeric_limits<double>::infinity();
+            for (int i = 0; i < 3; i++) {
+                min_trajectory_length = std::min(
+                    min_trajectory_length,
+                    searchDir.segment<dim>(sfVInd[i] * dim).norm());
+            }
+#else
+            double d_sqrt;
+            computePointTriD(
+                Base::V.row(vI),
+                mesh.V.row(sfVInd[0]),
+                mesh.V.row(sfVInd[1]),
+                mesh.V.row(sfVInd[2]),
+                d_sqrt);
+            d_sqrt = std::sqrt(d_sqrt);
+#endif
+
+            double largestAlpha = 1.0;
+            double _output_tolerance;
             bool has_collision = intervalccd::vertexFaceCCD_double(
                 Base::V.row(vI).transpose(),
                 mesh.V.row(sfVInd[0]).transpose(),
@@ -1312,10 +1571,46 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightIntervals(
                 mesh.V.row(sfVInd[0]).transpose() + searchDir.template segment<dim>(sfVInd[0] * dim),
                 mesh.V.row(sfVInd[1]).transpose() + searchDir.template segment<dim>(sfVInd[1] * dim),
                 mesh.V.row(sfVInd[2]).transpose() + searchDir.template segment<dim>(sfVInd[2] * dim),
-                /*err=*/{ -1, -1, -1 },
-                /*ms=*/0,
+                /*err=*/vf_err,
+#ifdef USE_NEW_STRATEGY
+                /*ms=*/0.2 * min_trajectory_length,
+#else
+                /*ms=*/0.2 * d_sqrt,
+#endif
                 /*toi=*/largestAlpha,
-                tolerance);
+                tolerance,
+                /*pre_check_t=*/0,
+                /* max_itr=*/CCD_MAX_ITER,
+                _output_tolerance,
+                /*CCD_TYPE=*/1);
+
+#ifndef USE_NEW_STRATEGY
+            if (has_collision && largestAlpha < 1e-6) {
+                has_collision = intervalccd::vertexFaceCCD_double(
+                    Base::V.row(vI).transpose(),
+                    mesh.V.row(sfVInd[0]).transpose(),
+                    mesh.V.row(sfVInd[1]).transpose(),
+                    mesh.V.row(sfVInd[2]).transpose(),
+                    Base::V.row(vI).transpose(),
+                    mesh.V.row(sfVInd[0]).transpose() + searchDir.template segment<dim>(sfVInd[0] * dim),
+                    mesh.V.row(sfVInd[1]).transpose() + searchDir.template segment<dim>(sfVInd[1] * dim),
+                    mesh.V.row(sfVInd[2]).transpose() + searchDir.template segment<dim>(sfVInd[2] * dim),
+                    /*err=*/vf_err,
+                    /*ms=*/0,
+                    /*toi=*/largestAlpha,
+                    tolerance,
+                    /*pre_check_t=*/0,
+                    /* max_itr=*/-1,
+                    _output_tolerance,
+                    /*CCD_TYPE=*/1);
+                if (has_collision) {
+                    largestAlpha *= 0.8;
+                }
+                else {
+                    largestAlpha = 1.0;
+                }
+            }
+#endif
 
             if (has_collision) {
                 largestAlphaTP[vI] = std::min(largestAlpha, largestAlphaTP[vI]);
@@ -1347,7 +1642,20 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightIntervals(
 #else
         for (const auto& meshEI : mesh.SFEdges) {
 #endif
-            double largestAlpha;
+
+#ifdef USE_NEW_STRATEGY
+            double min_trajectory_length = std::min(
+                searchDir.segment<dim>(meshEI.first * dim).norm(),
+                searchDir.segment<dim>(meshEI.second * dim).norm());
+#else
+            double d_sqrt;
+            computeEdgeEdgeD(mesh.V.row(meshEI.first), mesh.V.row(meshEI.second),
+                Base::V.row(meshEJ.first), Base::V.row(meshEJ.second), d_sqrt);
+            d_sqrt = std::sqrt(d_sqrt);
+#endif
+
+            double largestAlpha = 1.0;
+            double _output_tolerance;
             bool has_collision = intervalccd::edgeEdgeCCD_double(
                 mesh.V.row(meshEI.first).transpose(),
                 mesh.V.row(meshEI.second).transpose(),
@@ -1357,10 +1665,46 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightIntervals(
                 mesh.V.row(meshEI.second).transpose() + searchDir.template segment<dim>(meshEI.second * dim),
                 Base::V.row(meshEJ.first).transpose(),
                 Base::V.row(meshEJ.second).transpose(),
-                /*err=*/{ -1, -1, -1 },
-                /*ms=*/0,
+                /*err=*/ee_err,
+#ifdef USE_NEW_STRATEGY
+                /*ms=*/0.2 * min_trajectory_length,
+#else
+                /*ms=*/0.2 * d_sqrt,
+#endif
                 /*toi=*/largestAlpha,
-                tolerance);
+                tolerance,
+                /*pre_check_t=*/0,
+                /* max_itr=*/CCD_MAX_ITER,
+                _output_tolerance,
+                /*CCD_TYPE=*/1);
+
+#ifndef USE_NEW_STRATEGY
+            if (has_collision && largestAlpha < 1e-6) {
+                has_collision = intervalccd::edgeEdgeCCD_double(
+                    mesh.V.row(meshEI.first).transpose(),
+                    mesh.V.row(meshEI.second).transpose(),
+                    Base::V.row(meshEJ.first).transpose(),
+                    Base::V.row(meshEJ.second).transpose(),
+                    mesh.V.row(meshEI.first).transpose() + searchDir.template segment<dim>(meshEI.first * dim),
+                    mesh.V.row(meshEI.second).transpose() + searchDir.template segment<dim>(meshEI.second * dim),
+                    Base::V.row(meshEJ.first).transpose(),
+                    Base::V.row(meshEJ.second).transpose(),
+                    /*err=*/ee_err,
+                    /*ms=*/0,
+                    /*toi=*/largestAlpha,
+                    tolerance,
+                    /*pre_check_t=*/0,
+                    /* max_itr=*/-1,
+                    _output_tolerance,
+                    /*CCD_TYPE=*/1);
+                if (has_collision) {
+                    largestAlpha *= 0.8;
+                }
+                else {
+                    largestAlpha = 1.0;
+                }
+            }
+#endif
 
             if (has_collision) {
                 largestAlphaEE[eJ] = std::min(largestAlpha, largestAlphaEE[eJ]);
@@ -2519,6 +2863,21 @@ bool MeshCO<dim>::updateActiveSet_QP(
     std::vector<MMCVID>& activeSet, // Constraint active set to update
     const double eta) // Surface thickness
 {
+    std::vector<Eigen::Vector3d> bbox_vertices = { {
+        Eigen::Vector3d(+20, +20, +20),
+        Eigen::Vector3d(+20, +20, -20),
+        Eigen::Vector3d(+20, -20, +20),
+        Eigen::Vector3d(+20, -20, -20),
+        Eigen::Vector3d(-20, +20, +20),
+        Eigen::Vector3d(-20, +20, -20),
+        Eigen::Vector3d(-20, -20, +20),
+        Eigen::Vector3d(-20, -20, -20),
+    } };
+    std::array<double, 3> vf_err = intervalccd::get_numerical_error(
+        bbox_vertices, /*check_vf=*/true, /*using_minimum_separation=*/true);
+    std::array<double, 3> ee_err = intervalccd::get_numerical_error(
+        bbox_vertices, /*check_vf=*/false, /*using_minimum_separation=*/true);
+
     bool newConstraintsAdded = false;
     mmcvid_to_toi.clear();
     std::unordered_set<MMCVID, MMCVIDHash> prevActiveSet;
@@ -2577,6 +2936,7 @@ bool MeshCO<dim>::updateActiveSet_QP(
             //     Base::V.row(MCTriVInd[2]).transpose(),
             //     eta,
             //     toi);
+            double _output_tolerance;
             bool intersects = intervalccd::vertexFaceCCD_double(
                 mesh.V_prev.row(vI).transpose(),
                 Base::V.row(MCTriVInd[0]).transpose(),
@@ -2586,9 +2946,14 @@ bool MeshCO<dim>::updateActiveSet_QP(
                 Base::V.row(MCTriVInd[0]).transpose(),
                 Base::V.row(MCTriVInd[1]).transpose(),
                 Base::V.row(MCTriVInd[2]).transpose(),
-                { -1, -1, -1 },
+                vf_err,
                 eta,
-                toi);
+                toi,
+                /*tolerance=*/1e-6,
+                /*pre_check_t=*/0,
+                /* max_itr=*/CCD_MAX_ITER,
+                _output_tolerance,
+                /*CCD_TYPE=*/1);
 
             MMCVID mmcvid = MMCVID(-vI - 1, // mesh point
                 MCTriVInd[0], MCTriVInd[2], MCTriVInd[1]); // CO triangle
@@ -2632,6 +2997,7 @@ bool MeshCO<dim>::updateActiveSet_QP(
             //     mesh.V.row(sfVInd[2]).transpose() + searchDir.segment<dim>(sfVInd[2] * dim),
             //     eta,
             //     toi);
+            double _output_tolerance;
             bool intersects = intervalccd::vertexFaceCCD_double(
                 Base::V.row(vI).transpose(),
                 mesh.V_prev.row(sfVInd[0]).transpose(),
@@ -2641,9 +3007,14 @@ bool MeshCO<dim>::updateActiveSet_QP(
                 mesh.V.row(sfVInd[0]).transpose() + searchDir.segment<dim>(sfVInd[0] * dim),
                 mesh.V.row(sfVInd[1]).transpose() + searchDir.segment<dim>(sfVInd[1] * dim),
                 mesh.V.row(sfVInd[2]).transpose() + searchDir.segment<dim>(sfVInd[2] * dim),
-                { -1, -1, -1 },
+                vf_err,
                 eta,
-                toi);
+                toi,
+                /*tolerance=*/1e-6,
+                /*pre_check_t=*/0,
+                /* max_itr=*/CCD_MAX_ITER,
+                _output_tolerance,
+                /*CCD_TYPE=*/1);
 
             MMCVID mmcvid = MMCVID(
                 -sfVInd[0] - 1, -sfVInd[2] - 1, -sfVInd[1] - 1, // mesh triangle
@@ -2722,6 +3093,7 @@ bool MeshCO<dim>::updateActiveSet_QP(
             //     Base::V.row(co_edge.second).transpose(),
             //     eta,
             //     toi);
+            double _output_tolerance;
             bool intersects = intervalccd::edgeEdgeCCD_double(
                 mesh.V_prev.row(mesh_edge.first).transpose(),
                 mesh.V_prev.row(mesh_edge.second).transpose(),
@@ -2731,9 +3103,14 @@ bool MeshCO<dim>::updateActiveSet_QP(
                 mesh.V.row(mesh_edge.second).transpose() + searchDir.segment<dim>(mesh_edge.second * dim),
                 Base::V.row(co_edge.first).transpose(),
                 Base::V.row(co_edge.second).transpose(),
-                { -1, -1, -1 },
+                ee_err,
                 eta,
-                toi);
+                toi,
+                /*tolerance=*/1e-6,
+                /*pre_check_t=*/0,
+                /* max_itr=*/CCD_MAX_ITER,
+                _output_tolerance,
+                /*CCD_TYPE=*/1);
 
             if (intersects && constraintType == CollisionConstraintType::VERSCHOOR) {
                 Eigen::Matrix<double, dim, 1> mesh_v0_toi = (mesh.V.row(mesh_edge.first) - mesh.V_prev.row(mesh_edge.first)) * toi + mesh.V_prev.row(mesh_edge.first);

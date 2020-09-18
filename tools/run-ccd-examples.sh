@@ -10,6 +10,12 @@ else
 fi
 echo "Using $IPC_BIN"
 
+if [ $# -ne 0 ] && [ $1 == "debug" ]; then
+    USE_DEBUG=true
+else
+    USE_DEBUG=false
+fi
+
 # Input: collision script path relative to "${IPC_ROOT}/input/collision"
 function run_ccd_example
 {
@@ -29,7 +35,11 @@ function run_ccd_example
     SUFFIX="_$(echo $1 | sed -e 's/\//_/g')"
     SUFFIX=${SUFFIX%.*}
 
-    ${IPC_BIN} 10 ${MODIFIED_SCRIPT_PATH} ${SUFFIX} --log 3
+    if [ $USE_DEBUG == true ]; then
+        lldb -- ${IPC_BIN} 10 ${MODIFIED_SCRIPT_PATH} ${SUFFIX} --log 3
+    else
+        ${IPC_BIN} 10 ${MODIFIED_SCRIPT_PATH} ${SUFFIX} --log 3
+    fi
     rm ${MODIFIED_SCRIPT_PATH} # Delete modified script
 }
 

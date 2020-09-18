@@ -6,11 +6,13 @@ constraintSolver IP
 warmStart 0
 selfCollisionOn
 
-CCDMethod FloatPointRootFinder
-CCDTolerance 1e-8
+#CCDMethod FloatingPointRootFinder
+CCDMethod TightIntervals
+CCDTolerance 1e-6
 
 shapes input 1
 input/tetMeshes/32770_octocat.msh  0 0 0  -90 0 0  0.1 0.1 0.1
+#input/tetMeshes/cube.msh  0 0 0  -90 0 0  0.1 0.1 0.1
 
 meshCO input/triMeshes/plane.obj 0 0 0  20  50  1.0 rotate 0 0 0
 

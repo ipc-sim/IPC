@@ -108,6 +108,6 @@ endfunction()
 function(download_ccd_wrapper)
   custom_download_project(ccd-wrapper
     GIT_REPOSITORY git@github.com:zfergus/ccd-wrapper.git
-    GIT_TAG        4829fd275226ffb7759050efc84e8a42580684ec
+    GIT_TAG        eab67e0d5a9ff33eb6e29deb5def5e8c69142902
   )
 endfunction()

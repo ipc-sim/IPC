@@ -1,10 +1,10 @@
 script fall
 
-time 10 5e-3
+time 10 0.07
 
 constraintSolver IP
 warmStart 0
-#selfCollisionOn
+selfCollisionOn
 
 CCDMethod TightIntervals
 

@@ -1844,7 +1844,7 @@ bool Optimizer<dim>::solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
             if (animConfig.ccdMethod == ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER) {
                 SelfCollisionHandler<dim>::largestFeasibleStepSize(result, sh, searchDir, slackness_m, MMActiveSet_CCD.back(), newCandidates, alpha);
             }
-            if (animConfig.ccdMethod == ccd::CCDMethod::TIGHT_INTERVALS) {
+            else if (animConfig.ccdMethod == ccd::CCDMethod::TIGHT_INTERVALS) {
                 SelfCollisionHandler<dim>::largestFeasibleStepSize_TightIntervals(
                     result, sh, searchDir, animConfig.ccdTolerance, MMActiveSet_CCD.back(), newCandidates, alpha);
             }
@@ -1921,6 +1921,9 @@ bool Optimizer<dim>::solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
             exit(-1);
 
             alpha = 1.0; // fail-safe, let safe-guard in line search find the stepsize
+        }
+        else {
+            spdlog::critical("stepsize={:g}", alpha);
         }
         timer_step.stop();
 
