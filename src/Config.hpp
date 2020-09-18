@@ -61,6 +61,7 @@ public:
     double YM = 1e5, PR = 0.4;
 
     TimeIntegrationType timeIntegrationType = TIT_BE;
+    double beta = 0.25, gamma = 0.5;
     double duration = 5.0, dt = 0.025;
     double dampingRatio = 0.0, dampingStiff = 0.0;
     bool isConstrained = true, isSelfCollision = true;

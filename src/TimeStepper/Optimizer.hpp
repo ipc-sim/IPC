@@ -110,6 +110,8 @@ protected: // dynamic information
     int innerIterAmt;
     std::vector<AutoFlipSVD<Eigen::Matrix<double, dim, dim>>> svd;
     std::vector<Eigen::Matrix<double, dim, dim>> F;
+    double beta_NM; // \in [1/4,1/2], default 1/4
+    double gamma_NM; // \in [0,1], default 1/2
 
 public: // constructor and destructor
     Optimizer(const Mesh<dim>& p_data0,

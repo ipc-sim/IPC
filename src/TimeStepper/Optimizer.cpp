@@ -168,6 +168,9 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
         solveFric = true;
     }
 
+    beta_NM = animConfig.beta;
+    gamma_NM = animConfig.gamma;
+
     result = data0;
     animScripter.initAnimScript(result, animConfig.collisionObjects,
         animConfig.meshCollisionObjects);
@@ -542,9 +545,10 @@ int Optimizer<dim>::solve(int maxIter)
 
             case TIT_NM:
                 dx_Elastic = result.V - xTilta;
-                velocity = Eigen::Map<Eigen::MatrixXd>(Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>((result.V - result.V_prev).array() * 2.0 / dt).data(), velocity.rows(), 1) - velocity;
-                acceleration = (result.V - xTilta) * 4.0 / dtSq;
+                velocity = velocity + dt * (1 - gamma_NM) * Eigen::Map<Eigen::MatrixXd>(Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>(acceleration).data(), velocity.rows(), 1);
+                acceleration = (result.V - xTilta) / (dtSq * beta_NM);
                 acceleration.rowwise() += gravity.transpose();
+                velocity += dt * gamma_NM * Eigen::Map<Eigen::MatrixXd>(Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>(acceleration).data(), velocity.rows(), 1);
                 result.V_prev = result.V;
                 computeXTilta();
                 break;
@@ -1199,7 +1203,7 @@ void Optimizer<dim>::computeXTilta(void)
                     xTilta.row(vI) = result.V_prev.row(vI);
                 }
                 else {
-                    xTilta.row(vI) = (result.V_prev.row(vI) + (velocity.segment<dim>(vI * dim) * dt + 0.25 * (gravityDtSq + dtSq * acceleration.row(vI).transpose())).transpose());
+                    xTilta.row(vI) = (result.V_prev.row(vI) + (velocity.segment<dim>(vI * dim) * dt + beta_NM * gravityDtSq + (0.5 - beta_NM) * (dtSq * acceleration.row(vI).transpose())).transpose());
                 }
             }
 #ifdef USE_TBB
@@ -1909,7 +1913,7 @@ bool Optimizer<dim>::solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
 
 #ifdef LINSYSSOLVER_USE_AMGCL
         if (alpha < 1.0e-8) { // only for debugging tiny step size issue
-            // output system in AMGCL format 
+            // output system in AMGCL format
             // Eigen::VectorXd minusG = -gradient;
             // dynamic_cast<AMGCLSolver<Eigen::VectorXi, Eigen::VectorXd>*>(linSysSolver)->write_AMGCL("Stiff", minusG);
             // exit(-1);
@@ -2055,7 +2059,7 @@ bool Optimizer<dim>::solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
     }
 
     return true;
-}
+} // namespace IPC
 
 template <int dim>
 void Optimizer<dim>::upperBoundMu(double& mu)
@@ -2935,12 +2939,10 @@ void Optimizer<dim>::computeEnergyVal(const Mesh<dim>& data, int redoSVD, double
     }
 
     case TIT_NM: {
-        energyTerms[0]->computeEnergyVal(data, redoSVD, svd, F,
-            dtSq * energyParams[0] / 4.0, energyVal_ET[0]);
+        energyTerms[0]->computeEnergyVal(data, redoSVD, svd, F, dtSq * beta_NM * energyParams[0], energyVal_ET[0]);
         energyVal = energyVal_ET[0];
         for (int eI = 1; eI < energyTerms.size(); eI++) {
-            energyTerms[eI]->computeEnergyVal(data, redoSVD, svd, F,
-                dtSq * energyParams[eI] / 4.0, energyVal_ET[eI]);
+            energyTerms[eI]->computeEnergyVal(data, redoSVD, svd, F, dtSq * beta_NM * energyParams[eI], energyVal_ET[eI]);
             energyVal += energyVal_ET[eI];
         }
         break;
@@ -3143,12 +3145,10 @@ void Optimizer<dim>::computeGradient(const Mesh<dim>& data,
     }
 
     case TIT_NM: {
-        energyTerms[0]->computeGradient(data, redoSVD, svd, F,
-            dtSq * energyParams[0] / 4.0, gradient_ET[0], projectDBC);
+        energyTerms[0]->computeGradient(data, redoSVD, svd, F, dtSq * beta_NM * energyParams[0], gradient_ET[0], projectDBC);
         gradient = gradient_ET[0];
         for (int eI = 1; eI < energyTerms.size(); eI++) {
-            energyTerms[eI]->computeGradient(data, redoSVD, svd, F,
-                dtSq * energyParams[eI] / 4.0, gradient_ET[eI], projectDBC);
+            energyTerms[eI]->computeGradient(data, redoSVD, svd, F, dtSq * beta_NM * energyParams[eI], gradient_ET[eI], projectDBC);
             gradient += gradient_ET[eI];
         }
         break;
@@ -3319,7 +3319,7 @@ void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
 
         case TIT_NM: {
             p_linSysSolver->setCoeff(dampingMtr,
-                1.0 + dtSq / 4.0 * dt / animConfig.dampingStiff);
+                1.0 + dtSq * beta_NM * dt / animConfig.dampingStiff);
             break;
         }
         }
@@ -3338,9 +3338,7 @@ void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
 
         case TIT_NM: {
             for (int eI = 0; eI < energyTerms.size(); eI++) {
-                energyTerms[eI]->computeHessian(data, redoSVD, svd, F,
-                    energyParams[eI] * dtSq / 4.0,
-                    p_linSysSolver, true, projectDBC);
+                energyTerms[eI]->computeHessian(data, redoSVD, svd, F, energyParams[eI] * dtSq * beta_NM, p_linSysSolver, true, projectDBC);
             }
             break;
         }

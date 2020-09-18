@@ -80,6 +80,9 @@ int Config::loadFromFile(const std::string& p_filePath)
             else if (token == "timeIntegration") {
                 std::string type;
                 ss >> type;
+                if (type == "NM") {
+                    ss >> beta >> gamma;
+                }
                 timeIntegrationType = getTimeIntegrationTypeByStr(type);
             }
             else if (token == "size") {
@@ -528,7 +531,7 @@ int Config::loadFromFile(const std::string& p_filePath)
         spdlog::error("Unable to open input file: {:s}", p_filePath);
         return -1;
     }
-}
+} // namespace IPC
 void Config::backUpConfig(const std::string& p_filePath)
 {
     std::ifstream src(filePath, std::ios::binary);

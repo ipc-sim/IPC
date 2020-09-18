@@ -127,9 +127,9 @@ See our [quick start guide](https://github.com/ipc-sim/IPC/wiki) for detailed ex
 * `energy {FCR | NH}`
     * `NH`: Neo-Hookean elasticity energy (default)
     * `FCR`: Fixed Co-rotational elasticity energy
-* `timeIntegration {BE | NM}`
+* `timeIntegration {BE | NM} <β> <γ>`
     * `BE`: Backward Euler (default)
-    * `NM`: Newmark
+    * `NM`: Newmark (optional: add β and γ to change from default of 0.25 and 0.5)
 * `dampingStiff <dampingStiff>`
     * add lagged Rayleigh damping with stiffness `dampingStiff` or not if `dampingStiff` is zero or not specified
     * `dampingStiff` must be greater than or equal to zero
