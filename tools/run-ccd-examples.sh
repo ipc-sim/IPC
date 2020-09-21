@@ -1,6 +1,8 @@
 #!/bin/bash
 
-CONSTRAINT_SOLVER="IP"
+# CONSTRAINT_SOLVER="IP"
+
+LOG_LEVEL=3
 
 IPC_ROOT=$(dirname "$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )")
 if test -f "IPC_bin"; then
@@ -24,21 +26,21 @@ function run_ccd_example
     MODIFIED_SCRIPT_PATH=$(realpath input.txt)
     cp ${SCRIPT_PATH} ${MODIFIED_SCRIPT_PATH}
     # Modify the copied script
-    if [ "$(uname)" == "Darwin" ]; then
-        sed -i "" '/constraintSolver .*/d' ${MODIFIED_SCRIPT_PATH}
-        printf "constraintSolver ${CONSTRAINT_SOLVER}\n$(cat ${MODIFIED_SCRIPT_PATH})" > ${MODIFIED_SCRIPT_PATH}
-    else
-        sed -i '/constraintSolver .*/d' ${MODIFIED_SCRIPT_PATH}
-        printf "constraintSolver ${CONSTRAINT_SOLVER}\n$(cat ${MODIFIED_SCRIPT_PATH})" > ${MODIFIED_SCRIPT_PATH}
-    fi
+    # if [ "$(uname)" == "Darwin" ]; then
+    #     sed -i "" '/constraintSolver .*/d' ${MODIFIED_SCRIPT_PATH}
+    #     printf "constraintSolver ${CONSTRAINT_SOLVER}\n$(cat ${MODIFIED_SCRIPT_PATH})" > ${MODIFIED_SCRIPT_PATH}
+    # else
+    #     sed -i '/constraintSolver .*/d' ${MODIFIED_SCRIPT_PATH}
+    #     printf "constraintSolver ${CONSTRAINT_SOLVER}\n$(cat ${MODIFIED_SCRIPT_PATH})" > ${MODIFIED_SCRIPT_PATH}
+    # fi
     # printf "\n\nselfCollisionOn\n" >> ${MODIFIED_SCRIPT_PATH}
     SUFFIX="_$(echo $1 | sed -e 's/\//_/g')"
     SUFFIX=${SUFFIX%.*}
 
     if [ $USE_DEBUG == true ]; then
-        lldb -- ${IPC_BIN} 10 ${MODIFIED_SCRIPT_PATH} ${SUFFIX} --log 3
+        lldb -- ${IPC_BIN} 100 ${MODIFIED_SCRIPT_PATH} ${SUFFIX} --log ${LOG_LEVEL}
     else
-        ${IPC_BIN} 10 ${MODIFIED_SCRIPT_PATH} ${SUFFIX} --log 3
+        ${IPC_BIN} 100 ${MODIFIED_SCRIPT_PATH} ${SUFFIX} --log ${LOG_LEVEL}
     fi
     rm ${MODIFIED_SCRIPT_PATH} # Delete modified script
 }

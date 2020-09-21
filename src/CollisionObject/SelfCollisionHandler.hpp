@@ -164,7 +164,8 @@ public:
         const CollisionConstraintType constraintType,
         std::vector<MMCVID>& activeSet,
         std::unordered_map<MMCVID, double, MMCVIDHash>& mmcvid_to_toi,
-        const double eta = 0);
+        const double eta = 0,
+        const double ccd_tol = 1e-6);
 
     static void computeConstraintSet(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh,

@@ -2,13 +2,13 @@ script fall
 
 time 10 2e-2
 
-constraintSolver IP
+constraintSolver SQP
 warmStart 0
-#selfCollisionOn
+selfCollisionOn
 
-#CCDMethod FloatPointRootFinder
+#CCDMethod FloatingPointRootFinder
 CCDMethod TightIntervals
-#CCDTolerance 1e-12
+CCDTolerance 1e-6
 
 shapes input 1
 input/tetMeshes/torus.msh  0 0 0  0 0 0  1 1 1
@@ -22,7 +22,7 @@ zoom 0.3
 section SQP QP
 warmStart 1
 constraintType Verschoor
-constraintOffset 0
+constraintOffset 1e-3
 tol 1
 1e-1
 section end

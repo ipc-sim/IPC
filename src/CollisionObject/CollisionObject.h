@@ -153,7 +153,8 @@ public:
         const Eigen::VectorXd& searchDir,
         const CollisionConstraintType constraintType,
         std::vector<MMCVID>& activeSet,
-        const double eta = 0) { return false; };
+        const double eta = 0,
+        const double ccd_tol = 1e-6) { return false; };
 
     virtual void filterSearchDir_QP(const Mesh<dim>& mesh,
         Eigen::VectorXd& searchDir,

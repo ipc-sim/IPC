@@ -1251,13 +1251,14 @@ bool Optimizer<dim>::updateActiveSet_QP()
     for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); coI++) {
         newConstraintsAdded |= animConfig.meshCollisionObjects[coI]->updateActiveSet_QP(
             result, searchDir, animConfig.constraintType,
-            MMActiveSet_next[coI], eta);
+            MMActiveSet_next[coI], eta, animConfig.ccdTolerance);
         MMActiveSet[coI] = MMActiveSet_next[coI];
     }
     if (animConfig.isSelfCollision) {
         newConstraintsAdded |= SelfCollisionHandler<dim>::updateActiveSet_QP(
             result, searchDir, animConfig.constraintType,
-            MMActiveSet_next.back(), mesh_mmcvid_to_toi, eta);
+            MMActiveSet_next.back(), mesh_mmcvid_to_toi, eta,
+            animConfig.ccdTolerance);
         MMActiveSet.back() = MMActiveSet_next.back();
     }
     return newConstraintsAdded;
