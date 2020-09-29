@@ -50,13 +50,6 @@ if(NOT TARGET TBB::tbb)
   add_library(TBB::tbb ALIAS tbb_static)
 endif()
 
-# exact-ccd
-if(IPC_WITH_EXACT_CCD AND NOT TARGET exact-ccd::exact-ccd)
-  download_exact_ccd()
-  add_subdirectory(${IPC_EXTERNAL}/exact-ccd EXCLUDE_FROM_ALL)
-  add_library(exact-ccd::exact-ccd ALIAS exact-ccd)
-endif()
-
 # spdlog
 if(NOT TARGET spdlog::spdlog)
     download_spdlog()

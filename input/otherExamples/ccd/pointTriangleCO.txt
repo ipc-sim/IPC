@@ -6,7 +6,7 @@ constraintSolver IP
 warmStart 0
 selfCollisionOn
 
-CCDMethod TightIntervals
+CCDMethod TightInclusion
 
 shapes input 1
 input/tetMeshes/tet-pyramid.msh  0 0 0  0 0 0  1 1 1

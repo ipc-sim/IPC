@@ -144,7 +144,7 @@ target_link_libraries(${PROJECT_NAME}_dev PUBLIC TBB::tbb)
 
 # exact-ccd
 if(IPC_WITH_EXACT_CCD)
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC exact-ccd::exact-ccd)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC RootParity_and_BernsteinSignClassification)
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_EXACT_CCD)
 endif()
 

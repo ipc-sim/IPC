@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# CONSTRAINT_SOLVER="IP"
-
 LOG_LEVEL=3
 
 IPC_ROOT=$(dirname "$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )")
@@ -25,17 +23,12 @@ function run_ccd_example
     # Copy the original script
     MODIFIED_SCRIPT_PATH=$(realpath input.txt)
     cp ${SCRIPT_PATH} ${MODIFIED_SCRIPT_PATH}
-    # Modify the copied script
-    # if [ "$(uname)" == "Darwin" ]; then
-    #     sed -i "" '/constraintSolver .*/d' ${MODIFIED_SCRIPT_PATH}
-    #     printf "constraintSolver ${CONSTRAINT_SOLVER}\n$(cat ${MODIFIED_SCRIPT_PATH})" > ${MODIFIED_SCRIPT_PATH}
-    # else
-    #     sed -i '/constraintSolver .*/d' ${MODIFIED_SCRIPT_PATH}
-    #     printf "constraintSolver ${CONSTRAINT_SOLVER}\n$(cat ${MODIFIED_SCRIPT_PATH})" > ${MODIFIED_SCRIPT_PATH}
-    # fi
-    # printf "\n\nselfCollisionOn\n" >> ${MODIFIED_SCRIPT_PATH}
+
+    CCD_METHOD=$(grep '^CCDMethod' ${MODIFIED_SCRIPT_PATH} | tail -1 | awk '{print $2}')
+    CCD_TOLERANCE=$(grep '^CCDTolerance' ${MODIFIED_SCRIPT_PATH} | tail -1 | awk '{print $2}')
+
     SUFFIX="_$(echo $1 | sed -e 's/\//_/g')"
-    SUFFIX=${SUFFIX%.*}
+    SUFFIX="${SUFFIX%.*}_CCDMethod=${CCD_METHOD}_CCDTolerance=${CCD_TOLERANCE}"
 
     if [ $USE_DEBUG == true ]; then
         lldb -- ${IPC_BIN} 100 ${MODIFIED_SCRIPT_PATH} ${SUFFIX} --log ${LOG_LEVEL}
@@ -46,6 +39,5 @@ function run_ccd_example
 }
 
 # run_ccd_example pointTriangleCO.txt
-# run_ccd_example torusCone.txt
+run_ccd_example torusCone.txt
 run_ccd_example octocatPlane.txt
-# run_ccd_example matIcosphereCO.txt

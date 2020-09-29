@@ -7,7 +7,7 @@ warmStart 0
 selfCollisionOn
 
 #CCDMethod FloatingPointRootFinder
-CCDMethod TightIntervals
+CCDMethod TightInclusion
 #CCDTolerance 1e-3
 #CCDTolerance 3.162277e-5
 CCDTolerance 1e-6

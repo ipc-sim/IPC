@@ -1104,8 +1104,8 @@ void Optimizer<dim>::initX(int option, std::vector<std::vector<int>>& p_activeSe
                 if (animConfig.ccdMethod == ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER) {
                     animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_CCD(result, sh, searchDir, slackness_m, stepSize);
                 }
-                if (animConfig.ccdMethod == ccd::CCDMethod::TIGHT_INTERVALS) {
-                    animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_CCD_TightIntervals(
+                if (animConfig.ccdMethod == ccd::CCDMethod::TIGHT_INCLUSION) {
+                    animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_CCD_TightInclusion(
                         result, sh, searchDir, animConfig.ccdTolerance, stepSize);
                 }
                 else {
@@ -1118,9 +1118,9 @@ void Optimizer<dim>::initX(int option, std::vector<std::vector<int>>& p_activeSe
                     std::vector<std::pair<int, int>> newCandidates;
                     SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD(result, sh, searchDir, slackness_m, newCandidates, stepSize);
                 }
-                if (animConfig.ccdMethod == ccd::CCDMethod::TIGHT_INTERVALS) {
+                if (animConfig.ccdMethod == ccd::CCDMethod::TIGHT_INCLUSION) {
                     std::vector<std::pair<int, int>> newCandidates;
-                    SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_TightIntervals(
+                    SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                         result, sh, searchDir, animConfig.ccdTolerance, newCandidates, stepSize);
                 }
                 else {
@@ -1832,8 +1832,8 @@ bool Optimizer<dim>::solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
             if (animConfig.ccdMethod == ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER) {
                 animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize(result, sh, searchDir, slackness_m, MMActiveSet_CCD[coI], alpha);
             }
-            if (animConfig.ccdMethod == ccd::CCDMethod::TIGHT_INTERVALS) {
-                animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_TightIntervals(
+            if (animConfig.ccdMethod == ccd::CCDMethod::TIGHT_INCLUSION) {
+                animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_TightInclusion(
                     result, sh, searchDir, animConfig.ccdTolerance, MMActiveSet_CCD[coI], alpha);
             }
             else {
@@ -1845,8 +1845,8 @@ bool Optimizer<dim>::solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
             if (animConfig.ccdMethod == ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER) {
                 SelfCollisionHandler<dim>::largestFeasibleStepSize(result, sh, searchDir, slackness_m, MMActiveSet_CCD.back(), newCandidates, alpha);
             }
-            else if (animConfig.ccdMethod == ccd::CCDMethod::TIGHT_INTERVALS) {
-                SelfCollisionHandler<dim>::largestFeasibleStepSize_TightIntervals(
+            else if (animConfig.ccdMethod == ccd::CCDMethod::TIGHT_INCLUSION) {
+                SelfCollisionHandler<dim>::largestFeasibleStepSize_TightInclusion(
                     result, sh, searchDir, animConfig.ccdTolerance, MMActiveSet_CCD.back(), newCandidates, alpha);
             }
             else {
@@ -1879,8 +1879,8 @@ bool Optimizer<dim>::solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
                         if (animConfig.ccdMethod == ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER) {
                             animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_CCD(result, sh, searchDir, slackness_m, alpha);
                         }
-                        if (animConfig.ccdMethod == ccd::CCDMethod::TIGHT_INTERVALS) {
-                            animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_CCD_TightIntervals(
+                        if (animConfig.ccdMethod == ccd::CCDMethod::TIGHT_INCLUSION) {
+                            animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_CCD_TightInclusion(
                                 result, sh, searchDir, animConfig.ccdTolerance, alpha);
                         }
                         else {
@@ -1891,8 +1891,8 @@ bool Optimizer<dim>::solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
                         if (animConfig.ccdMethod == ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER) {
                             SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD(result, sh, searchDir, slackness_m, newCandidates, alpha);
                         }
-                        if (animConfig.ccdMethod == ccd::CCDMethod::TIGHT_INTERVALS) {
-                            SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_TightIntervals(
+                        if (animConfig.ccdMethod == ccd::CCDMethod::TIGHT_INCLUSION) {
+                            SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                                 result, sh, searchDir, animConfig.ccdTolerance, newCandidates, alpha);
                         }
                         else {

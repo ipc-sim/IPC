@@ -48,14 +48,6 @@ function(download_tbb)
   )
 endfunction()
 
-# exact-ccd
-function(download_exact_ccd)
-  custom_download_project(exact-ccd
-    GIT_REPOSITORY https://github.com/jiangzhongshi/exact-ccd.git
-    GIT_TAG        305bb6f0e57d399b283161dc3669c260f90fb7f5
-  )
-endfunction()
-
 # Logger
 function(download_spdlog)
     custom_download_project(spdlog
@@ -107,7 +99,7 @@ endfunction()
 # CCD Wrapper (includes Rational CCD)
 function(download_ccd_wrapper)
   custom_download_project(ccd-wrapper
-    GIT_REPOSITORY git@github.com:zfergus/ccd-wrapper.git
-    GIT_TAG        eab67e0d5a9ff33eb6e29deb5def5e8c69142902
+    GIT_REPOSITORY https://github.com/Continuous-Collision-Detection/CCD-Wrapper.git
+    GIT_TAG        0169dabec4e22d784843fdefa131254c0576ddbf
   )
 endfunction()
