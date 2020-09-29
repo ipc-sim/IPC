@@ -7,9 +7,9 @@
     * `3`: uniformly accelerated warm start
     * `4`: symplectic Euler warm start
     * `5`: Jacobi warm start
-* `CCDMethod {FloatPointRootFinder | RootParity | BSC | RationalRootParity | ...}`: By default, IPC uses floating-point version of CCD together with edge-triangle intersection checks as safeguard, which is much faster than exact CCD and does not have any failure cases so far in practice
-    * which method of exact CCD to use (default: `FloatPointRootFinder`)
-    * `FloatPointRootFinder`: use the floating-point root finder method implemented by Etienne Vouga
+* `CCDMethod {FloatingPointRootFinder | RootParity | BSC | RationalRootParity | TightInclusion | ...}`: By default, IPC uses a floating-point version of CCD together with edge-triangle intersection checks as safeguard, which is much faster than exact CCD and does not have any failure cases so far in practice
+    * which method of exact CCD to use (default: `FloatingPointRootFinder`)
+    * `FloatingPointRootFinder`: use the floating-point root finder method implemented by Etienne Vouga
     * `RootParity`: use the root parity method of Brochu et al. [2012], which in fact has failure cases in our experiments (e.g. sphere roller)
     * `BSC`: use the Bernstein sign classification method of Tang et al. [2014], which in fact has failure cases in our experiments (e.g. sphere roller)
     * `RationalRootParity`: use our reimplementation with rational numbers of the root parity method in Brochu et al. [2012], which is in fact does not handle double collisions in a single time-step (a limitation of the original [Brochu et al. 2012])
