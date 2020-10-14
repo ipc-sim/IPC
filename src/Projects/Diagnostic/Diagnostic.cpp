@@ -8,6 +8,10 @@
 #ifndef Diagnostic_hpp
 #define Diagnostic_hpp
 
+#include "Utils/Types.hpp"
+#include <cmath>
+#include "Utils/BarrierFunctions.hpp"
+#include "CollisionObject/MeshCollisionUtils.hpp"
 #include "NeoHookeanEnergy.hpp"
 #include "FixedCoRotEnergy.hpp"
 
@@ -466,6 +470,119 @@ public:
                 std::cout << "scatter3(v(3,1), v(3,2), v(3,3));" << std::endl;
                 std::cout << "scatter3(v(4,1), v(4,2), v(4,3));" << std::endl;
                 std::cout << "hold off" << std::endl;
+                break;
+            }
+
+            case 26: { // ./src/Projects/Diagnostic/diagnostic 0 26
+                double dHat = 0.8;
+
+                Eigen::RowVector3d v0, v1, v2, v3;
+                v1 << 0.0, 0.0, 1.0;
+                v2 << -1.0, 0.0, -1.0;
+                v3 << 1.0, 0.0, -1.0;
+                v0 << 0.0, 0.5, 0.0;
+
+                double d;
+                std::cout << "distance function value and derivatives:" << std::endl;
+                switch (dType_PT(v0, v1, v2, v3)) {
+                case 0: {
+                    d_PP(v0, v1, d);
+                    Eigen::Matrix<double, 6, 1> g;
+                    Eigen::Matrix<double, 6, 6> h;
+                    g_PP(v0, v1, g);
+                    H_PP(h);
+                    std::cout << d << std::endl;
+                    std::cout << g << std::endl
+                              << h << std::endl;
+                    break;
+                }
+
+                case 1: {
+                    d_PP(v0, v2, d);
+                    Eigen::Matrix<double, 6, 1> g;
+                    Eigen::Matrix<double, 6, 6> h;
+                    g_PP(v0, v2, g);
+                    H_PP(h);
+                    std::cout << d << std::endl;
+                    std::cout << g << std::endl
+                              << h << std::endl;
+                    break;
+                }
+
+                case 2: {
+                    d_PP(v0, v3, d);
+                    Eigen::Matrix<double, 6, 1> g;
+                    Eigen::Matrix<double, 6, 6> h;
+                    g_PP(v0, v3, g);
+                    H_PP(h);
+                    std::cout << d << std::endl;
+                    std::cout << g << std::endl
+                              << h << std::endl;
+                    break;
+                }
+
+                case 3: {
+                    d_PE(v0, v1, v2, d);
+                    Eigen::Matrix<double, 9, 1> g;
+                    Eigen::Matrix<double, 9, 9> h;
+                    g_PE(v0, v1, v2, g);
+                    H_PE(v0, v1, v2, h);
+                    std::cout << d << std::endl;
+                    std::cout << g << std::endl
+                              << h << std::endl;
+                    break;
+                }
+
+                case 4: {
+                    d_PE(v0, v2, v3, d);
+                    Eigen::Matrix<double, 9, 1> g;
+                    Eigen::Matrix<double, 9, 9> h;
+                    g_PE(v0, v2, v3, g);
+                    H_PE(v0, v2, v3, h);
+                    std::cout << d << std::endl;
+                    std::cout << g << std::endl
+                              << h << std::endl;
+                    break;
+                }
+
+                case 5: {
+                    d_PE(v0, v3, v1, d);
+                    Eigen::Matrix<double, 9, 1> g;
+                    Eigen::Matrix<double, 9, 9> h;
+                    g_PE(v0, v3, v1, g);
+                    H_PE(v0, v3, v1, h);
+                    std::cout << d << std::endl;
+                    std::cout << g << std::endl
+                              << h << std::endl;
+                    break;
+                }
+
+                case 6: {
+                    d_PT(v0, v1, v2, v3, d);
+                    Eigen::Matrix<double, 12, 1> g;
+                    Eigen::Matrix<double, 12, 12> h;
+                    g_PT(v0, v1, v2, v3, g);
+                    H_PT(v0, v1, v2, v3, h);
+                    std::cout << d << std::endl;
+                    std::cout << g << std::endl
+                              << h << std::endl;
+                    break;
+                }
+
+                default:
+                    d = -1.0;
+                    break;
+                }
+
+                double b, g_b, h_b;
+                compute_b(d, dHat * dHat, b);
+                compute_g_b(d, dHat * dHat, g_b);
+                compute_H_b(d, dHat * dHat, h_b);
+                std::cout << "barrier function value and derivatives:" << std::endl;
+                std::cout << b << std::endl
+                          << g_b << std::endl
+                          << h_b << std::endl;
+
                 break;
             }
 
