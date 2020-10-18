@@ -307,7 +307,7 @@ public:
             {
                 int vI = mesh.SVI[svI];
                 if (!mesh.isFixedVert[vI] && mesh.vICoDim(vI) == 3) {
-                    double d;
+                    double d=0;
                     evaluateConstraint(mesh, vI, d);
                     if (d < dHat) {
                         isActive[svI] = 1;

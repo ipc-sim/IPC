@@ -179,11 +179,11 @@ void HalfSpace<dim>::augmentIPHessian(const Mesh<dim>& mesh,
         {
             int vI = activeSet[constraintI];
             if (!mesh.isFixedVert[vI] || !projectDBC) {
-                double constraintVal;
+                double constraintVal=0;
                 evaluateConstraint(mesh, vI, constraintVal);
-                double g_b;
+                double g_b=0;
                 compute_g_b(constraintVal, dHat, g_b);
-                double H_b;
+                double H_b=0;
                 compute_H_b(constraintVal, dHat, H_b);
                 double param = 4.0 * H_b * constraintVal + 2.0 * g_b;
                 if (param > 0.0) {
