@@ -118,4 +118,10 @@ function(download_filesystem)
         GIT_REPOSITORY https://github.com/gulrak/filesystem.git
         GIT_TAG        v1.5.4
     )
+
+# ipc toolkit
+function(download_ipc_toolkit)
+  custom_download_project(ipc_toolkit
+    GIT_REPOSITORY https://github.com/ipc-sim/ipc-toolkit
+  )
 endfunction()

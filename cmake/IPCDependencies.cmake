@@ -129,3 +129,9 @@ if(NOT TARGET ghc::filesystem)
     add_subdirectory(${IPC_EXTERNAL}/filesystem)
     add_library(ghc::filesystem ALIAS ghc_filesystem)
 endif()
+
+# ipc toolkit
+if(NOT TARGET IPCToolkit)
+  download_ipc_toolkit()
+  add_subdirectory(${IPC_EXTERNAL}/ipc_toolkit EXCLUDE_FROM_ALL)
+endif()

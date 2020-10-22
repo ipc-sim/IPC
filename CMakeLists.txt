@@ -11,7 +11,8 @@ else()
 endif()
 
 # Project options
-option(IPC_WITH_OPENGL "Use libgil viewer for preview and output" ON)
+option(IPC_WITH_IPCTOOLKIT "Use IPC Toolkit for self-contact computation" OFF)
+option(IPC_WITH_OPENGL     "Use libgil viewer for preview and output"      ON)
 set(IPC_LINSYSSOLVER "CHOLMOD" CACHE STRING "Linear system solver to use (options: CHOLMOD, AMGCL, EIGEN)")
 set_property(CACHE IPC_LINSYSSOLVER PROPERTY STRINGS "CHOLMOD" "AMGCL" "EIGEN")
 ## SQP and QP options
@@ -203,6 +204,12 @@ target_link_libraries(${PROJECT_NAME}_dev PUBLIC mshio::mshio)
 
 # Filesystem
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC ghc::filesystem)
+
+# IPC Toolkit
+if(IPC_WITH_IPCTOOLKIT)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC IPCToolkit)
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_IPCTOOLKIT)
+endif()
 
 ################################################################################
 # Sub-Projects
