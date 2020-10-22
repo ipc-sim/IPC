@@ -3501,7 +3501,12 @@ void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
     if (solveIP) {
         // figure out vNeighbor_IP in this iteration
         timer_step.start(1);
-        if (animConfig.isSelfCollision && (MMActiveSet.back().size() + paraEEeIeJSet.back().size() + MMActiveSet_lastH.back().size())) {
+#ifndef USE_IPCTOOLKIT
+        if (animConfig.isSelfCollision && (MMActiveSet.back().size() + paraEEeIeJSet.back().size() + MMActiveSet_lastH.back().size()))
+#else
+        if (animConfig.isSelfCollision && (constraintSet_TK.vv_constraints.size() + constraintSet_TK.ev_constraints.size() + constraintSet_TK.fv_constraints.size() + constraintSet_TK.ee_constraints.size())) //TODO: add ipc toolkit friction count
+#endif
+        {
             // there is extra connectivity from self-contact
             timer_mt.start(8);
             std::vector<std::set<int>> vNeighbor_IP_new = data.vNeighbor;
@@ -3510,6 +3515,7 @@ void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
             SelfCollisionHandler<dim>::augmentConnectivity(data, paraEEMMCVIDSet.back(), paraEEeIeJSet.back(), vNeighbor_IP_new);
 #else
             SelfCollisionHandler<dim>::augmentConnectivity(data, constraintSet_TK, vNeighbor_IP_new);
+            //TODO: add ipc toolkit friction below
 #endif
             if (MMActiveSet_lastH.back().size() && fricDHat > 0.0 && animConfig.selfFric > 0.0) {
                 SelfCollisionHandler<dim>::augmentConnectivity(data, MMActiveSet_lastH.back(), vNeighbor_IP_new);
