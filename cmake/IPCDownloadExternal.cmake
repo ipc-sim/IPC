@@ -60,7 +60,14 @@ endfunction()
 function(download_spdlog)
     custom_download_project(spdlog
        GIT_REPOSITORY https://github.com/gabime/spdlog.git
-       GIT_TAG        v1.4.2
+       GIT_TAG        v1.8.1
+    )
+endfunction()
+
+function(download_fmt)
+    custom_download_project(fmt
+       GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+       GIT_TAG        7.0.3
     )
 endfunction()
 

@@ -57,12 +57,19 @@ if(IPC_WITH_EXACT_CCD AND NOT TARGET exact-ccd::exact-ccd)
   add_library(exact-ccd::exact-ccd ALIAS exact-ccd)
 endif()
 
+if(NOT TARGET fmt::fmt)
+    download_fmt()
+    add_subdirectory(${IPC_EXTERNAL}/fmt)
+endif()
+
 # spdlog
 if(NOT TARGET spdlog::spdlog)
     download_spdlog()
     add_library(spdlog INTERFACE)
     add_library(spdlog::spdlog ALIAS spdlog)
     target_include_directories(spdlog SYSTEM INTERFACE ${IPC_EXTERNAL}/spdlog/include)
+    target_compile_definitions(spdlog INTERFACE -DSPDLOG_FMT_EXTERNAL)
+    target_link_libraries(spdlog INTERFACE fmt::fmt)
 endif()
 
 # AMGCL

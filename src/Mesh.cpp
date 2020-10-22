@@ -811,14 +811,19 @@ void Mesh<dim>::saveAsMesh(const std::string& filePath, bool scaleUV,
 }
 
 template <int dim>
-void Mesh<dim>::saveSurfaceMesh(const std::string& filePath) const
+void Mesh<dim>::saveSurfaceMesh(const std::string& filePath, bool use_V_prev) const
 {
     if constexpr (dim == 3) {
         Eigen::MatrixXd V_surf(SVI.size(), 3);
         std::unordered_map<int, int> vI2SVI;
         for (int svI = 0; svI < SVI.size(); ++svI) {
             vI2SVI[SVI[svI]] = svI;
-            V_surf.row(svI) = V.row(SVI[svI]);
+            if (use_V_prev) {
+                V_surf.row(svI) = V_prev.row(SVI[svI]);
+            }
+            else {
+                V_surf.row(svI) = V.row(SVI[svI]);
+            }
         }
 
         Eigen::MatrixXi F_surf(SF.rows(), 3);
