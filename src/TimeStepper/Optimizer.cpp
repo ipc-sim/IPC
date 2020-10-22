@@ -427,6 +427,16 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
     }
     fprintf(out, "END\n");
     fclose(out);
+
+#ifdef USE_IPCTOOLKIT
+    E_TK.resize(result.SFEdges.size(), 2);
+    int i = 0;
+    for (const auto& eI : result.SFEdges) {
+        E_TK(i, 0) = eI.first;
+        E_TK(i, 1) = eI.second;
+        ++i;
+    }
+#endif
 }
 
 template <int dim>
@@ -1645,6 +1655,7 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
         SelfCollisionHandler<dim>::evaluateConstraints(result, MMActiveSet.back(), constraintVal);
 
         if (animConfig.selfFric > 0.0) {
+#ifndef USE_IPCTOOLKIT
             MMLambda_lastH.back().resize(constraintVal.size() - startCI);
             //TODO: parallelize
             for (int i = 0; i < MMLambda_lastH.back().size(); ++i) {
@@ -1662,6 +1673,9 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
                 activeSetChanged = true;
                 MMActiveSet_lastH.back() = MMActiveSet.back();
             }
+#else
+            //TODO: IPCToolkit friction
+#endif
         }
     }
     timer_step.stop();
@@ -1708,6 +1722,7 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
             SelfCollisionHandler<dim>::evaluateConstraints(result, MMActiveSet.back(), constraintVal);
 
             if (animConfig.selfFric > 0.0) {
+#ifndef USE_IPCTOOLKIT
                 MMLambda_lastH.back().resize(constraintVal.size() - startCI);
                 //TODO: parallelize
                 for (int i = 0; i < MMLambda_lastH.back().size(); ++i) {
@@ -1725,6 +1740,9 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
                     activeSetChanged = true;
                     MMActiveSet_lastH.back() = MMActiveSet.back();
                 }
+#else
+                //TODO: IPCToolkit friction
+#endif
             }
         }
         timer_step.stop();
@@ -2491,7 +2509,18 @@ void Optimizer<dim>::computeConstraintSets(const Mesh<dim>& data, bool rehash)
         animConfig.meshCollisionObjects[coI]->computeConstraintSet(data, sh, dHat, MMActiveSet[coI], paraEEMMCVIDSet[coI], paraEEeIeJSet[coI], CFL_FOR_CCD, MMActiveSet_CCD[coI]);
     }
     if (animConfig.isSelfCollision) {
+#ifndef USE_IPCTOOLKIT
         SelfCollisionHandler<dim>::computeConstraintSet(data, sh, dHat, MMActiveSet.back(), paraEEMMCVIDSet.back(), paraEEeIeJSet.back(), CFL_FOR_CCD, MMActiveSet_CCD.back());
+#else
+        std::cout << "ipc::construct_constraint_set" << std::endl;
+        std::cout << result.V_rest.rows() << " " << result.V.rows() << " " << E_TK.rows() << " " << result.SF.rows() << std::endl;
+        std::cout << result.V_rest << std::endl
+                  << result.V << std::endl
+                  << E_TK << std::endl
+                  << result.SF << std::endl;
+        ipc::construct_constraint_set(result.V_rest, result.V, E_TK, result.SF, std::sqrt(dHat), constraintSet_TK);
+        std::cout << "ipc::construct_constraint_set" << std::endl;
+#endif
     }
     timer_step.stop();
 }
@@ -3195,6 +3224,7 @@ void Optimizer<dim>::computeEnergyVal(const Mesh<dim>& data, int redoSVD, double
                 constraintVals, bVals, dHat, 1.0);
         }
         if (animConfig.isSelfCollision) {
+#ifndef USE_IPCTOOLKIT
             int startCI = constraintVals.size();
             SelfCollisionHandler<dim>::evaluateConstraints(data, MMActiveSet.back(), constraintVals);
             bVals.conservativeResize(constraintVals.size());
@@ -3256,6 +3286,9 @@ void Optimizer<dim>::computeEnergyVal(const Mesh<dim>& data, int redoSVD, double
                     bVals[cI] *= e;
                 }
             }
+#else
+            energyVal += mu_IP * ipc::compute_barrier_potential(result.V, E_TK, result.SF, constraintSet_TK, std::sqrt(dHat));
+#endif
         }
         energyVal += kappa * bVals.sum();
         // std::cout << ", E_c=" << kappa * bVals.sum();
@@ -3273,6 +3306,7 @@ void Optimizer<dim>::computeEnergyVal(const Mesh<dim>& data, int redoSVD, double
             }
         }
         if (animConfig.isSelfCollision) {
+#ifndef USE_IPCTOOLKIT
             if (MMActiveSet_lastH.back().size() && fricDHat > 0.0 && animConfig.selfFric > 0.0) {
                 double Ef;
                 SelfCollisionHandler<dim>::computeFrictionEnergy(data.V, result.V_prev, MMActiveSet_lastH.back(),
@@ -3281,6 +3315,9 @@ void Optimizer<dim>::computeEnergyVal(const Mesh<dim>& data, int redoSVD, double
                 // std::cout << ", E_fs=" << Ef;
                 // energies[3] = Ef;
             }
+#else
+            //TODO: IPCToolkit friction
+#endif
         }
     }
     // std::cout << std::endl;
@@ -3397,6 +3434,7 @@ void Optimizer<dim>::computeGradient(const Mesh<dim>& data,
                 paraEEMMCVIDSet[coI], paraEEeIeJSet[coI], gradient, dHat, kappa);
         }
         if (animConfig.isSelfCollision) {
+#ifndef USE_IPCTOOLKIT
             int startCI = constraintVal.size();
             SelfCollisionHandler<dim>::evaluateConstraints(data, MMActiveSet.back(), constraintVal);
             for (int cI = startCI; cI < constraintVal.size(); ++cI) {
@@ -3418,6 +3456,10 @@ void Optimizer<dim>::computeGradient(const Mesh<dim>& data,
                     dHat, kappa, fricDHat, animConfig.selfFric);
 #endif
             }
+#else
+            gradient += mu_IP * compute_barrier_potential_gradient(result.V, E_TK, result.SF, constraintSet_TK, std::sqrt(dHat));
+            //TODO: IPCToolkit friction
+#endif
         }
         if (projectDBC) {
             for (const auto& fixedVI : data.fixedVert) {
@@ -3600,7 +3642,8 @@ void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
         }
         timer_mt.start(14);
         if (animConfig.isSelfCollision) {
-            SelfCollisionHandler<dim>::augmentIPHessian(data, MMActiveSet.back(), p_linSysSolver, dHat, kappa, projectDBC);
+#ifndef USE_IPCTOOLKIT
+            SelfCollisionHandler<dim>::augmentIPHessian(data, MMActiveSet.back(), p_linSysSolver, dHat, mu_IP, projectDBC);
 
             SelfCollisionHandler<dim>::augmentParaEEHessian(data, paraEEMMCVIDSet.back(), paraEEeIeJSet.back(),
                 p_linSysSolver, dHat, kappa, projectDBC);
@@ -3610,6 +3653,19 @@ void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
                     MMLambda_lastH.back(), MMDistCoord.back(), MMTanBasis.back(),
                     p_linSysSolver, fricDHat, animConfig.selfFric, projectDBC);
             }
+#else
+            //TODO: augment sparsity, handle DBC while adding entries
+            std::cout << "ipc::compute_barrier_potential_hessian" << std::endl;
+            Eigen::SparseMatrix<double> SFH = ipc::compute_barrier_potential_hessian(result.V, E_TK, result.SF, constraintSet_TK, std::sqrt(dHat));
+            std::cout << "ipc::compute_barrier_potential_hessian" << std::endl;
+            for (int k = 0; k < SFH.outerSize(); ++k) {
+                for (Eigen::SparseMatrix<double>::InnerIterator it(SFH, k); it; ++it) {
+                    p_linSysSolver->addCoeff(it.row(), it.col(), mu_IP * it.value());
+                }
+            }
+            std::cout << "ipc::compute_barrier_potential_hessian" << std::endl;
+            //TODO: IPCToolkit friction
+#endif
         }
         timer_mt.stop();
     }

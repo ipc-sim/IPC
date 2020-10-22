@@ -15,6 +15,10 @@
 #include "LinSysSolver.hpp"
 #include "SpatialHash.hpp"
 
+#ifdef USE_IPCTOOLKIT
+#include <ipc/ipc.hpp>
+#endif
+
 #include "OSQPWrapper.h"
 #ifdef USE_GUROBI
 #include <Gurobi.h>
@@ -87,6 +91,10 @@ protected: // owned data
     std::vector<std::set<int>> vNeighbor_IP;
     bool m_projectDBC;
     std::set<Triplet> initSF;
+#ifdef USE_IPCTOOLKIT
+    Eigen::MatrixXi E_TK;
+    ipc::Constraints constraintSet_TK;
+#endif
 
     Eigen::VectorXd gradient; // energy gradient computed in each iteration
     Eigen::VectorXd searchDir; // search direction comptued in each iteration
