@@ -2512,14 +2512,7 @@ void Optimizer<dim>::computeConstraintSets(const Mesh<dim>& data, bool rehash)
 #ifndef USE_IPCTOOLKIT
         SelfCollisionHandler<dim>::computeConstraintSet(data, sh, dHat, MMActiveSet.back(), paraEEMMCVIDSet.back(), paraEEeIeJSet.back(), CFL_FOR_CCD, MMActiveSet_CCD.back());
 #else
-        std::cout << "ipc::construct_constraint_set" << std::endl;
-        std::cout << result.V_rest.rows() << " " << result.V.rows() << " " << E_TK.rows() << " " << result.SF.rows() << std::endl;
-        std::cout << result.V_rest << std::endl
-                  << result.V << std::endl
-                  << E_TK << std::endl
-                  << result.SF << std::endl;
         ipc::construct_constraint_set(result.V_rest, result.V, E_TK, result.SF, std::sqrt(dHat), constraintSet_TK);
-        std::cout << "ipc::construct_constraint_set" << std::endl;
 #endif
     }
     timer_step.stop();
@@ -3512,8 +3505,12 @@ void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
             // there is extra connectivity from self-contact
             timer_mt.start(8);
             std::vector<std::set<int>> vNeighbor_IP_new = data.vNeighbor;
+#ifndef USE_IPCTOOLKIT
             SelfCollisionHandler<dim>::augmentConnectivity(data, MMActiveSet.back(), vNeighbor_IP_new);
             SelfCollisionHandler<dim>::augmentConnectivity(data, paraEEMMCVIDSet.back(), paraEEeIeJSet.back(), vNeighbor_IP_new);
+#else
+            SelfCollisionHandler<dim>::augmentConnectivity(data, constraintSet_TK, vNeighbor_IP_new);
+#endif
             if (MMActiveSet_lastH.back().size() && fricDHat > 0.0 && animConfig.selfFric > 0.0) {
                 SelfCollisionHandler<dim>::augmentConnectivity(data, MMActiveSet_lastH.back(), vNeighbor_IP_new);
             }
@@ -3654,16 +3651,14 @@ void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
                     p_linSysSolver, fricDHat, animConfig.selfFric, projectDBC);
             }
 #else
-            //TODO: augment sparsity, handle DBC while adding entries
-            std::cout << "ipc::compute_barrier_potential_hessian" << std::endl;
             Eigen::SparseMatrix<double> SFH = ipc::compute_barrier_potential_hessian(result.V, E_TK, result.SF, constraintSet_TK, std::sqrt(dHat));
-            std::cout << "ipc::compute_barrier_potential_hessian" << std::endl;
             for (int k = 0; k < SFH.outerSize(); ++k) {
                 for (Eigen::SparseMatrix<double>::InnerIterator it(SFH, k); it; ++it) {
-                    p_linSysSolver->addCoeff(it.row(), it.col(), mu_IP * it.value());
+                    if (!data.isFixedVert[it.row() / dim] && !data.isFixedVert[it.col() / dim]) {
+                        p_linSysSolver->addCoeff(it.row(), it.col(), mu_IP * it.value());
+                    }
                 }
             }
-            std::cout << "ipc::compute_barrier_potential_hessian" << std::endl;
             //TODO: IPCToolkit friction
 #endif
         }

@@ -15,6 +15,10 @@
 #include "Mesh.hpp"
 #include <ccd.hpp>
 
+#ifdef USE_IPCTOOLKIT
+#include <ipc/ipc.hpp>
+#endif
+
 namespace IPC {
 
 template <int dim>
@@ -95,6 +99,11 @@ public:
         const std::vector<MMCVID>& paraEEMMCVIDSet,
         const std::vector<std::pair<int, int>>& paraEEeIeJSet,
         std::vector<std::set<int>>& vNeighbor);
+#ifdef USE_IPCTOOLKIT
+    static void augmentConnectivity(const Mesh<dim>& mesh,
+        const ipc::Constraints& constraintSet,
+        std::vector<std::set<int>>& vNeighbor);
+#endif
 
     static void augmentIPHessian(const Mesh<dim>& mesh,
         const std::vector<MMCVID>& activeSet,

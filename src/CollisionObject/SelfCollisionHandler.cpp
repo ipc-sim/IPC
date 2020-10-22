@@ -407,6 +407,48 @@ void SelfCollisionHandler<dim>::augmentConnectivity(const Mesh<dim>& mesh,
     }
 }
 
+#ifdef USE_IPCTOOLKIT
+template <int dim>
+void SelfCollisionHandler<dim>::augmentConnectivity(
+    const Mesh<dim>& mesh,
+    const ipc::Constraints& constraintSet,
+    std::vector<std::set<int>>& vNeighbor)
+{
+    for (const auto& vvI : constraintSet.vv_constraints) {
+        vNeighbor[vvI.vertex0_index].insert(vvI.vertex1_index);
+        vNeighbor[vvI.vertex1_index].insert(vvI.vertex0_index);
+    }
+    for (const auto& evI : constraintSet.ev_constraints) {
+        std::pair<int, int> eI = mesh.SFEdges[evI.edge_index];
+        vNeighbor[evI.vertex_index].insert(eI.first);
+        vNeighbor[eI.first].insert(evI.vertex_index);
+        vNeighbor[evI.vertex_index].insert(eI.second);
+        vNeighbor[eI.second].insert(evI.vertex_index);
+    }
+    for (const auto& eeI : constraintSet.ee_constraints) {
+        std::pair<int, int> eI = mesh.SFEdges[eeI.edge0_index];
+        std::pair<int, int> eJ = mesh.SFEdges[eeI.edge1_index];
+        vNeighbor[eI.first].insert(eJ.first);
+        vNeighbor[eJ.first].insert(eI.first);
+        vNeighbor[eI.first].insert(eJ.second);
+        vNeighbor[eJ.second].insert(eI.first);
+        vNeighbor[eI.second].insert(eJ.first);
+        vNeighbor[eJ.first].insert(eI.second);
+        vNeighbor[eI.second].insert(eJ.second);
+        vNeighbor[eJ.second].insert(eI.second);
+    }
+    for (const auto& fvI : constraintSet.fv_constraints) {
+        const Eigen::RowVector3i& triVInd = mesh.SF.row(fvI.face_index);
+        vNeighbor[fvI.vertex_index].insert(triVInd[0]);
+        vNeighbor[triVInd[0]].insert(fvI.vertex_index);
+        vNeighbor[fvI.vertex_index].insert(triVInd[1]);
+        vNeighbor[triVInd[1]].insert(fvI.vertex_index);
+        vNeighbor[fvI.vertex_index].insert(triVInd[2]);
+        vNeighbor[triVInd[2]].insert(fvI.vertex_index);
+    }
+}
+#endif
+
 template <int dim>
 void SelfCollisionHandler<dim>::augmentIPHessian(const Mesh<dim>& mesh,
     const std::vector<MMCVID>& activeSet,
