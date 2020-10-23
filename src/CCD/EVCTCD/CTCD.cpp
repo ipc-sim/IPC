@@ -1,3 +1,7 @@
+//
+// Lightly modified from https://github.com/evouga/collisiondetection
+//
+
 #include "CTCD.h"
 #include <vector>
 #include "rpoly.h"

@@ -1,3 +1,7 @@
+//
+// Lightly modified from https://github.com/evouga/collisiondetection
+//
+
 #ifndef CTCD_H
 #define CTCD_H
 
