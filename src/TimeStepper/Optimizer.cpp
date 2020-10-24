@@ -2512,7 +2512,8 @@ void Optimizer<dim>::computeConstraintSets(const Mesh<dim>& data, bool rehash)
 #ifndef USE_IPCTOOLKIT
         SelfCollisionHandler<dim>::computeConstraintSet(data, sh, dHat, MMActiveSet.back(), paraEEMMCVIDSet.back(), paraEEeIeJSet.back(), CFL_FOR_CCD, MMActiveSet_CCD.back());
 #else
-        ipc::construct_constraint_set(result.V_rest, result.V, E_TK, result.SF, std::sqrt(dHat), constraintSet_TK);
+        constraintSet_TK.clear();
+        ipc::construct_constraint_set(data.V_rest, data.V, E_TK, data.SF, std::sqrt(dHat), constraintSet_TK);
 #endif
     }
     timer_step.stop();
@@ -3280,7 +3281,7 @@ void Optimizer<dim>::computeEnergyVal(const Mesh<dim>& data, int redoSVD, double
                 }
             }
 #else
-            energyVal += mu_IP * ipc::compute_barrier_potential(result.V, E_TK, result.SF, constraintSet_TK, std::sqrt(dHat));
+            energyVal += mu_IP * ipc::compute_barrier_potential(data.V, E_TK, data.SF, constraintSet_TK, std::sqrt(dHat));
 #endif
         }
         energyVal += kappa * bVals.sum();
@@ -3450,7 +3451,7 @@ void Optimizer<dim>::computeGradient(const Mesh<dim>& data,
 #endif
             }
 #else
-            gradient += mu_IP * compute_barrier_potential_gradient(result.V, E_TK, result.SF, constraintSet_TK, std::sqrt(dHat));
+            gradient += mu_IP * compute_barrier_potential_gradient(data.V, E_TK, data.SF, constraintSet_TK, std::sqrt(dHat));
             //TODO: IPCToolkit friction
 #endif
         }
@@ -3657,7 +3658,7 @@ void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
                     p_linSysSolver, fricDHat, animConfig.selfFric, projectDBC);
             }
 #else
-            Eigen::SparseMatrix<double> SFH = ipc::compute_barrier_potential_hessian(result.V, E_TK, result.SF, constraintSet_TK, std::sqrt(dHat));
+            Eigen::SparseMatrix<double> SFH = ipc::compute_barrier_potential_hessian(data.V, E_TK, data.SF, constraintSet_TK, std::sqrt(dHat));
             for (int k = 0; k < SFH.outerSize(); ++k) {
                 for (Eigen::SparseMatrix<double>::InnerIterator it(SFH, k); it; ++it) {
                     if (!data.isFixedVert[it.row() / dim] && !data.isFixedVert[it.col() / dim]) {
