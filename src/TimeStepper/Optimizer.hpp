@@ -91,9 +91,11 @@ protected: // owned data
     std::vector<std::set<int>> vNeighbor_IP;
     bool m_projectDBC;
     std::set<Triplet> initSF;
+    double lastBarrierStiff = 0.0;
 #ifdef USE_IPCTOOLKIT
     Eigen::MatrixXi E_TK;
     ipc::Constraints constraintSet_TK;
+    ipc::FrictionConstraints fricConstraintSet_TK;
 #endif
 
     Eigen::VectorXd gradient; // energy gradient computed in each iteration

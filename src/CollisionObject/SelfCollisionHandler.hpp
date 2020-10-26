@@ -103,6 +103,9 @@ public:
     static void augmentConnectivity(const Mesh<dim>& mesh,
         const ipc::Constraints& constraintSet,
         std::vector<std::set<int>>& vNeighbor);
+    static void augmentConnectivity(const Mesh<dim>& mesh,
+        const ipc::FrictionConstraints& constraintSet,
+        std::vector<std::set<int>>& vNeighbor);
 #endif
 
     static void augmentIPHessian(const Mesh<dim>& mesh,
