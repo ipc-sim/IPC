@@ -758,6 +758,19 @@ int main(int argc, char* argv[])
                             componentMaterial.emplace_back(startToEnd, config.inputShapeMaterials[i]);
                         }
                     }
+                    else if (meshFileSuffix == ".ele") {
+                        std::string inputPathPre = inputShapePath.substr(0, suffixI);
+                        IPC::IglUtils::readNodeEle(inputPathPre, newV, newF, newSF);
+                        newE.resize(0, 2);
+
+                        if (config.inputShapeMaterials[i][0] > 0.0 && config.inputShapeMaterials[i][1] > 0.0 && config.inputShapeMaterials[i][2] > 0.0) {
+                            Eigen::Vector3i startToEnd;
+                            startToEnd[0] = i;
+                            startToEnd[1] = F.rows();
+                            startToEnd[2] = F.rows() + newF.rows();
+                            componentMaterial.emplace_back(startToEnd, config.inputShapeMaterials[i]);
+                        }
+                    }
                     else if (meshFileSuffix == ".obj") {
                         // for kinematic object
                         componentCoDim.back() = 2;
