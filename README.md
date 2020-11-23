@@ -158,6 +158,10 @@ See our [quick start guide](https://github.com/ipc-sim/IPC/wiki) for detailed ex
       * `NBC <left-bottom-back-x> <left-bottom-back-y> <left-bottom-back-z> <right-top-front-x> <right-top-front-y> <right-top-front-z>  <ax> <ay> <az>`
       * `linearVelocity <lvx> <lvy> <lvz>`
       * `angularVelocity <avx> <avy> <avz>`
+* `DBCTimeRange <t_begin> <t_end>`
+  * only apply all Dirichlet BC set in `shapes` command during `(t_begin, t_end]`, by default `(0, +inf]`
+* `NBCTimeRange <t_begin> <t_end>`
+  * only apply all Neuman BC set in `shapes` command during `(t_begin, t_end]`, by default `(0, +inf]`
 * `ground <friction-coefficient> <height>`
 * `halfSpace <x> <y> <z>  <nx> <ny> <nz>   <stiffness>  <friction-coefficient>`
     * create a half-space analytical collision object centered at (x, y, z)
