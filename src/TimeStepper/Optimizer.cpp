@@ -173,7 +173,7 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
 
     result = data0;
     animScripter.initAnimScript(result, animConfig.collisionObjects,
-        animConfig.meshCollisionObjects);
+        animConfig.meshCollisionObjects, animConfig.DBCTimeRange, animConfig.NBCTimeRange);
     result.saveBCNodes(outputFolderPath + "/BC_0.txt");
     if (animConfig.restart) {
         std::ifstream in(animConfig.statusPath.c_str());
@@ -2963,9 +2963,11 @@ void Optimizer<dim>::computeEnergyVal(const Mesh<dim>& data, int redoSVD, double
 #endif
     energyVal += energyVals.sum();
 
-    for (const auto& NMI : data.NeumannBC) {
-        if (!data.isFixedVert[NMI.first]) {
-            energyVal -= dtSq * data.massMatrix.coeff(NMI.first, NMI.first) * data.V.row(NMI.first).dot(NMI.second);
+    if (animScripter.isNBCActive()) {
+        for (const auto& NMI : data.NeumannBC) {
+            if (!data.isFixedVert[NMI.first]) {
+                energyVal -= dtSq * data.massMatrix.coeff(NMI.first, NMI.first) * data.V.row(NMI.first).dot(NMI.second);
+            }
         }
     }
 
@@ -3169,9 +3171,11 @@ void Optimizer<dim>::computeGradient(const Mesh<dim>& data,
     );
 #endif
 
-    for (const auto& NMI : data.NeumannBC) {
-        if (!data.isFixedVert[NMI.first]) {
-            gradient.template segment<dim>(NMI.first * dim) -= dtSq * data.massMatrix.coeff(NMI.first, NMI.first) * NMI.second.transpose();
+    if (animScripter.isNBCActive()) {
+        for (const auto& NMI : data.NeumannBC) {
+            if (!data.isFixedVert[NMI.first]) {
+                gradient.template segment<dim>(NMI.first * dim) -= dtSq * data.massMatrix.coeff(NMI.first, NMI.first) * NMI.second.transpose();
+            }
         }
     }
 

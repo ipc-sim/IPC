@@ -134,6 +134,12 @@ int Config::loadFromFile(const std::string& p_filePath)
                     }
                 }
             }
+            else if (token == "DBCTimeRange") {
+                ss >> DBCTimeRange[0] >> DBCTimeRange[1];
+            }
+            else if (token == "NBCTimeRange") {
+                ss >> NBCTimeRange[0] >> NBCTimeRange[1];
+            }
             else if (token == "shape") {
                 std::string type;
                 ss >> type;

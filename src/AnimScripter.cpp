@@ -58,8 +58,15 @@ AnimScripter<dim>::AnimScripter(AnimScriptType p_animScriptType)
 template <int dim>
 void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     const std::vector<CollisionObject<dim>*>& ACO,
-    const std::vector<CollisionObject<dim>*>& MCO)
+    const std::vector<CollisionObject<dim>*>& MCO,
+    double DBCTimeRange[2],
+    double NBCTimeRange[2])
 {
+    this->DBCTimeRange[0] = DBCTimeRange[0];
+    this->DBCTimeRange[1] = DBCTimeRange[1];
+    this->NBCTimeRange[0] = NBCTimeRange[0];
+    this->NBCTimeRange[1] = NBCTimeRange[1];
+
     switch (animScriptType) {
     case AST_NULL: {
         mesh.resetFixedVert();
@@ -1271,6 +1278,8 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         assert(0 && "invalid animScriptType");
         break;
     }
+
+    fixedVertBK = mesh.fixedVert;
 }
 
 template <int dim>
@@ -1365,6 +1374,8 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
     double dt, double dHat, const std::vector<Energy<dim>*>& energyTerms,
     bool isSelfCollision, bool forceIntersectionLineSearch)
 {
+    curTime += dt;
+
     searchDir.setZero(mesh.V.rows() * dim);
     int returnFlag = 0;
     switch (animScriptType) {
@@ -1393,29 +1404,37 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
         }
 
         // move Dirichlet nodes
-        for (const auto& DBCInfoI : mesh.DBCInfo) {
-            Eigen::Matrix3d rotMtr = (Eigen::AngleAxisd(DBCInfoI.second[1][0] * dt, Eigen::Vector3d::UnitX())
-                * Eigen::AngleAxisd(DBCInfoI.second[1][1] * dt, Eigen::Vector3d::UnitY())
-                * Eigen::AngleAxisd(DBCInfoI.second[1][2] * dt, Eigen::Vector3d::UnitZ()))
-                                         .toRotationMatrix();
+        if (curTime > DBCTimeRange[0] && curTime <= DBCTimeRange[1]) {
+            if (mesh.fixedVert.empty()) {
+                mesh.resetFixedVert(fixedVertBK);
+            }
+            for (const auto& DBCInfoI : mesh.DBCInfo) {
+                Eigen::Matrix3d rotMtr = (Eigen::AngleAxisd(DBCInfoI.second[1][0] * dt, Eigen::Vector3d::UnitX())
+                    * Eigen::AngleAxisd(DBCInfoI.second[1][1] * dt, Eigen::Vector3d::UnitY())
+                    * Eigen::AngleAxisd(DBCInfoI.second[1][2] * dt, Eigen::Vector3d::UnitZ()))
+                                             .toRotationMatrix();
 
-            Eigen::Vector3d min = mesh.V.row(DBCInfoI.first[0]), max = mesh.V.row(DBCInfoI.first[0]);
-            for (const auto& vI : DBCInfoI.first) {
-                for (int d = 0; d < 3; ++d) {
-                    if (mesh.V(vI, d) < min[d]) {
-                        min[d] = mesh.V(vI, d);
-                    }
-                    if (mesh.V(vI, d) > max[d]) {
-                        max[d] = mesh.V(vI, d);
+                Eigen::Vector3d min = mesh.V.row(DBCInfoI.first[0]), max = mesh.V.row(DBCInfoI.first[0]);
+                for (const auto& vI : DBCInfoI.first) {
+                    for (int d = 0; d < 3; ++d) {
+                        if (mesh.V(vI, d) < min[d]) {
+                            min[d] = mesh.V(vI, d);
+                        }
+                        if (mesh.V(vI, d) > max[d]) {
+                            max[d] = mesh.V(vI, d);
+                        }
                     }
                 }
-            }
-            Eigen::Vector3d rotCenter = (min + max) / 2;
+                Eigen::Vector3d rotCenter = (min + max) / 2;
 
-            for (const auto& vI : DBCInfoI.first) {
-                searchDir.template segment<dim>(vI * dim)
-                    = rotMtr.template block<dim, dim>(0, 0) * (mesh.V.row(vI).transpose() - rotCenter) + rotCenter + DBCInfoI.second[0] * dt - mesh.V.row(vI).transpose();
+                for (const auto& vI : DBCInfoI.first) {
+                    searchDir.template segment<dim>(vI * dim)
+                        = rotMtr.template block<dim, dim>(0, 0) * (mesh.V.row(vI).transpose() - rotCenter) + rotCenter + DBCInfoI.second[0] * dt - mesh.V.row(vI).transpose();
+                }
             }
+        }
+        else {
+            mesh.resetFixedVert();
         }
 
         // mesh sequence DBC
@@ -2316,6 +2335,12 @@ double AnimScripter<dim>::getCOCompletedStepSize(void) const
         }
     }
     return 1.0 - maxStepSizeLeft;
+}
+
+template <int dim>
+bool AnimScripter<dim>::isNBCActive(void) const
+{
+    return curTime > NBCTimeRange[0] && curTime <= NBCTimeRange[1];
 }
 
 template <int dim>

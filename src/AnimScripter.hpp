@@ -120,6 +120,11 @@ protected:
     std::string meshSeqFolderPath;
     int meshI;
 
+    double curTime = 0;
+    double DBCTimeRange[2] = { 0, __DBL_MAX__ };
+    double NBCTimeRange[2] = { 0, __DBL_MAX__ };
+    std::set<int> fixedVertBK;
+
 protected:
     static const std::vector<std::string> animScriptTypeStrs;
 
@@ -129,7 +134,9 @@ public:
 public:
     void initAnimScript(Mesh<dim>& mesh,
         const std::vector<CollisionObject<dim>*>& ACO,
-        const std::vector<CollisionObject<dim>*>& MCO);
+        const std::vector<CollisionObject<dim>*>& MCO,
+        double DBCTimeRange[2],
+        double NBCTimeRange[2]);
     void initVelocity(const Mesh<dim>& mesh, const std::vector<double>& params,
         Eigen::VectorXd& velocity) const;
     int stepAnimScript(Mesh<dim>& mesh,
@@ -148,6 +155,8 @@ public:
     void resetLambda(void);
 
     double getCOCompletedStepSize(void) const;
+
+    bool isNBCActive(void) const;
 
 public:
     void setAnimScriptType(AnimScriptType p_animScriptType);
