@@ -34,7 +34,7 @@ endfunction()
 function(download_libigl)
   custom_download_project(libigl
     GIT_REPOSITORY https://github.com/libigl/libigl.git
-    GIT_TAG        b0d7740e0b7e887a7e93601c4c557ecf762b389b
+    GIT_TAG        efee81b7dbc81ec87adaca1197b47f4faab961d3
   )
 endfunction()
 
