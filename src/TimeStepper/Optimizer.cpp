@@ -512,8 +512,19 @@ void Optimizer<dim>::setTime(double duration, double dt)
     dtSq = dt * dt;
     frameAmt = std::ceil(duration / dt);
     updateTargetGRes();
+    CN_MBC = std::sqrt(1.0e-4 * bboxDiagSize2 * dtSq);
     gravityDtSq = dtSq * gravity;
     computeXTilta();
+
+    fricDHat0 = bboxDiagSize2 * 1.0e-6 * dtSq; // initial value of fricDHat
+    if (animConfig.tuning.size() > 4) {
+        fricDHat0 = bboxDiagSize2 * animConfig.tuning[4] * animConfig.tuning[4] * dtSq;
+    }
+    fricDHatTarget = bboxDiagSize2 * 1.0e-6 * dtSq;
+    if (animConfig.tuning.size() > 5) {
+        fricDHatTarget = bboxDiagSize2 * animConfig.tuning[5] * animConfig.tuning[5] * dtSq;
+    }
+    fricDHat = solveFric ? fricDHat0 : -1.0;
 }
 
 //    void Optimizer<dim>::fixDirection(void)
