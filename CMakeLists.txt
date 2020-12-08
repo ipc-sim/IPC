@@ -99,6 +99,10 @@ target_include_directories(${PROJECT_NAME}_dev PUBLIC
   "src/TimeStepper"
 )
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC stdc++fs)
+endif()
+
 ################################################################################
 # Simulations Executable
 ################################################################################
