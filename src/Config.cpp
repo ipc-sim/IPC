@@ -69,11 +69,7 @@ std::string resolvePath(
         return path;
     }
 
-<<<<<<< HEAD
     // Make the path relative to the input
-=======
-    // TODO: Make the path relative to the input
->>>>>>> 660910ed (Added ability to specify mesh path relative to script)
     fs::path resolved_path = fs::path(input_file_path).parent_path() / path;
     if (fs::exists(resolved_path)) {
         return resolved_path.string();
