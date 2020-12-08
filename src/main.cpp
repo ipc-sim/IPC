@@ -19,7 +19,13 @@
 #include <fstream>
 #include <string>
 #include <ctime>
+#if __has_include(<filesystem>)
 #include <filesystem>
+namespace fs = std::filesystem;
+#else
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+#endif
 
 #include <spdlog/spdlog.h>
 #include <CLI/CLI.hpp>
@@ -1106,7 +1112,7 @@ int main(int argc, char* argv[])
             outputFolderPath += meshName + "_" + startDS + args.folderTail;
         }
     }
-    std::filesystem::create_directories(std::filesystem::path(outputFolderPath));
+    fs::create_directories(fs::path(outputFolderPath));
     config.backUpConfig(outputFolderPath + "/config.txt");
     for (int coI = 0; coI < config.collisionObjects.size(); ++coI) {
         config.collisionObjects[coI]->saveMesh(outputFolderPath + "/ACO" + std::to_string(coI) + "_0.obj");

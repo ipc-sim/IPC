@@ -14,7 +14,13 @@
 #include <fstream>
 #include <sstream>
 #include <ctime>
+#if __has_include(<filesystem>)
 #include <filesystem>
+namespace fs = std::filesystem;
+#else
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+#endif
 
 #include <spdlog/spdlog.h>
 
@@ -67,8 +73,6 @@ std::string resolvePath(
     const std::string& path,
     const std::string& input_file_path)
 {
-    namespace fs = std::filesystem;
-
     if (path.size() == 0) {
         throw fmt::format("empty path detected ({})", path);
     }
