@@ -38,16 +38,19 @@ def main():
 
     # pymesh.save_mesh(str(args.output), output_mesh, ascii=True)
     with open(args.output, mode='w') as f:
-        # f.write("$MeshFormat\n2.2 0 8\n$EndMeshFormat")
+        f.write("$MeshFormat\n4 0 8\n$EndMeshFormat\n")
+        f.write("$Entities\n0 0 0 1\n")
+        f.write("0 {:g} {:g} {:g} {:g} {:g} {:g} 0 0\n".format(
+            *output_mesh.nodes.min(axis=0), *output_mesh.nodes.max(axis=0)))
+        f.write("$EndEntities\n")
         f.write("$Nodes\n")
-        f.write("1 {:d}\n".format(output_mesh.num_nodes))
-        f.write("\n")
+        f.write("1 {0:d}\n0 3 0 {0:d}\n".format(output_mesh.num_nodes))
         for i, node in enumerate(output_mesh.nodes):
             f.write("{:d} {:g} {:g} {:g}\n".format(i + 1, *node))
         f.write("$EndNodes\n")
 
         f.write("$Elements\n")
-        f.write("1 {:d}\n".format(output_mesh.num_elements))
+        f.write("1 {0:d}\n0 3 4 {0:d}\n".format(output_mesh.num_elements))
         f.write("\n")
         for i, element in enumerate(output_mesh.elements):
             f.write("{:d} {:d} {:d} {:d} {:d}\n".format(i + 1, *(element + 1)))
