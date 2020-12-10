@@ -14,6 +14,7 @@
 #include <fstream>
 #include <sstream>
 #include <ctime>
+#include <filesystem>
 
 #include <spdlog/spdlog.h>
 
@@ -60,6 +61,30 @@ std::string getRootDirectory()
     std::string parent_dir = file_path.substr(0, file_path.find_last_of("/"));
     std::string parent_parent_dir = parent_dir.substr(0, parent_dir.find_last_of("/"));
     return parent_parent_dir;
+}
+
+std::string resolvePath(
+    const std::string& path,
+    const std::string& input_file_path)
+{
+    namespace fs = std::filesystem;
+
+    if (path.size() == 0) {
+        throw fmt::format("empty path detected ({})", path);
+    }
+
+    if (path.at(0) == '/') {
+        return path;
+    }
+
+    // Make the path relative to the input
+    fs::path resolved_path = fs::path(input_file_path).parent_path() / path;
+    if (fs::exists(resolved_path)) {
+        return resolved_path.string();
+    }
+
+    // Return a path relative to the root directory of IPC
+    return (fs::path(getRootDirectory()) / path).string();
 }
 
 int Config::loadFromFile(const std::string& p_filePath)
@@ -145,10 +170,7 @@ int Config::loadFromFile(const std::string& p_filePath)
                 ss >> type;
                 std::string path;
                 ss >> path;
-                if (path.at(0) != '/') {
-                    // TODO: Make the path relative to the input
-                    path = getRootDirectory() + "/" + path;
-                }
+                path = resolvePath(path, p_filePath);
                 inputShapePaths.push_back(path);
                 inputShapeTranslates.push_back(Eigen::Vector3d::Zero());
                 inputShapeRotates.push_back(Eigen::Matrix3d::Identity());
@@ -172,10 +194,7 @@ int Config::loadFromFile(const std::string& p_filePath)
 
                     std::string path;
                     ss_shapes >> path;
-                    if (path.at(0) != '/') {
-                        // TODO: Make the path relative to the input
-                        path = getRootDirectory() + "/" + path;
-                    }
+                    path = resolvePath(path, p_filePath);
                     inputShapePaths.push_back(path);
                     double x, y, z;
                     ss_shapes >> x >> y >> z;
@@ -284,10 +303,7 @@ int Config::loadFromFile(const std::string& p_filePath)
                 for (int xi = 0; xi < count[0]; ++xi) {
                     for (int yi = 0; yi < count[1]; ++yi) {
                         for (int zi = 0; zi < count[2]; ++zi) {
-                            if (path.at(0) != '/') {
-                                // TODO: Make the path relative to the input
-                                path = getRootDirectory() + "/" + path;
-                            }
+                            path = resolvePath(path, p_filePath);
                             inputShapePaths.emplace_back(path);
                             inputShapeTranslates.emplace_back(Eigen::Vector3d(posX + translationStep[0] * xi,
                                 posY + translationStep[1] * yi, posZ + translationStep[2] * zi));
@@ -393,10 +409,7 @@ int Config::loadFromFile(const std::string& p_filePath)
                                  .toRotationMatrix();
                 }
 
-                if (meshCOFilePath.at(0) != '/') {
-                    // TODO: Make the path relative to the input
-                    meshCOFilePath = getRootDirectory() + "/" + meshCOFilePath;
-                }
+                meshCOFilePath = resolvePath(meshCOFilePath, p_filePath);
 
                 meshCollisionObjects.emplace_back(new MeshCO<DIM>(meshCOFilePath.c_str(), origin, rotMat, scale, friction));
             }
