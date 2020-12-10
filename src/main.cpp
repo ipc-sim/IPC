@@ -19,6 +19,7 @@
 #include <fstream>
 #include <string>
 #include <ctime>
+#include <filesystem>
 
 #include <spdlog/spdlog.h>
 #include <CLI/CLI.hpp>
@@ -615,21 +616,27 @@ bool preDrawFunc()
 }
 
 struct CLIArgs {
-    int progMode;
+    int progMode = 10;
     std::string inputFileName;
-    std::string folderTail;
+    std::string folderTail = "";
+    std::string outputDir = "";
     int logLevel = 0; // trace (all logs)
 };
 
 void init_cli_app(CLI::App& app, CLIArgs& args)
 {
     app.add_set("progMode", args.progMode, { 0, 10, 11, 100 },
-        "program mode 0=optimization, 10=auto-switch, "
-        "11=auto-switch (save png), 100=offline",
-        true);
-    app.add_option("inputFileName", args.inputFileName, "input file name", true);
+           "program mode 0=optimization, 10=auto-switch, "
+           "11=auto-switch (save png), 100=offline",
+           true)
+        ->required();
+    app.add_option(
+           "inputFileName", args.inputFileName, "input file name")
+        ->required();
     app.add_option(
         "folderTail", args.folderTail, "output folder name tail/suffix", true);
+    app.add_option(
+        "-o,--output", args.outputDir, "output folder name");
     app.add_set("--logLevel,--log", args.logLevel, { 0, 1, 2, 3, 4, 5, 6 },
         "set log level (0=trace, 1=debug, 2=info, 3=warn, 4=error, 5=critical,"
         " 6=off)",
@@ -1087,15 +1094,19 @@ int main(int argc, char* argv[])
     std::string startDS = "Sim";
 
     // create output folder
-    mkdir(outputFolderPath.c_str(), 0777);
-    if ((suffix == ".txt") || (suffix == ".primitive")) {
-        config.appendInfoStr(outputFolderPath);
-        outputFolderPath += args.folderTail;
+    if (args.outputDir != "") {
+        outputFolderPath = args.outputDir;
     }
     else {
-        outputFolderPath += meshName + "_" + startDS + args.folderTail;
+        if ((suffix == ".txt") || (suffix == ".primitive")) {
+            config.appendInfoStr(outputFolderPath);
+            outputFolderPath += args.folderTail;
+        }
+        else {
+            outputFolderPath += meshName + "_" + startDS + args.folderTail;
+        }
     }
-    mkdir(outputFolderPath.c_str(), 0777);
+    std::filesystem::create_directories(std::filesystem::path(outputFolderPath));
     config.backUpConfig(outputFolderPath + "/config.txt");
     for (int coI = 0; coI < config.collisionObjects.size(); ++coI) {
         config.collisionObjects[coI]->saveMesh(outputFolderPath + "/ACO" + std::to_string(coI) + "_0.obj");
