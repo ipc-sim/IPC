@@ -518,7 +518,10 @@ void Optimizer<dim>::setTime(double duration, double dt)
 
     fricDHat0 = bboxDiagSize2 * 1.0e-6 * dtSq; // initial value of fricDHat
     if (animConfig.tuning.size() > 4) {
-        fricDHat0 = bboxDiagSize2 * animConfig.tuning[4] * animConfig.tuning[4] * dtSq;
+        fricDHat0 = animConfig.tuning[4] * animConfig.tuning[4] * dtSq;
+        if (animConfig.useRelParameters) {
+            fricDHat0 *= bboxDiagSize2;
+        }
     }
     fricDHatTarget = bboxDiagSize2 * 1.0e-6 * dtSq;
     if (animConfig.tuning.size() > 5) {
