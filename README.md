@@ -99,7 +99,7 @@ script to process all scenes in parallel via separate batch jobs.
 
 ### Sub-Projects
 
-The executables for the sub-projects are places in their respective directory
+The executables for the sub-projects are placed in their respective directory
 in `src/Projects/`.
 
 ## Output Files
