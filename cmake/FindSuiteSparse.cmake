@@ -430,7 +430,7 @@ if (SUITESPARSE_CONFIG_FOUND)
 endif (SUITESPARSE_CONFIG_FOUND)
 
 # METIS (Optional dependency).
-suitesparse_find_component(METIS REQUIRED FILES metis.h LIBRARIES metis)
+suitesparse_find_component(METIS FILES metis.h LIBRARIES metis)
 
 # Only mark SuiteSparse as found if all required components and dependencies
 # have been found.
