@@ -52,7 +52,7 @@ endfunction()
 function(download_exact_ccd)
   custom_download_project(exact-ccd
     GIT_REPOSITORY https://github.com/jiangzhongshi/exact-ccd.git
-    GIT_TAG        305bb6f0e57d399b283161dc3669c260f90fb7f5
+    GIT_TAG        e08c6e9346d6f0ea83db0ca7a56cf35b74ed89aa
   )
 endfunction()
 

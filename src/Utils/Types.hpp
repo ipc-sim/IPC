@@ -12,8 +12,9 @@
 
 //#define OSQP_USE_MKL_PARDISO
 
-#define USE_TBB
+#ifdef USE_TBB
 #define TBB_NUM_THREADS tbb::task_scheduler_init::automatic
+#endif
 
 #define USE_IQRSVD
 

@@ -1,10 +1,19 @@
 cmake_minimum_required(VERSION 3.9)
 
 # use clang for compilation
-set(CMAKE_C_COMPILER "/usr/bin/clang")
-set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
+set(CMAKE_C_COMPILER "/usr/bin/gcc")
+set(CMAKE_CXX_COMPILER "/usr/bin/g++")
+set(CMAKE_CXX_FLAGS "-std=c++17")
+set(CMAKE_CXX_STANDARD, 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 project(IPC)
+
+message("Your C++ compiler supports these C++ features:")
+message("You compiler: ${CMAKE_CXX_COMPILER}")
+foreach(i ${CMAKE_CXX_COMPILE_FEATURES})
+  message("${i}")
+endforeach()
 
 ################################################################################
 
@@ -65,6 +74,7 @@ include(${PROJECT_NAME}Dependencies)
 ################################################################################
 # IPC Library
 ################################################################################
+message("You compiler again: ${CMAKE_CXX_COMPILER}")
 
 # project source files
 file(GLOB SRCFILES
@@ -182,8 +192,9 @@ endif()
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC spdlog::spdlog)
 
 # AMGCL
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC amgcl::amgcl)
-
+if(IPC_WITH_AMGCL)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC amgcl::amgcl)
+endif()
 # target_link_libraries(${PROJECT_NAME}_dev PUBLIC pardiso600-GNU720-X86-64 gfortran)
 # find_package(Pardiso)
 # if(PARDISO_FOUND)
@@ -275,6 +286,7 @@ if(IPC_WITH_OSQP_MKL)
   else()
     message(WARNING "MKL not found: disabling OSQP MKL Pardiso linear system solver")
   endif()
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_OSQP)
 endif()
 
 # Set the selected linear system solver

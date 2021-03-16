@@ -185,7 +185,9 @@ protected: // helper functions
         Eigen::SparseMatrix<double>& P,
         const std::vector<double*>& elemPtr_P,
         Eigen::VectorXd& gradient,
+#ifdef USE_OSQP
         OSQP& OSQPSolver,
+#endif
 #ifdef USE_GUROBI
         Eigen::GurobiSparse& gurobiQPSolver,
 #endif
@@ -194,10 +196,12 @@ protected: // helper functions
         Eigen::VectorXd& dual,
         QPSolverType qpSolverType) const;
     /// @brief Solve the QP using OSQP.
+#ifdef USE_OSQP
     virtual bool solveQP_OSQP(
         Eigen::SparseMatrix<double>& Q, Eigen::VectorXd& c,
         Eigen::SparseMatrix<double>& A, Eigen::VectorXd& b,
         OSQP& QPSolver, Eigen::VectorXd& x, Eigen::VectorXd& dual) const;
+#endif
 #ifdef USE_GUROBI
     /// @brief Solve the QP using Gurobi.
     virtual bool solveQP_Gurobi(

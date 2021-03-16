@@ -6,6 +6,8 @@
 #include "CTCD.h"
 
 #include <spdlog/spdlog.h>
+#include <optional>
+#include <algorithm>
 
 namespace IPC {
 

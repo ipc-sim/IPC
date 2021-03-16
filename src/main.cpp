@@ -37,8 +37,13 @@ int vertAmt_input;
 IPC::Optimizer<DIM>* optimizer;
 std::vector<IPC::Energy<DIM>*> energyTerms;
 std::vector<double> energyParams;
+#ifdef USE_OPENGL
 bool savePNG = false;
 bool offlineMode = false;
+#else
+bool savePNG = true;
+bool offlineMode = true;
+#endif
 bool autoSwitch = false;
 bool contactHandling = false;
 bool optimization_on = false;
