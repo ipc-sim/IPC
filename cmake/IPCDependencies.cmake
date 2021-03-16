@@ -20,7 +20,7 @@ set(SUITESPARSE_LIBRARY_DIR_HINTS $ENV{SUITESPARSE_LIB})
 find_package(SuiteSparse REQUIRED)
 
 # OSQP library
-if(NOT TARGET osqp::osqp)
+if(IPC_WITH_OSQP_MKL AND NOT TARGET osqp::osqp)
   download_osqp()
   # Make sure the right types are used
   set(DFLOAT OFF CACHE BOOL "Use float numbers instead of doubles"   FORCE)
@@ -39,7 +39,7 @@ if(NOT TARGET igl)
 endif()
 
 # TBB
-if(NOT TARGET TBB::tbb)
+if(IPC_WITH_TBB AND NOT TARGET TBB::tbb)
   download_tbb()
   set(TBB_BUILD_STATIC ON CACHE BOOL " " FORCE)
   set(TBB_BUILD_SHARED OFF CACHE BOOL " " FORCE)
@@ -66,7 +66,8 @@ if(NOT TARGET spdlog::spdlog)
 endif()
 
 # AMGCL
-if(NOT TARGET amgcl::amgcl)
+# NOTE: we don't use AMGCL so we won't build it for simplicity
+if(IPC_WITH_AMGCL AND NOT TARGET amgcl::amgcl)
   download_amgcl()
   set(Boost_USE_MULTITHREADED TRUE)
   add_subdirectory(${IPC_EXTERNAL}/amgcl EXCLUDE_FROM_ALL)
@@ -80,14 +81,14 @@ if(IPC_WITH_TESTS AND NOT TARGET Catch2::Catch2)
 endif()
 
 # finite-diff
-if(NOT TARGET FiniteDiff::FiniteDiff)
+if(IPC_WITH_TESTS AND NOT TARGET FiniteDiff::FiniteDiff)
   download_finite_diff()
   add_subdirectory(${IPC_EXTERNAL}/finite-diff EXCLUDE_FROM_ALL)
   add_library(FiniteDiff::FiniteDiff ALIAS FiniteDiff)
 endif()
 
 # CLI11
-if(NOT TARGET CLI11::CLI11)
+if(IPC_WITH_MAIN AND NOT TARGET CLI11::CLI11)
   download_cli11()
   add_subdirectory(${IPC_EXTERNAL}/cli11)
 endif()

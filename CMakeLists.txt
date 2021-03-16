@@ -34,7 +34,9 @@ option(IPC_WITH_OPENGL    "Use libgil viewer for preview and output"            
 set(IPC_LINSYSSOLVER "CHOLMOD" CACHE STRING "Linear system solver to use (options: CHOLMOD, AMGCL, EIGEN)")
 set_property(CACHE IPC_LINSYSSOLVER PROPERTY STRINGS "CHOLMOD" "AMGCL" "EIGEN")
 option(IPC_EXIT_UPON_QP_FAIL  "Exit if the QP/SQP intersects or blows-up" OFF)
-
+option(IPC_WITH_MAIN                 "Build binary with library"     ON)
+option(IPC_WITH_AMGCL                  "Build with AMGCL"              OFF)
+option(IPC_WITH_TBB                    "Build with TBB"                ON)
 
 if(NOT IPC_WITH_OPENGL)
   set(LIBIGL_WITH_VIEWER OFF CACHE BOOL "" FORCE)
@@ -72,7 +74,7 @@ file(GLOB SRCFILES
   "src/Utils/*.cpp"
   "src/LinSysSolver/EigenLibSolver.cpp"
   "src/LinSysSolver/CHOLMODSolver.cpp"
-  "src/LinSysSolver/AMGCLSolver.cpp"
+#  "src/LinSysSolver/AMGCLSolver.cpp"
   "src/TimeStepper/*.cpp"
 )
 
@@ -107,11 +109,13 @@ endif()
 # Simulations Executable
 ################################################################################
 
-add_executable(${PROJECT_NAME}_bin "src/main.cpp")
-# Link against the library
-target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME}_dev)
-# CLI11
-target_link_libraries(${PROJECT_NAME}_bin PUBLIC CLI11::CLI11)
+if(IPC_WITH_MAIN)
+  add_executable(${PROJECT_NAME}_bin "src/main.cpp")
+  # Link against the library
+  target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME}_dev)
+  # CLI11
+  target_link_libraries(${PROJECT_NAME}_bin PUBLIC CLI11::CLI11)
+endif()
 
 ################################################################################
 # Etienne Vouga's CTCD Library
@@ -143,6 +147,11 @@ target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::core igl::triangle igl::te
 if(IPC_WITH_OPENGL)
   target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::opengl_glfw igl::opengl_glfw_imgui igl::png)
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_OPENGL)
+endif()
+
+# tbb
+if(IPC_WITH_TBB)
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_TBB)
 endif()
 
 
