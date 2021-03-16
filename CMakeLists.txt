@@ -1,4 +1,9 @@
 cmake_minimum_required(VERSION 3.9)
+
+# use clang for compilation
+set(CMAKE_C_COMPILER "/usr/bin/clang")
+set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
+
 project(IPC)
 
 ################################################################################
@@ -140,7 +145,9 @@ target_link_libraries(${PROJECT_NAME}_dev PUBLIC ${SUITESPARSE_LIBRARIES})
 target_include_directories(${PROJECT_NAME}_dev PUBLIC ${SUITESPARSE_INCLUDE_DIRS})
 
 # OSQP
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC osqp::osqp)
+if(IPC_WITH_OSQP_MKL)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC osqp::osqp)
+endif()
 
 # libigl
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::core igl::triangle igl::tetgen)
