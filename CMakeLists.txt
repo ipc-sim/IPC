@@ -4,7 +4,7 @@ project(IPC)
 ################################################################################
 
 # libigl
-option(LIBIGL_USE_STATIC_LIBRARY     "Use libigl as static library" OFF)
+option(LIBIGL_USE_STATIC_LIBRARY     "Use libigl as static library" ON)
 option(LIBIGL_WITH_ANTTWEAKBAR       "Use AntTweakBar"              OFF)
 option(LIBIGL_WITH_CGAL              "Use CGAL"                     OFF)
 option(LIBIGL_WITH_COMISO            "Use CoMiso"                   OFF)
@@ -13,24 +13,24 @@ option(LIBIGL_WITH_EMBREE            "Use Embree"                   OFF)
 option(LIBIGL_WITH_LIM               "Use LIM"                      OFF)
 option(LIBIGL_WITH_MATLAB            "Use Matlab"                   OFF)
 option(LIBIGL_WITH_MOSEK             "Use MOSEK"                    OFF)
-option(LIBIGL_WITH_OPENGL            "Use OpenGL"                   ON)
-option(LIBIGL_WITH_OPENGL_GLFW       "Use GLFW"                     ON)
-option(LIBIGL_WITH_OPENGL_GLFW_IMGUI "Use ImGui"                    ON)
+option(LIBIGL_WITH_OPENGL            "Use OpenGL"                   OFF)
+option(LIBIGL_WITH_OPENGL_GLFW       "Use GLFW"                     OFF)
+option(LIBIGL_WITH_OPENGL_GLFW_IMGUI "Use ImGui"                    OFF)
 option(LIBIGL_WITH_PNG               "Use PNG"                      ON)
 option(LIBIGL_WITH_PYTHON            "Use Python"                   OFF)
 option(LIBIGL_WITH_TETGEN            "Use Tetgen"                   ON)
 option(LIBIGL_WITH_TRIANGLE          "Use Triangle"                 ON)
-option(LIBIGL_WITH_VIEWER            "Use OpenGL viewer"            ON)
+option(LIBIGL_WITH_VIEWER            "Use OpenGL viewer"            OFF)
 option(LIBIGL_QUIET_VIEWER           "Suppress viewer messages"     ON)
 option(LIBIGL_WITH_XML               "Use XML"                      OFF)
 option(LIBIGL_WITH_PREDICATES        "Use exact predicates"         ON)
 
 # project-options
 option(IPC_WITH_EXACT_CCD "Use exact CCD as a verification"                     ON)
-option(IPC_WITH_TESTS     "Build unit tests using Catch2"                       ON)
+option(IPC_WITH_TESTS     "Build unit tests using Catch2"                       OFF)
 option(IPC_WITH_GUROBI    "Enable Gurobi QP solver for SQP method"             OFF)
-option(IPC_WITH_OSQP_MKL  "Use MKL Pardiso linear solver in OSQP if available"  ON)
-option(IPC_WITH_OPENGL    "Use libgil viewer for preview and output"            ON)
+option(IPC_WITH_OSQP_MKL  "Use MKL Pardiso linear solver in OSQP if available"  OFF)
+option(IPC_WITH_OPENGL    "Use libgil viewer for preview and output"            OFF)
 set(IPC_LINSYSSOLVER "CHOLMOD" CACHE STRING "Linear system solver to use (options: CHOLMOD, AMGCL, EIGEN)")
 set_property(CACHE IPC_LINSYSSOLVER PROPERTY STRINGS "CHOLMOD" "AMGCL" "EIGEN")
 option(IPC_EXIT_UPON_QP_FAIL  "Exit if the QP/SQP intersects or blows-up" OFF)
@@ -199,24 +199,6 @@ endif()
 
 # Extra warnings
 # target_link_libraries(${PROJECT_NAME}_dev PRIVATE warnings::all)
-
-################################################################################
-# Sub-Projects
-################################################################################
-
-add_subdirectory(src/Projects)
-
-################################################################################
-# Code Format Tool
-################################################################################
-
-find_program(CLANG_FORMAT_INSTALLED "clang-format")
-if(CLANG_FORMAT_INSTALLED)
-  message(STATUS "Building code format tool")
-  add_subdirectory(Format)
-else()
-  message(STATUS "clang-format not found: skipping Format subdirectory")
-endif()
 
 
 ################################################################################
