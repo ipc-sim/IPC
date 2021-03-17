@@ -130,6 +130,7 @@ void HalfSpace<dim>::leftMultiplyConstraintJacobianT(const Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)activeSet.size(), 1, [&](int cI)
 #else
+#pragma omp parallel for
     for (int cI = 0; cI < activeSet.size(); ++cI)
 #endif
         {
@@ -154,6 +155,7 @@ void HalfSpace<dim>::leftMultiplyConstraintJacobianTQP(const Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)activeSet.size(), 1, [&](int cI)
 #else
+#pragma omp parallel for
     for (int cI = 0; cI < activeSet.size(); ++cI)
 #endif
         {
@@ -174,6 +176,7 @@ void HalfSpace<dim>::augmentIPHessian(const Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)activeSet.size(), 1, [&](int constraintI)
 #else
+#pragma omp parallel for
     for (int constraintI = 0; constraintI < activeSet.size(); ++constraintI)
 #endif
         {
@@ -249,6 +252,7 @@ void HalfSpace<dim>::largestFeasibleStepSize(const Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)mesh.SVI.size(), 1, [&](int svI)
 #else
+#pragma omp parallel for
     for (int svI = 0; svI < mesh.SVI.size(); ++svI)
 #endif
         {
@@ -394,6 +398,7 @@ void HalfSpace<dim>::move(const Eigen::Matrix<double, dim, 1>& deltaX,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)mesh.SVI.size(), 1, [&](int svI)
 #else
+#pragma omp parallel for
     for (int svI = 0; svI < mesh.SVI.size(); ++svI)
 #endif
         {

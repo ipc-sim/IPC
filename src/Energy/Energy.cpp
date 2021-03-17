@@ -214,6 +214,7 @@ void Energy<dim>::getEnergyValPerElemBySVD(const Mesh<dim>& data, int redoSVD,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)data.F.rows(), 1, [&](int triI)
 #else
+#pragma omp parallel for
     for (int triI = 0; triI < data.F.rows(); triI++)
 #endif
         {
@@ -268,6 +269,7 @@ void Energy<dim>::computeGradientByPK(const Mesh<dim>& data, bool redoSVD,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)data.F.rows(), 1, [&](int triI)
 #else
+#pragma omp parallel for
     for (int triI = 0; triI < data.F.rows(); triI++)
 #endif
         {
@@ -284,6 +286,7 @@ void Energy<dim>::computeGradientByPK(const Mesh<dim>& data, bool redoSVD,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)data.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
     for (int vI = 0; vI < data.V.rows(); vI++)
 #endif
         {
@@ -317,6 +320,7 @@ void Energy<dim>::computeHessianByPK(const Mesh<dim>& data, bool redoSVD,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)data.F.rows(), 1, [&](int triI)
 #else
+#pragma omp parallel for
     for (int triI = 0; triI < data.F.rows(); triI++)
 #endif
         {
@@ -331,6 +335,7 @@ void Energy<dim>::computeHessianByPK(const Mesh<dim>& data, bool redoSVD,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)data.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
     for (int vI = 0; vI < data.V.rows(); vI++)
 #endif
         {

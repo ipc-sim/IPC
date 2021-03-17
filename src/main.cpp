@@ -963,6 +963,7 @@ int main(int argc, char* argv[])
 #ifdef USE_TBB
                 tbb::parallel_for(0, (int)UV.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
                 for (int vI = 0; vI < UV.rows(); ++vI)
 #endif
                     {
@@ -995,6 +996,7 @@ int main(int argc, char* argv[])
 #ifdef USE_TBB
             tbb::parallel_for(0, (int)V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
             for (int vI = 0; vI < V.rows(); ++vI)
 #endif
                 {

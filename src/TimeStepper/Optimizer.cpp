@@ -909,6 +909,7 @@ void Optimizer<dim>::initX(int option, std::vector<std::vector<int>>& p_activeSe
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)result.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
         for (int vI = 0; vI < result.V.rows(); vI++)
 #endif
             {
@@ -930,6 +931,7 @@ void Optimizer<dim>::initX(int option, std::vector<std::vector<int>>& p_activeSe
 #ifdef USE_TBB
             tbb::parallel_for(0, (int)result.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
             for (int vI = 0; vI < result.V.rows(); vI++)
 #endif
                 {
@@ -949,6 +951,7 @@ void Optimizer<dim>::initX(int option, std::vector<std::vector<int>>& p_activeSe
 #ifdef USE_TBB
             tbb::parallel_for(0, (int)result.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
             for (int vI = 0; vI < result.V.rows(); vI++)
 #endif
                 {
@@ -972,6 +975,7 @@ void Optimizer<dim>::initX(int option, std::vector<std::vector<int>>& p_activeSe
 #ifdef USE_TBB
             tbb::parallel_for(0, (int)result.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
             for (int vI = 0; vI < result.V.rows(); vI++)
 #endif
                 {
@@ -991,6 +995,7 @@ void Optimizer<dim>::initX(int option, std::vector<std::vector<int>>& p_activeSe
 #ifdef USE_TBB
             tbb::parallel_for(0, (int)result.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
             for (int vI = 0; vI < result.V.rows(); vI++)
 #endif
                 {
@@ -1015,6 +1020,7 @@ void Optimizer<dim>::initX(int option, std::vector<std::vector<int>>& p_activeSe
 #ifdef USE_TBB
             tbb::parallel_for(0, (int)result.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
             for (int vI = 0; vI < result.V.rows(); vI++)
 #endif
                 {
@@ -1034,6 +1040,7 @@ void Optimizer<dim>::initX(int option, std::vector<std::vector<int>>& p_activeSe
 #ifdef USE_TBB
             tbb::parallel_for(0, (int)result.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
             for (int vI = 0; vI < result.V.rows(); vI++)
 #endif
                 {
@@ -1063,6 +1070,7 @@ void Optimizer<dim>::initX(int option, std::vector<std::vector<int>>& p_activeSe
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)result.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
         for (int vI = 0; vI < result.V.rows(); vI++)
 #endif
             {
@@ -1186,6 +1194,7 @@ void Optimizer<dim>::computeXTilta(void)
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)result.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
         for (int vI = 0; vI < result.V.rows(); vI++)
 #endif
             {
@@ -1205,6 +1214,7 @@ void Optimizer<dim>::computeXTilta(void)
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)result.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
         for (int vI = 0; vI < result.V.rows(); vI++)
 #endif
             {
@@ -1612,6 +1622,7 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
 #ifdef USE_TBB
             tbb::parallel_for(0, (int)fb.size(), 1, [&](int i)
 #else
+#pragma omp parallel for
             for (int i = 0; i < fb.size(); ++i)
 #endif
                 {
@@ -2786,6 +2797,7 @@ void Optimizer<dim>::stepForward(const Eigen::MatrixXd& dataV0,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)data.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
     for (int vI = 0; vI < data.V.rows(); vI++)
 #endif
         {
@@ -2862,6 +2874,7 @@ void Optimizer<dim>::saveStatus(const std::string& appendStr)
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)V_surf.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
     for (int vI = 0; vI < V_surf.rows(); ++vI)
 #endif
         {
@@ -2878,6 +2891,7 @@ void Optimizer<dim>::saveStatus(const std::string& appendStr)
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)V_CE.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
         for (int vI = 0; vI < V_CE.rows(); ++vI)
 #endif
             {
@@ -2964,6 +2978,7 @@ void Optimizer<dim>::computeEnergyVal(const Mesh<dim>& data, int redoSVD, double
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)data.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
     for (int vI = 0; vI < data.V.rows(); vI++)
 #endif
         {
@@ -3116,6 +3131,7 @@ void Optimizer<dim>::computeEnergyVal(const Mesh<dim>& data, int redoSVD, double
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)data.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
         for (int vI = 0; vI < data.V.rows(); vI++)
 #endif
             {
@@ -3171,6 +3187,7 @@ void Optimizer<dim>::computeGradient(const Mesh<dim>& data,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)data.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
     for (int vI = 0; vI < data.V.rows(); vI++)
 #endif
         {
@@ -3248,6 +3265,7 @@ void Optimizer<dim>::computeGradient(const Mesh<dim>& data,
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)data.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
         for (int vI = 0; vI < data.V.rows(); vI++)
 #endif
             {
@@ -3364,6 +3382,7 @@ void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)data.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
     for (int vI = 0; vI < data.V.rows(); vI++)
 #endif
         {

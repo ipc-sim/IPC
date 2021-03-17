@@ -68,6 +68,7 @@ public: // API
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)mesh.SVI.size(), 1, [&](int svI)
 #else
+#pragma omp parallel for
         for (int svI = 0; svI < mesh.SVI.size(); ++svI)
 #endif
             {
@@ -98,6 +99,7 @@ public: // API
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)mesh.SFEdges.size(), 1, [&](int seCount)
 #else
+#pragma omp parallel for
         for (int seCount = 0; seCount < mesh.SFEdges.size(); ++seCount)
 #endif
             {
@@ -126,6 +128,7 @@ public: // API
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)mesh.SF.rows(), 1, [&](int sfI)
 #else
+#pragma omp parallel for
         for (int sfI = 0; sfI < mesh.SF.rows(); ++sfI)
 #endif
             {
@@ -647,6 +650,7 @@ public: // API
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)mesh.SVI.size(), 1, [&](int svI)
 #else
+#pragma omp parallel for
         for (int svI = 0; svI < mesh.SVI.size(); ++svI)
 #endif
             {
@@ -668,6 +672,7 @@ public: // API
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)mesh.SVI.size(), 1, [&](int svI)
 #else
+#pragma omp parallel for
         for (int svI = 0; svI < mesh.SVI.size(); ++svI)
 #endif
             {
@@ -691,6 +696,7 @@ public: // API
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)mesh.SFEdges.size(), 1, [&](int seCount)
 #else
+#pragma omp parallel for
         for (int seCount = 0; seCount < mesh.SFEdges.size(); ++seCount)
 #endif
             {
@@ -718,6 +724,7 @@ public: // API
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)mesh.SF.rows(), 1, [&](int sfI)
 #else
+#pragma omp parallel for
         for (int sfI = 0; sfI < mesh.SF.rows(); ++sfI)
 #endif
             {
