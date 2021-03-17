@@ -23,6 +23,6 @@ cmds = ['cd $HOME/c3d\n',
         '-DGMP_LIBRARIES={}/third_party/gmp/lib/libgmp.a'.format(store_base),
         '-DGMP_INCLUDE_DIRS={}/third_party/gmp/include'.format(store_base),
         '..\n',
-        'make -j12']
+        'make -j16']
 #subprocess.call([runCommand], shell=True)
 subprocess.call(' '.join(cmds), shell=True)
