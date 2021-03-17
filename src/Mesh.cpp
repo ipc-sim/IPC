@@ -14,6 +14,10 @@
 #include <igl/cotmatrix.h>
 #include <igl/avg_edge_length.h>
 #include <igl/writeOBJ.h>
+#include <igl/doublearea.h>
+#include <igl/sparse.h>
+#include <igl/repmat.h>
+#include <igl/normalize_row_sums.h>
 #include <igl/list_to_matrix.h>
 #include <igl/boundary_loop.h>
 #include <igl/harmonic.h>
@@ -24,6 +28,7 @@
 
 #include <fstream>
 #include <deque>
+#include <optional>
 #include <unordered_map>
 
 #include <spdlog/spdlog.h>

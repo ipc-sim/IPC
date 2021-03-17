@@ -19,6 +19,12 @@
 #include <fstream>
 #include <string>
 #include <ctime>
+
+#include <bits/stdc++.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+// clang 8 doesn't have stable implementation of filesystem, so comment it out
+/*
 #if __has_include(<filesystem>)
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -26,6 +32,7 @@ namespace fs = std::filesystem;
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
 #endif
+*/
 
 #include <spdlog/spdlog.h>
 #include <CLI/CLI.hpp>
@@ -37,8 +44,13 @@ int vertAmt_input;
 IPC::Optimizer<DIM>* optimizer;
 std::vector<IPC::Energy<DIM>*> energyTerms;
 std::vector<double> energyParams;
+#ifdef USE_OPENGL
 bool savePNG = false;
 bool offlineMode = false;
+#else
+bool savePNG = true;
+bool offlineMode = true;
+#endif
 bool autoSwitch = false;
 bool contactHandling = false;
 bool optimization_on = false;
@@ -1112,7 +1124,13 @@ int main(int argc, char* argv[])
             outputFolderPath += meshName + "_" + startDS + args.folderTail;
         }
     }
-    fs::create_directories(fs::path(outputFolderPath));
+
+    //NOTE: clang 8 doesn't have fs implementation as it was said to be unstable
+    //fs::create_directories(fs::path(outputFolderPath));
+    // Hack to create directories
+    const std::string cmd = "mkdir -p " + outputFolderPath;
+    int status = system(cmd.c_str());
+    assert(status == 0);
     config.backUpConfig(outputFolderPath + "/config.txt");
     for (int coI = 0; coI < config.collisionObjects.size(); ++coI) {
         config.collisionObjects[coI]->saveMesh(outputFolderPath + "/ACO" + std::to_string(coI) + "_0.obj");

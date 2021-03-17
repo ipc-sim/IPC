@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.9)
 
 ################################################################################
 # project-options
-option(BUILD_DIAGNOSTIC_PROJECT      "Build the Diagnostic sub-project"     ON)
+option(BUILD_DIAGNOSTIC_PROJECT      "Build the Diagnostic sub-project"     OFF)
 option(BUILD_MESH_PROCESSING_PROJECT "Build the MeshProcessing sub-project" ON)
 ################################################################################
 

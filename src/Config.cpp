@@ -14,6 +14,9 @@
 #include <fstream>
 #include <sstream>
 #include <ctime>
+
+// Note that there's not an easy way to use filesystem in clang-8
+/*
 #if __has_include(<filesystem>)
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -21,8 +24,14 @@ namespace fs = std::filesystem;
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
 #endif
+*/
 
 #include <spdlog/spdlog.h>
+
+namespace internal {
+std::string g_cwd = "";
+}
+
 
 namespace IPC {
 
@@ -69,10 +78,54 @@ std::string getRootDirectory()
     return parent_parent_dir;
 }
 
+// Separate path components:
+// /tmp/arbitrary_dir/file_name.txt -> {tmp, arbitrary_dir, file_name.txt}
+bool SeparatePathComps(const std::string& in, std::vector<std::string>* out) {
+    if (in[0] != '/') return false;
+    out->clear();
+    std::istringstream ss(in);
+    std::string token;
+    for (const char c : in) {
+        if (c == '/' && !token.empty()) {
+            if (token == "intput" || token == "output") {
+                break;
+            } else {
+                std::cerr << "token: " << token;
+                out->push_back(token);
+                token.clear();
+            }
+        } else if (c != '/') {
+            token.push_back(c);
+        }
+    }
+    return !out->empty();
+}
+
+// Not thread safe
+std::string GetCwd(const std::string& in) {
+    if (internal::g_cwd.empty()) {
+        std::cerr << "init cwd" << std::endl;
+        std::vector<std::string> comps;
+        const bool r = SeparatePathComps(in, &comps);
+        assert(r);
+        for (const std::string& comp : comps) {
+            if (comp == "input" || comp == "output") break;
+            internal::g_cwd.push_back('/');
+            internal::g_cwd += comp;
+        }
+    }
+    std::cerr << "cwd: " << internal::g_cwd << ", size: " << internal::g_cwd.size() << std::endl;
+    assert(!internal::g_cwd.empty());
+    return internal::g_cwd;
+}
+
 std::string resolvePath(
     const std::string& path,
     const std::string& input_file_path)
 {
+    spdlog::info("\n\nresolving path: {}\n\n", path);
+    spdlog::info("\n\ninput file path: {}\n\n", input_file_path);
+
     if (path.size() == 0) {
         throw fmt::format("empty path detected ({})", path);
     }
@@ -81,14 +134,21 @@ std::string resolvePath(
         return path;
     }
 
+    std::string out = GetCwd(input_file_path) + "/" + path;
+    spdlog::info("resolved path: {}\n\n", out);
+    return out;
+    /*
     // Make the path relative to the input
     fs::path resolved_path = fs::path(input_file_path).parent_path() / path;
     if (fs::exists(resolved_path)) {
         return resolved_path.string();
     }
-
+    std::cerr << "\n\npath: " << path << std::endl;
+    std::cerr << "in_file_path: " << input_file_path << std::endl;
+    std::cerr << "resolved: " << (fs::path(getRootDirectory()) / path).string() << std::endl << std::endl;
     // Return a path relative to the root directory of IPC
     return (fs::path(getRootDirectory()) / path).string();
+    */
 }
 
 int Config::loadFromFile(const std::string& p_filePath)

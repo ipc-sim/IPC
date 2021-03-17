@@ -28,7 +28,7 @@ NTSetStr1 = 'export OMP_NUM_THREADS='
 # for Mac when CHOLMOD is compiled with default LAPACK and BLAS
 NTSetStr2 = 'export VECLIB_MAXIMUM_THREADS='
 
-for numOfThreads in ['1', '8', '12']:
+for numOfThreads in ['1', '8', '16']:
     inputFolderPath = os.path.realpath('.') + '/input/' + numOfThreads + '/'
     if(not os.path.isdir(inputFolderPath)):
         continue

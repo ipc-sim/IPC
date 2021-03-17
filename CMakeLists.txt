@@ -1,10 +1,24 @@
 cmake_minimum_required(VERSION 3.9)
+
+# use clang for compilation
+set(CMAKE_C_COMPILER "/usr/bin/clang")
+set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
+set(CMAKE_CXX_FLAGS "-std=gnu++17")
+set(CMAKE_CXX_STANDARD, 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 project(IPC)
+
+message("Your C++ compiler supports these C++ features:")
+message("You compiler: ${CMAKE_CXX_COMPILER}")
+foreach(i ${CMAKE_CXX_COMPILE_FEATURES})
+  message("${i}")
+endforeach()
 
 ################################################################################
 
 # libigl
-option(LIBIGL_USE_STATIC_LIBRARY     "Use libigl as static library" OFF)
+option(LIBIGL_USE_STATIC_LIBRARY     "Use libigl as static library" ON)
 option(LIBIGL_WITH_ANTTWEAKBAR       "Use AntTweakBar"              OFF)
 option(LIBIGL_WITH_CGAL              "Use CGAL"                     OFF)
 option(LIBIGL_WITH_COMISO            "Use CoMiso"                   OFF)
@@ -13,28 +27,30 @@ option(LIBIGL_WITH_EMBREE            "Use Embree"                   OFF)
 option(LIBIGL_WITH_LIM               "Use LIM"                      OFF)
 option(LIBIGL_WITH_MATLAB            "Use Matlab"                   OFF)
 option(LIBIGL_WITH_MOSEK             "Use MOSEK"                    OFF)
-option(LIBIGL_WITH_OPENGL            "Use OpenGL"                   ON)
-option(LIBIGL_WITH_OPENGL_GLFW       "Use GLFW"                     ON)
-option(LIBIGL_WITH_OPENGL_GLFW_IMGUI "Use ImGui"                    ON)
+option(LIBIGL_WITH_OPENGL            "Use OpenGL"                   OFF)
+option(LIBIGL_WITH_OPENGL_GLFW       "Use GLFW"                     OFF)
+option(LIBIGL_WITH_OPENGL_GLFW_IMGUI "Use ImGui"                    OFF)
 option(LIBIGL_WITH_PNG               "Use PNG"                      ON)
 option(LIBIGL_WITH_PYTHON            "Use Python"                   OFF)
 option(LIBIGL_WITH_TETGEN            "Use Tetgen"                   ON)
 option(LIBIGL_WITH_TRIANGLE          "Use Triangle"                 ON)
-option(LIBIGL_WITH_VIEWER            "Use OpenGL viewer"            ON)
+option(LIBIGL_WITH_VIEWER            "Use OpenGL viewer"            OFF)
 option(LIBIGL_QUIET_VIEWER           "Suppress viewer messages"     ON)
 option(LIBIGL_WITH_XML               "Use XML"                      OFF)
 option(LIBIGL_WITH_PREDICATES        "Use exact predicates"         ON)
 
 # project-options
 option(IPC_WITH_EXACT_CCD "Use exact CCD as a verification"                     ON)
-option(IPC_WITH_TESTS     "Build unit tests using Catch2"                       ON)
+option(IPC_WITH_TESTS     "Build unit tests using Catch2"                       OFF)
 option(IPC_WITH_GUROBI    "Enable Gurobi QP solver for SQP method"             OFF)
-option(IPC_WITH_OSQP_MKL  "Use MKL Pardiso linear solver in OSQP if available"  ON)
-option(IPC_WITH_OPENGL    "Use libgil viewer for preview and output"            ON)
+option(IPC_WITH_OSQP_MKL  "Use MKL Pardiso linear solver in OSQP if available"  OFF)
+option(IPC_WITH_OPENGL    "Use libgil viewer for preview and output"            OFF)
 set(IPC_LINSYSSOLVER "CHOLMOD" CACHE STRING "Linear system solver to use (options: CHOLMOD, AMGCL, EIGEN)")
 set_property(CACHE IPC_LINSYSSOLVER PROPERTY STRINGS "CHOLMOD" "AMGCL" "EIGEN")
 option(IPC_EXIT_UPON_QP_FAIL  "Exit if the QP/SQP intersects or blows-up" OFF)
-
+option(IPC_WITH_MAIN                 "Build binary with library"     ON)
+option(IPC_WITH_AMGCL                  "Build with AMGCL"              OFF)
+option(IPC_WITH_TBB                    "Build with TBB"                OFF)
 
 if(NOT IPC_WITH_OPENGL)
   set(LIBIGL_WITH_VIEWER OFF CACHE BOOL "" FORCE)
@@ -58,6 +74,7 @@ include(${PROJECT_NAME}Dependencies)
 ################################################################################
 # IPC Library
 ################################################################################
+message("You compiler again: ${CMAKE_CXX_COMPILER}")
 
 # project source files
 file(GLOB SRCFILES
@@ -72,7 +89,7 @@ file(GLOB SRCFILES
   "src/Utils/*.cpp"
   "src/LinSysSolver/EigenLibSolver.cpp"
   "src/LinSysSolver/CHOLMODSolver.cpp"
-  "src/LinSysSolver/AMGCLSolver.cpp"
+#  "src/LinSysSolver/AMGCLSolver.cpp"
   "src/TimeStepper/*.cpp"
 )
 
@@ -101,17 +118,21 @@ target_include_directories(${PROJECT_NAME}_dev PUBLIC
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   target_link_libraries(${PROJECT_NAME}_dev PUBLIC stdc++fs)
+else()
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC c++fs)
 endif()
 
 ################################################################################
 # Simulations Executable
 ################################################################################
 
-add_executable(${PROJECT_NAME}_bin "src/main.cpp")
-# Link against the library
-target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME}_dev)
-# CLI11
-target_link_libraries(${PROJECT_NAME}_bin PUBLIC CLI11::CLI11)
+if(IPC_WITH_MAIN)
+  add_executable(${PROJECT_NAME}_bin "src/main.cpp")
+  # Link against the library
+  target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME}_dev)
+  # CLI11
+  target_link_libraries(${PROJECT_NAME}_bin PUBLIC CLI11::CLI11)
+endif()
 
 ################################################################################
 # Etienne Vouga's CTCD Library
@@ -136,7 +157,9 @@ target_link_libraries(${PROJECT_NAME}_dev PUBLIC ${SUITESPARSE_LIBRARIES})
 target_include_directories(${PROJECT_NAME}_dev PUBLIC ${SUITESPARSE_INCLUDE_DIRS})
 
 # OSQP
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC osqp::osqp)
+if(IPC_WITH_OSQP_MKL)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC osqp::osqp)
+endif()
 
 # libigl
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::core igl::triangle igl::tetgen)
@@ -144,7 +167,6 @@ if(IPC_WITH_OPENGL)
   target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::opengl_glfw igl::opengl_glfw_imgui igl::png)
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_OPENGL)
 endif()
-
 
 if(LIBIGL_WITH_PREDICATES)
   target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::predicates)
@@ -154,7 +176,10 @@ endif()
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC RationalCCD)
 
 # tbb
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC TBB::tbb)
+if(IPC_WITH_TBB)
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_TBB)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC TBB::tbb)
+endif()
 
 # exact-ccd
 if(IPC_WITH_EXACT_CCD)
@@ -166,8 +191,9 @@ endif()
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC spdlog::spdlog)
 
 # AMGCL
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC amgcl::amgcl)
-
+if(IPC_WITH_AMGCL)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC amgcl::amgcl)
+endif()
 # target_link_libraries(${PROJECT_NAME}_dev PUBLIC pardiso600-GNU720-X86-64 gfortran)
 # find_package(Pardiso)
 # if(PARDISO_FOUND)
@@ -199,24 +225,6 @@ endif()
 
 # Extra warnings
 # target_link_libraries(${PROJECT_NAME}_dev PRIVATE warnings::all)
-
-################################################################################
-# Sub-Projects
-################################################################################
-
-add_subdirectory(src/Projects)
-
-################################################################################
-# Code Format Tool
-################################################################################
-
-find_program(CLANG_FORMAT_INSTALLED "clang-format")
-if(CLANG_FORMAT_INSTALLED)
-  message(STATUS "Building code format tool")
-  add_subdirectory(Format)
-else()
-  message(STATUS "clang-format not found: skipping Format subdirectory")
-endif()
 
 
 ################################################################################
@@ -277,6 +285,7 @@ if(IPC_WITH_OSQP_MKL)
   else()
     message(WARNING "MKL not found: disabling OSQP MKL Pardiso linear system solver")
   endif()
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_OSQP)
 endif()
 
 # Set the selected linear system solver

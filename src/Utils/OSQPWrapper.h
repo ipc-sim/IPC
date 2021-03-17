@@ -8,10 +8,12 @@
 #ifndef OSQP_h
 #define OSQP_h
 
+#ifdef USE_OSQP
 #include <osqp.h>
+#endif
 
 namespace IPC {
-
+#ifdef USE_OSQP
 class OSQP {
     OSQPSettings* settings; // Problem settings
     OSQPData* data; // OSQPData
@@ -106,7 +108,15 @@ public:
         return work->solution->y;
     }
 };
+#else
+class OSQP {
+public:
+    OSQP() {}
+};  // placeholder
+#endif  // USE_OSQP
+
 
 } // namespace IPC
+
 
 #endif /* OSQP_h */

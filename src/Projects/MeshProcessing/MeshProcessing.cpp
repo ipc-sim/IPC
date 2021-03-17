@@ -27,7 +27,7 @@
 #include <igl/harmonic.h>
 #include <igl/euler_characteristic.h>
 #include <igl/per_vertex_normals.h>
-#include <igl/opengl/glfw/Viewer.h>
+//#include <igl/opengl/glfw/Viewer.h>
 #include <igl/copyleft/tetgen/tetrahedralize.h>
 
 #ifdef USE_TBB

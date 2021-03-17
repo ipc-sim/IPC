@@ -72,7 +72,10 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
     bool p_mute,
     const Eigen::MatrixXd& UV_bnds, const Eigen::MatrixXi& E, const Eigen::VectorXi& bnd,
     const Config& p_animConfig)
-    : data0(p_data0), energyTerms(p_energyTerms), energyParams(p_energyParams), animConfig(p_animConfig), OSQPSolver(false)
+    : data0(p_data0), energyTerms(p_energyTerms), energyParams(p_energyParams), animConfig(p_animConfig)
+#ifdef USE_OSQP
+    , OSQPSolver(false)
+#endif
 {
     assert(energyTerms.size() == energyParams.size());
 
@@ -695,7 +698,9 @@ bool Optimizer<dim>::solveQP(
     Eigen::SparseMatrix<double>& P,
     const std::vector<double*>& elemPtr_P,
     Eigen::VectorXd& gradient,
+#ifdef USE_OSQP
     OSQP& OSQPSolver,
+#endif
 #ifdef USE_GUROBI
     Eigen::GurobiSparse& gurobiQPSolver,
 #endif
@@ -717,8 +722,10 @@ bool Optimizer<dim>::solveQP(
 
     switch (qpSolverType) {
     case QPSolverType::QP_OSQP:
+#ifdef USE_OSQP
         return solveQP_OSQP(
             P, gradient, A, b, OSQPSolver, searchDir, dual);
+#endif
     case QPSolverType::QP_GUROBI:
 #ifdef USE_GUROBI
         return solveQP_Gurobi(
@@ -739,6 +746,7 @@ bool Optimizer<dim>::solveQP(
     // IglUtils::writeVectorToFile(folderPath + "dual" + std::to_string(innerIterAmt), dual);
 }
 
+#ifdef USE_OSQP
 template <int dim>
 bool Optimizer<dim>::solveQP_OSQP(
     Eigen::SparseMatrix<double>& Q, Eigen::VectorXd& c,
@@ -775,6 +783,7 @@ bool Optimizer<dim>::solveQP_OSQP(
 
     return (status != -3) && (status != -4);
 }
+#endif
 
 #ifdef USE_GUROBI
 template <int dim>
@@ -2382,7 +2391,9 @@ bool Optimizer<dim>::solve_oneStep(void)
         solveQPSuccess = solveQP(
             result, animConfig.collisionObjects, activeSet,
             linSysSolver, P_QP, elemPtr_P_QP, gradient,
+#ifdef USE_OSQP
             OSQPSolver,
+#endif
 #ifdef USE_GUROBI
             gurobiQPSolver,
 #endif
