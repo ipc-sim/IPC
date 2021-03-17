@@ -58,6 +58,7 @@ void SelfCollisionHandler<dim>::evaluateConstraints(const Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)activeSet.size(), 1, [&](int cI)
 #else
+#pragma omp parallel for
     for (int cI = 0; cI < activeSet.size(); ++cI)
 #endif
         {
@@ -203,6 +204,7 @@ void SelfCollisionHandler<dim>::evaluateConstraintsQP(
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)activeSet.size(), 1, [&](int cI)
 #else
+#pragma omp parallel for
     for (int cI = 0; cI < activeSet.size(); ++cI)
 #endif
         {
@@ -414,6 +416,7 @@ void SelfCollisionHandler<dim>::augmentIPHessian(const Mesh<dim>& mesh,
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)activeSet.size(), 1, [&](int cI)
 #else
+#pragma omp parallel for
         for (int cI = 0; cI < activeSet.size(); ++cI)
 #endif
             {
@@ -565,6 +568,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize(const Mesh<dim>& mesh,
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)constraintSet.size(), 1, [&](int cI)
 #else
+#pragma omp parallel for
         for (int cI = 0; cI < constraintSet.size(); ++cI)
 #endif
             {
@@ -688,6 +692,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_exact(const Mesh<dim>& m
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)constraintSet.size(), 1, [&](int cI)
 #else
+#pragma omp parallel for
         for (int cI = 0; cI < constraintSet.size(); ++cI)
 #endif
             {
@@ -803,6 +808,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD(const Mesh<dim>& mes
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)mesh.SVI.size(), 1, [&](int svI)
 #else
+#pragma omp parallel for
     for (int svI = 0; svI < mesh.SVI.size(); ++svI)
 #endif
         {
@@ -1014,6 +1020,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD(const Mesh<dim>& mes
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)mesh.SFEdges.size(), 1, [&](int eI)
 #else
+#pragma omp parallel for
     for (int eI = 0; eI < mesh.SFEdges.size(); ++eI)
 #endif
         {
@@ -1184,6 +1191,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(const Mesh<dim
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)mesh.SVI.size(), 1, [&](int svI)
 #else
+#pragma omp parallel for
     for (int svI = 0; svI < mesh.SVI.size(); ++svI)
 #endif
         {
@@ -1259,6 +1267,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(const Mesh<dim
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)mesh.SFEdges.size(), 1, [&](int eI)
 #else
+#pragma omp parallel for
     for (int eI = 0; eI < mesh.SFEdges.size(); ++eI)
 #endif
         {
@@ -1619,6 +1628,7 @@ void SelfCollisionHandler<dim>::computeConstraintSet(const Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)mesh.SVI.size(), 1, [&](int svI)
 #else
+#pragma omp parallel for
     for (int svI = 0; svI < mesh.SVI.size(); ++svI)
 #endif
         {
@@ -1722,6 +1732,7 @@ void SelfCollisionHandler<dim>::computeConstraintSet(const Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)mesh.SFEdges.size(), 1, [&](int eI)
 #else
+#pragma omp parallel for
     for (int eI = 0; eI < mesh.SFEdges.size(); ++eI)
 #endif
         {
@@ -1990,6 +2001,7 @@ void SelfCollisionHandler<dim>::computeFrictionEnergy(const Eigen::MatrixXd& V,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)constraintSet.size(), 1, [&](int cI)
 #else
+#pragma omp parallel for
     for (int cI = 0; cI < constraintSet.size(); ++cI)
 #endif
         {
@@ -2191,6 +2203,7 @@ void SelfCollisionHandler<dim>::augmentFrictionHessian(const Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)constraintSet.size(), 1, [&](int cI)
 #else
+#pragma omp parallel for
     for (int cI = 0; cI < constraintSet.size(); ++cI)
 #endif
         {
@@ -2481,6 +2494,7 @@ void SelfCollisionHandler<dim>::augmentParaEEHessian(const Mesh<dim>& mesh,
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)paraEEMMCVIDSet.size(), 1, [&](int cI)
 #else
+#pragma omp parallel for
         for (int cI = 0; cI < paraEEMMCVIDSet.size(); ++cI)
 #endif
             {
@@ -2641,6 +2655,7 @@ bool SelfCollisionHandler<dim>::checkEdgeTriIntersection(const Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)mesh.SF.rows(), 1, [&](int sfI)
 #else
+#pragma omp parallel for
     for (int sfI = 0; sfI < mesh.SF.rows(); ++sfI)
 #endif
         {
@@ -2693,6 +2708,7 @@ bool SelfCollisionHandler<dim>::checkEdgeTriIntersectionIfAny(const Mesh<dim>& m
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)mesh.SF.rows(), 1, [&](int sfI)
 #else
+#pragma omp parallel for
     for (int sfI = 0; sfI < mesh.SF.rows(); ++sfI)
 #endif
         {
@@ -2738,6 +2754,7 @@ bool SelfCollisionHandler<dim>::checkEdgeTriIntersectionIfAny(const Mesh<dim>& m
 #ifdef USE_TBB
             tbb::parallel_for(mesh.componentNodeRange[compI], mesh.componentNodeRange[compI + 1], 1, [&](int vI)
 #else
+#pragma omp parallel for
             for (int vI = mesh.componentNodeRange[compI]; vI < mesh.componentNodeRange[compI + 1]; ++vI)
 #endif
                 {

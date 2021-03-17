@@ -246,6 +246,7 @@ void IglUtils::buildSTri2Tet(const Eigen::MatrixXi& F, const Eigen::MatrixXi& SF
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)SF.rows(), 1, [&](int triI)
 #else
+#pragma omp parallel for
     for (int triI = 0; triI < SF.rows(); triI++)
 #endif
         {

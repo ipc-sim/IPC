@@ -55,6 +55,7 @@ public:
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)activeSet.size(), 1, [&](int cI)
 #else
+#pragma omp parallel for
         for (int cI = 0; cI < activeSet.size(); ++cI)
 #endif
             {
@@ -74,6 +75,7 @@ public:
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)mesh.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
         for (int vI = 0; vI < mesh.V.rows(); vI++)
 #endif
             {
@@ -95,6 +97,7 @@ public:
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)activeSet.size(), 1, [&](int cI)
 #else
+#pragma omp parallel for
         for (int cI = 0; cI < activeSet.size(); ++cI)
 #endif
             {
@@ -113,6 +116,7 @@ public:
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)mesh.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
         for (int vI = 0; vI < mesh.V.rows(); vI++)
 #endif
             {
@@ -178,6 +182,7 @@ public:
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)activeSet.size(), 1, [&](int cI)
 #else
+#pragma omp parallel for
         for (int cI = 0; cI < activeSet.size(); ++cI)
 #endif
             {
@@ -227,6 +232,7 @@ public:
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)activeSet.size(), 1, [&](int cI)
 #else
+#pragma omp parallel for
         for (int cI = 0; cI < activeSet.size(); ++cI)
 #endif
             {
@@ -302,6 +308,7 @@ public:
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)mesh.SVI.size(), 1, [&](int svI)
 #else
+#pragma omp parallel for
         for (int svI = 0; svI < mesh.SVI.size(); ++svI)
 #endif
             {

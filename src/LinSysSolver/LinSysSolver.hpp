@@ -51,6 +51,7 @@ public:
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)vNeighbor.size(), 1, [&](int vI)
 #else
+#pragma omp parallel for
         for (int vI = 0; vI < vNeighbor.size(); ++vI)
 #endif
             {
@@ -116,6 +117,7 @@ public:
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)vNeighbor.size(), 1, [&](int vI)
 #else
+#pragma omp parallel for
         for (int vI = 0; vI < vNeighbor.size(); ++vI)
 #endif
             {

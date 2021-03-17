@@ -2167,6 +2167,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)mesh.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
     for (int vI = 0; vI < mesh.V.rows(); ++vI)
 #endif
         {
@@ -2184,6 +2185,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
 #ifdef USE_TBB
             tbb::parallel_for(0, (int)mesh.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
             for (int vI = 0; vI < mesh.V.rows(); ++vI)
 #endif
                 {
@@ -2212,6 +2214,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
 #ifdef USE_TBB
             tbb::parallel_for(0, (int)mesh.V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
             for (int vI = 0; vI < mesh.V.rows(); ++vI)
 #endif
                 {

@@ -404,6 +404,7 @@ void MeshCO<dim>::augmentIPHessian(const Mesh<dim>& mesh,
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)activeSet.size(), 1, [&](int cI)
 #else
+#pragma omp parallel for
         for (int cI = 0; cI < activeSet.size(); ++cI)
 #endif
             {
@@ -588,6 +589,7 @@ void MeshCO<dim>::largestFeasibleStepSize(const Mesh<dim>& mesh,
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)constraintSet.size(), 1, [&](int cI)
 #else
+#pragma omp parallel for
         for (int cI = 0; cI < constraintSet.size(); ++cI)
 #endif
             {
@@ -738,6 +740,7 @@ void MeshCO<dim>::largestFeasibleStepSize_exact(const Mesh<dim>& mesh,
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)constraintSet.size(), 1, [&](int cI)
 #else
+#pragma omp parallel for
         for (int cI = 0; cI < constraintSet.size(); ++cI)
 #endif
             {
@@ -822,6 +825,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD(const Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)Base::F.rows(), 1, [&](int sfI)
 #else
+#pragma omp parallel for
     for (int sfI = 0; sfI < Base::F.rows(); ++sfI)
 #endif
         {
@@ -883,6 +887,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD(const Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)Base::V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
     for (int vI = 0; vI < Base::V.rows(); ++vI)
 #endif
         {
@@ -1018,6 +1023,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD(const Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)edges.size(), 1, [&](int eJ)
 #else
+#pragma omp parallel for
     for (int eJ = 0; eJ < edges.size(); ++eJ)
 #endif
         {
@@ -1134,6 +1140,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_exact(const Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)Base::F.rows(), 1, [&](int sfI)
 #else
+#pragma omp parallel for
     for (int sfI = 0; sfI < Base::F.rows(); ++sfI)
 #endif
         {
@@ -1174,6 +1181,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_exact(const Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)Base::V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
     for (int vI = 0; vI < Base::V.rows(); ++vI)
 #endif
         {
@@ -1214,6 +1222,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_exact(const Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)edges.size(), 1, [&](int eJ)
 #else
+#pragma omp parallel for
     for (int eJ = 0; eJ < edges.size(); ++eJ)
 #endif
         {
@@ -1268,6 +1277,7 @@ void MeshCO<dim>::computeConstraintSet(const Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)Base::F.rows(), 1, [&](int sfI)
 #else
+#pragma omp parallel for
     for (int sfI = 0; sfI < Base::F.rows(); ++sfI)
 #endif
         {
@@ -1365,6 +1375,7 @@ void MeshCO<dim>::computeConstraintSet(const Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)Base::V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
     for (int vI = 0; vI < Base::V.rows(); ++vI)
 #endif
         {
@@ -1462,6 +1473,7 @@ void MeshCO<dim>::computeConstraintSet(const Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)edges.size(), 1, [&](int eJ)
 #else
+#pragma omp parallel for
     for (int eJ = 0; eJ < edges.size(); ++eJ)
 #endif
         {
@@ -1782,6 +1794,7 @@ void MeshCO<dim>::augmentParaEEHessian(const Mesh<dim>& mesh,
 #ifdef USE_TBB
         tbb::parallel_for(0, (int)paraEEMMCVIDSet.size(), 1, [&](int cI)
 #else
+#pragma omp parallel for
         for (int cI = 0; cI < paraEEMMCVIDSet.size(); ++cI)
 #endif
             {
@@ -1986,6 +1999,7 @@ bool MeshCO<dim>::checkEdgeTriIntersection(const Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)Base::F.rows(), 1, [&](int cofI)
 #else
+#pragma omp parallel for
     for (int cofI = 0; cofI < Base::F.rows(); ++cofI)
 #endif
         {
@@ -2013,6 +2027,7 @@ bool MeshCO<dim>::checkEdgeTriIntersection(const Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)edges.size(), 1, [&](int eI)
 #else
+#pragma omp parallel for
     for (int eI = 0; eI < edges.size(); ++eI)
 #endif
         {
@@ -2075,6 +2090,7 @@ bool MeshCO<dim>::checkEdgeTriIntersectionIfAny(const Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)Base::F.rows(), 1, [&](int cofI)
 #else
+#pragma omp parallel for
     for (int cofI = 0; cofI < Base::F.rows(); ++cofI)
 #endif
         {
@@ -2107,6 +2123,7 @@ bool MeshCO<dim>::checkEdgeTriIntersectionIfAny(const Mesh<dim>& mesh,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)edges.size(), 1, [&](int eI)
 #else
+#pragma omp parallel for
     for (int eI = 0; eI < edges.size(); ++eI)
 #endif
         {
@@ -2664,6 +2681,7 @@ void MeshCO<dim>::move(const Eigen::Matrix<double, dim, 1>& deltaX,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)Base::F.rows(), 1, [&](int sfI)
 #else
+#pragma omp parallel for
     for (int sfI = 0; sfI < Base::F.rows(); ++sfI)
 #endif
         {
@@ -2727,6 +2745,7 @@ void MeshCO<dim>::move(const Eigen::Matrix<double, dim, 1>& deltaX,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)Base::V.rows(), 1, [&](int vI)
 #else
+#pragma omp parallel for
     for (int vI = 0; vI < Base::V.rows(); ++vI)
 #endif
         {
@@ -2786,6 +2805,7 @@ void MeshCO<dim>::move(const Eigen::Matrix<double, dim, 1>& deltaX,
 #ifdef USE_TBB
     tbb::parallel_for(0, (int)edges.size(), 1, [&](int eJ)
 #else
+#pragma omp parallel for
     for (int eJ = 0; eJ < edges.size(); ++eJ)
 #endif
         {
