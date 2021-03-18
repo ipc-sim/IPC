@@ -6,10 +6,15 @@
 #include "CTCD.h"
 
 #include <spdlog/spdlog.h>
-#include <optional>
 #include <algorithm>
 
 namespace IPC {
+
+// c++17 implementation of clamp
+template <typename T>
+const T& Clamp(const T& v, const T& lo, const T& hi) {
+    return v < lo ? lo : (hi < v ? hi : v);
+}
 
 void compute_collision_constraint(
     const Eigen::Vector3d& v0_t0, // First vertex at the start of time-step
@@ -248,8 +253,8 @@ void compute_graphics_edge_edge_constraint(
     }
     assert((A * params - (v2 - v0)).squaredNorm() < 1e-12);
     // Project the points back onto the edges.
-    Eigen::Vector3d closest_point0 = dir0 * std::clamp(params(0), 0.0, 1.0) + v0;
-    Eigen::Vector3d closest_point1 = dir1 * std::clamp(params(1), 0.0, 1.0) + v2;
+    Eigen::Vector3d closest_point0 = dir0 * Clamp(params(0), 0.0, 1.0) + v0;
+    Eigen::Vector3d closest_point1 = dir1 * Clamp(params(1), 0.0, 1.0) + v2;
     // 2. Compute the distance from the points doted with the normal.
     Eigen::Vector3d normal = (v3 - v2).cross(v1 - v0).normalized();
     c = normal.dot(closest_point1 - closest_point0);
@@ -303,8 +308,8 @@ void compute_graphics_edge_edge_constraint_gradient(
     }
     assert((A * params - (v2 - v0)).squaredNorm() < 1e-12);
     // 3. ∇C = [-(1 - α₀)N, -α₀N, (1 - α₁)N, α₁N]
-    params(0) = std::clamp(params(0), 0.0, 1.0);
-    params(1) = std::clamp(params(1), 0.0, 1.0);
+    params(0) = Clamp(params(0), 0.0, 1.0);
+    params(1) = Clamp(params(1), 0.0, 1.0);
     Eigen::Vector3d normal = (v3 - v2).cross(v1 - v0).normalized();
     grad_c.segment<3>(0) = -(1 - params(0)) * normal;
     grad_c.segment<3>(3) = -params(0) * normal;
@@ -393,8 +398,8 @@ void compute_Verschoor_edge_edge_constraint(
     }
     assert((A * params - (v2_toi - v0_toi)).squaredNorm() < 1e-12);
     // 3. Project the points back onto the edges.
-    Eigen::Vector3d vc0_t1 = (v1_t1 - v0_t1) * std::clamp(params(0), 0.0, 1.0) + v0_t1;
-    Eigen::Vector3d vc1_t1 = (v3_t1 - v2_t1) * std::clamp(params(1), 0.0, 1.0) + v2_t1;
+    Eigen::Vector3d vc0_t1 = (v1_t1 - v0_t1) * Clamp(params(0), 0.0, 1.0) + v0_t1;
+    Eigen::Vector3d vc1_t1 = (v3_t1 - v2_t1) * Clamp(params(1), 0.0, 1.0) + v2_t1;
     // 4. Compute the contact normal
     // Is the normal at time of impact?
     // Eigen::Vector3d normal = (v3_toi - v2_toi).cross(v1_toi - v0_toi).normalized();
@@ -486,8 +491,8 @@ void compute_Verschoor_edge_edge_constraint_gradient(
     // or is the normal at start of iteration?
     Eigen::Vector3d normal = (v3_t1 - v2_t1).cross(v1_t1 - v0_t1).normalized();
     // 4. ∇C = [-(1 - α₀)N, -α₀N, (1 - α₁)N, α₁N]
-    params(0) = std::clamp(params(0), 0.0, 1.0);
-    params(1) = std::clamp(params(1), 0.0, 1.0);
+    params(0) = Clamp(params(0), 0.0, 1.0);
+    params(1) = Clamp(params(1), 0.0, 1.0);
     grad_c.segment<3>(0) = -(1 - params(0)) * normal;
     grad_c.segment<3>(3) = -params(0) * normal;
     grad_c.segment<3>(6) = (1 - params(1)) * normal;

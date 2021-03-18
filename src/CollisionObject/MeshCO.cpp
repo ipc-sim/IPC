@@ -2291,7 +2291,11 @@ bool MeshCO<dim>::updateActiveSet_QP(
     std::unordered_set<MMCVID, MMCVIDHash> prevActiveSet;
     for (const auto& mmcvid : activeSet) {
         prevActiveSet.insert(mmcvid);
-        mmcvid_to_toi.insert_or_assign(mmcvid, std::numeric_limits<double>::infinity());
+//#if __cplusplus >= 201703L
+//        mmcvid_to_toi.insert_or_assign(mmcvid, std::numeric_limits<double>::infinity());
+//#else
+        mmcvid_to_toi[mmcvid] = std::numeric_limits<double>::infinity();
+//#endif
     }
     // Verschoor does not clear the previous active set every iteration.
     // At the start of the time-step, make sure to clear the active set.
@@ -2347,7 +2351,11 @@ bool MeshCO<dim>::updateActiveSet_QP(
 
             MMCVID mmcvid = MMCVID(-vI - 1, // mesh point
                 MCTriVInd[0], MCTriVInd[2], MCTriVInd[1]); // CO triangle
-            mmcvid_to_toi.insert_or_assign(mmcvid, intersects ? toi : std::numeric_limits<double>::infinity());
+//#if __cplusplus >= 201703L
+//            mmcvid_to_toi.insert_or_assign(mmcvid, intersects ? toi : std::numeric_limits<double>::infinity());
+//#else
+            mmcvid_to_toi[mmcvid] = intersects ? toi : std::numeric_limits<double>::infinity();
+//#endif
             bool isNewConstraint = prevActiveSet.find(mmcvid) == prevActiveSet.end();
             if (intersects && toi < min_tois[svI] && (wasActiveSetCleared || isNewConstraint)) {
                 newConstraintsAdded |= isNewConstraint;
@@ -2391,8 +2399,11 @@ bool MeshCO<dim>::updateActiveSet_QP(
             MMCVID mmcvid = MMCVID(
                 -sfVInd[0] - 1, -sfVInd[2] - 1, -sfVInd[1] - 1, // mesh triangle
                 vI); // CO Point
-            mmcvid_to_toi.insert_or_assign(mmcvid, intersects ? toi : std::numeric_limits<double>::infinity());
-
+//#if __cplusplus >= 201703L
+//            mmcvid_to_toi.insert_or_assign(mmcvid, intersects ? toi : std::numeric_limits<double>::infinity());
+//#else
+            mmcvid_to_toi[mmcvid] = intersects ? toi : std::numeric_limits<double>::infinity();
+//#endif
             bool isNewConstraint = prevActiveSet.find(mmcvid) == prevActiveSet.end();
             if (intersects && toi < min_tois[sfI] && (wasActiveSetCleared || isNewConstraint)) {
                 newConstraintsAdded |= isNewConstraint;
@@ -2475,7 +2486,8 @@ bool MeshCO<dim>::updateActiveSet_QP(
                 }
             }
 
-            mmcvid_to_toi.insert_or_assign(mmcvid, intersects ? toi : std::numeric_limits<double>::infinity());
+            //mmcvid_to_toi.insert_or_assign(mmcvid, intersects ? toi : std::numeric_limits<double>::infinity());
+            mmcvid_to_toi[mmcvid] = intersects ? toi : std::numeric_limits<double>::infinity();
             bool isNewConstraint = prevActiveSet.find(mmcvid) == prevActiveSet.end();
             if (intersects && toi < min_tois[seI] && (wasActiveSetCleared || isNewConstraint)) {
                 newConstraintsAdded |= isNewConstraint;
