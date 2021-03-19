@@ -32,8 +32,8 @@ option(LIBIGL_WITH_OPENGL_GLFW       "Use GLFW"                     OFF)
 option(LIBIGL_WITH_OPENGL_GLFW_IMGUI "Use ImGui"                    OFF)
 option(LIBIGL_WITH_PNG               "Use PNG"                      ON)
 option(LIBIGL_WITH_PYTHON            "Use Python"                   OFF)
-option(LIBIGL_WITH_TETGEN            "Use Tetgen"                   ON)
-option(LIBIGL_WITH_TRIANGLE          "Use Triangle"                 ON)
+option(LIBIGL_WITH_TETGEN            "Use Tetgen"                   OFF)
+option(LIBIGL_WITH_TRIANGLE          "Use Triangle"                 OFF)
 option(LIBIGL_WITH_VIEWER            "Use OpenGL viewer"            OFF)
 option(LIBIGL_QUIET_VIEWER           "Suppress viewer messages"     ON)
 option(LIBIGL_WITH_XML               "Use XML"                      OFF)
@@ -65,16 +65,16 @@ endif()
 # debug-options
 
 ################################################################################
+message(STATUS "Finish flag setting up")
 
 ### Configuration
 ### Will not be used when IPC_WITH_PREBUILT_EXT ON
-if(NOT IPW_WITH_PREBUILT_EXIT)
-  set(IPC_EXTERNAL "${CMAKE_CURRENT_SOURCE_DIR}/external")
-  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+message(STATUS "Using external downloads")
+set(IPC_EXTERNAL "${CMAKE_CURRENT_SOURCE_DIR}/external")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-  # include(Warnings)
-  include(${PROJECT_NAME}Dependencies)
-endif()
+# include(Warnings)
+include(${PROJECT_NAME}Dependencies)
 
 ################################################################################
 # IPC Library

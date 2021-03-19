@@ -14,6 +14,8 @@ include(IPCDownloadExternal)
 # Required libraries
 ################################################################################
 
+message(STATUS "Downloading externals")
+
 # SuiteSparse
 set(SUITESPARSE_INCLUDE_DIR_HINTS $ENV{SUITESPARSE_INC})
 set(SUITESPARSE_LIBRARY_DIR_HINTS $ENV{SUITESPARSE_LIB})
@@ -33,7 +35,9 @@ if(IPC_WITH_OSQP_MKL AND NOT TARGET osqp::osqp)
 endif()
 
 # libigl
-if(NOT TARGET igl)
+if(IPC_WITH_PREBUILT_EXT)
+  message(STATUS "WE USE OUR OWN IGL")
+elseif(NOT TARGET igl)
   download_libigl()
   add_subdirectory(${IPC_EXTERNAL}/libigl EXCLUDE_FROM_ALL)
 endif()
@@ -51,7 +55,8 @@ if(IPC_WITH_TBB AND NOT TARGET TBB::tbb)
 endif()
 
 # exact-ccd
-if(IPC_WITH_EXACT_CCD AND NOT TARGET exact-ccd::exact-ccd)
+
+elseif(IPC_WITH_EXACT_CCD AND NOT TARGET exact-ccd::exact-ccd)
   download_exact_ccd()
   add_subdirectory(${IPC_EXTERNAL}/exact-ccd EXCLUDE_FROM_ALL)
   add_library(exact-ccd::exact-ccd ALIAS exact-ccd)
