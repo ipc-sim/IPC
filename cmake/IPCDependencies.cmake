@@ -16,37 +16,29 @@ include(IPCDownloadExternal)
 
 message(STATUS "Downloading externals")
 
-# SuiteSparse
-set(SUITESPARSE_INCLUDE_DIR_HINTS $ENV{SUITESPARSE_INC})
-set(SUITESPARSE_LIBRARY_DIR_HINTS $ENV{SUITESPARSE_LIB})
-find_package(SuiteSparse REQUIRED)
-
-# OSQP library
-if(IPC_WITH_OSQP_MKL AND NOT TARGET osqp::osqp)
-  download_osqp()
-  # Make sure the right types are used
-  set(DFLOAT OFF CACHE BOOL "Use float numbers instead of doubles"   FORCE)
-  set(DLONG  OFF CACHE BOOL "Use long integers (64bit) for indexing" FORCE)
-  add_subdirectory(${IPC_EXTERNAL}/osqp EXCLUDE_FROM_ALL)
-  if(UNIX AND NOT APPLE)
-    set_target_properties(osqpstatic PROPERTIES INTERFACE_LINK_LIBRARIES ${CMAKE_DL_LIBS})
-  endif()
-  add_library(osqp::osqp ALIAS osqpstatic)
-endif()
-
 # libigl
-if(IPC_WITH_PREBUILT_EXT )
+if(IPC_WITH_PREBUILT_EXT)
   message(STATUS "Building with prebuilt")
-  find_package(PREDICATES REQUIRED)
+  find_library(PREDICATES_LIBRARIES REQUIRED)
+  find_path(PREDICATES_INCLUDE_DIR REQUIRED)
+  find_path(IGL_INCLUDE_DIR REQUIRED)
+  target_include_directories(${PROJECT_NAME}_dev SYSTEM INTERFACE ${PREDICATES_INCLUDE_DIR})
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC ${PREDICATES_LIBRARIES})
+  target_include_directories(${PROJECT_NAME}_dev SYSTEM INTERFACE ${IGL_INCLUDE_DIR})
 elseif(NOT TARGET igl)
   download_libigl()
   add_subdirectory(${IPC_EXTERNAL}/libigl EXCLUDE_FROM_ALL)
+  # libigl
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::predicates igl::core igl::triangle igl::tetgen)
 else()
   message(STATUS "Seems like igl is ready")
 endif()
+target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_PREDICATES)
 
 # TBB
-if(IPC_WITH_TBB AND NOT TARGET TBB::tbb)
+if(IPC_WITH_PREBUILT_EXT)
+  message(STATUS "TBB is skipped, we won't use TBB when using prebuilt externals")
+elseif(IPC_WITH_TBB AND NOT TARGET TBB::tbb)
   download_tbb()
   set(TBB_BUILD_STATIC ON CACHE BOOL " " FORCE)
   set(TBB_BUILD_SHARED OFF CACHE BOOL " " FORCE)
@@ -66,37 +58,19 @@ elseif(IPC_WITH_EXACT_CCD AND NOT TARGET exact-ccd::exact-ccd)
 endif()
 
 # spdlog
-if(NOT TARGET spdlog::spdlog)
-    download_spdlog()
-    add_library(spdlog INTERFACE)
-    add_library(spdlog::spdlog ALIAS spdlog)
-    target_include_directories(spdlog SYSTEM INTERFACE ${IPC_EXTERNAL}/spdlog/include)
+if(NOT IPC_WITH_PREBUILT_EXT AND NOT TARGET spdlog::spdlog)
+  add_library(spdlog INTERFACE)
+  add_library(spdlog::spdlog ALIAS spdlog)
+  download_spdlog()
+  target_include_directories(spdlog SYSTEM INTERFACE ${IPC_EXTERNAL}/spdlog/include)
 endif()
-
-# AMGCL
-# NOTE: we don't use AMGCL so we won't build it for simplicity
-if(IPC_WITH_AMGCL AND NOT TARGET amgcl::amgcl)
-  download_amgcl()
-  set(Boost_USE_MULTITHREADED TRUE)
-  add_subdirectory(${IPC_EXTERNAL}/amgcl EXCLUDE_FROM_ALL)
-endif()
-
-# Catch2
-if(IPC_WITH_TESTS AND NOT TARGET Catch2::Catch2)
-    download_catch2()
-    add_subdirectory(${IPC_EXTERNAL}/Catch2 catch2)
-    list(APPEND CMAKE_MODULE_PATH ${IPC_EXTERNAL}/Catch2/contrib)
-endif()
-
-# finite-diff
-if(IPC_WITH_TESTS AND NOT TARGET FiniteDiff::FiniteDiff)
-  download_finite_diff()
-  add_subdirectory(${IPC_EXTERNAL}/finite-diff EXCLUDE_FROM_ALL)
-  add_library(FiniteDiff::FiniteDiff ALIAS FiniteDiff)
+if(IPC_WITH_PREBUILT_EXT)
+  find_path(SPDLOG REQUIRED)
+  target_include_directories(spdlog SYSTEM INTERFACE ${SPDLOG_INCLUDE_DIR})
 endif()
 
 # CLI11
-if(IPC_WITH_MAIN AND NOT TARGET CLI11::CLI11)
+if(NOT IPC_WITH_GFLAGS AND NOT TARGET CLI11::CLI11)
   download_cli11()
   add_subdirectory(${IPC_EXTERNAL}/cli11)
 endif()
@@ -112,4 +86,46 @@ endif()
 if(IPC_WITH_RATIONAL_CCD)
   download_rational_ccd()
   add_subdirectory(${IPC_EXTERNAL}/rational_ccd)
+endif()
+
+
+################################################################################
+# Required Libraries
+################################################################################
+
+if(IPC_WITH_OPENGL)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::opengl_glfw igl::opengl_glfw_imgui igl::png)
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_OPENGL)
+endif()
+
+if(IPC_WITH_RATIONAL_CCD)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC RationalCCD)
+endif()
+
+# tbb
+if(IPC_WITH_TBB)
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_TBB)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC TBB::tbb)
+endif()
+
+# exact-ccd
+if(IPC_WITH_EXACT_CCD)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC exact-ccd::exact-ccd)
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_EXACT_CCD)
+endif()
+
+# Logger
+if(IPC_WITH_PREBUILT_EXT)
+  find_package(spdlog REQUIRED)
+endif()
+target_link_libraries(${PROJECT_NAME}_dev PUBLIC spdlog::spdlog)
+
+# AMGCL
+if(IPC_WITH_AMGCL)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC amgcl::amgcl)
+endif()
+
+if(IPC_WITH_GUROBI)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC EigenGurobi::EigenGurobi)
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_GUROBI)
 endif()

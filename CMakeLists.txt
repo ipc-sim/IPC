@@ -65,26 +65,9 @@ endif()
 # debug-options
 
 ################################################################################
-message(STATUS "Finish flag setting up")
-
-### Configuration
-if(IPC_WITH_PREBUILT_EXT)
-  message(STATUS "Using prebuilt external libs")
-else()
-  message(STATUS "Using external downloads")
-  set(IPC_EXTERNAL "${CMAKE_CURRENT_SOURCE_DIR}/external")
-endif()
-
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-
-# include(Warnings)
-# The following file handles situations for both with and without prebuilt externals
-include(${PROJECT_NAME}Dependencies)
-
-################################################################################
 # IPC Library
 ################################################################################
-message("You compiler again: ${CMAKE_CXX_COMPILER}")
+message("Creating library")
 
 # project source files
 file(GLOB SRCFILES
@@ -132,6 +115,30 @@ else()
   target_link_libraries(${PROJECT_NAME}_dev PUBLIC c++fs)
 endif()
 
+# Link with eigen when using prebuilt. If not with prebuilt externals, library will
+# be linked to igl::core in IPCDependencies.cmake which links to Eigen
+if(IPC_WITH_PREBUILT_EXT)
+  message(STATUS "Linking eigen")
+  find_path(EIGEN_INCLUDE_DIR REQUIRED)
+  target_include_directories(${PROJECT_NAME}_dev PUBLIC ${EIGEN_INCLUDE_DIR})
+endif()
+
+################################################################################
+
+### Configuration
+if(IPC_WITH_PREBUILT_EXT)
+  message(STATUS "Using prebuilt external libs")
+else()
+  message(STATUS "Using external downloads")
+  set(IPC_EXTERNAL "${CMAKE_CURRENT_SOURCE_DIR}/external")
+endif()
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
+# include(Warnings)
+# The following file handles situations for both with and without prebuilt externals
+include(${PROJECT_NAME}Dependencies)
+
 ################################################################################
 # Simulations Executable
 ################################################################################
@@ -166,97 +173,19 @@ else()
 endif()
 # Turn of floating point contraction for CCD robustness
 target_compile_options(EVCTCD PUBLIC "-ffp-contract=off")
-
-################################################################################
-# Required Libraries
-################################################################################
-
-# EVCTCD
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC EVCTCD)
 
+################################################################################
+# Packages that can potentially be found by invoking ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Find${PACKAGENAME}.cmake
+# using find_package. This also means by invocation of find_package, a corresponding
+# FindPACKAGENAME.cmake is needed (at least in module mode)
+################################################################################
 # SuiteSparse
+set(SUITESPARSE_INCLUDE_DIR_HINTS $ENV{SUITESPARSE_INC})
+set(SUITESPARSE_LIBRARY_DIR_HINTS $ENV{SUITESPARSE_LIB})
+find_package(SuiteSparse REQUIRED)
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC ${SUITESPARSE_LIBRARIES})
 target_include_directories(${PROJECT_NAME}_dev PUBLIC ${SUITESPARSE_INCLUDE_DIRS})
-
-# OSQP
-if(IPC_WITH_OSQP_MKL)
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC osqp::osqp)
-endif()
-
-# libigl
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::core igl::triangle igl::tetgen)
-if(IPC_WITH_OPENGL)
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::opengl_glfw igl::opengl_glfw_imgui igl::png)
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_OPENGL)
-endif()
-
-if(LIBIGL_WITH_PREDICATES)
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::predicates)
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_PREDICATES)
-endif()
-
-if(IPC_WITH_RATIONAL_CCD)
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC RationalCCD)
-endif()
-
-# tbb
-if(IPC_WITH_TBB)
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_TBB)
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC TBB::tbb)
-endif()
-
-# exact-ccd
-if(IPC_WITH_EXACT_CCD)
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC exact-ccd::exact-ccd)
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_EXACT_CCD)
-endif()
-
-# Logger
-if(IPC_WITH_PREBUILT_EXT)
-  find_package(spdlog REQUIRED)
-endif()
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC spdlog::spdlog)
-
-# AMGCL
-if(IPC_WITH_AMGCL)
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC amgcl::amgcl)
-endif()
-# target_link_libraries(${PROJECT_NAME}_dev PUBLIC pardiso600-GNU720-X86-64 gfortran)
-# find_package(Pardiso)
-# if(PARDISO_FOUND)
-#     find_package(LAPACK)
-#     if(LAPACK_FOUND)
-#         target_link_libraries(${PROJECT_NAME}_dev PUBLIC ${LAPACK_LIBRARIES})
-#     else()
-#         message(FATAL_ERROR “unable to find lapack”)
-#     endif()
-
-#     # find_package(OpenMP)
-#     # if( OpenMP_CXX_FOUND )
-#     #   target_link_libraries(polyfem PUBLIC ${OpenMP_CXX_LIBRARIES})
-#     #   # target_compile_definitions(polyfem PUBLIC ${OpenMP_CXX_FLAGS})
-#     # else()
-#     #   message(FATAL_ERROR “unable to find omp”)
-#     # endif()
-
-#     target_link_libraries(${PROJECT_NAME}_dev PUBLIC ${PARDISO_LIBRARIES})
-# else()
-#     message(WARNING “Pardiso not found, solver will not be available.“)
-# endif()
-# target_link_libraries(${PROJECT_NAME}_dev PUBLIC gfortran)
-
-if(IPC_WITH_GUROBI)
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC EigenGurobi::EigenGurobi)
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_GUROBI)
-endif()
-
-# Extra warnings
-# target_link_libraries(${PROJECT_NAME}_dev PRIVATE warnings::all)
-
-
-################################################################################
-# Compiler options
-################################################################################
 
 # Set version of SVD to use
 message(STATUS "Using scalar implmentation of SVD")
@@ -282,9 +211,6 @@ target_compile_options(${PROJECT_NAME}_dev PUBLIC ${SIMD_FLAGS})
 find_package(Threads)
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC ${CMAKE_THREAD_LIBS_INIT})
 
-# Use C++17
-target_compile_features(${PROJECT_NAME}_dev PUBLIC cxx_std_17)
-
 # code only support 3D
 message(STATUS "Building for three dimensions")
 target_compile_definitions(${PROJECT_NAME}_dev PUBLIC DIM=3)
@@ -296,29 +222,7 @@ if(IPC_WITH_RATIONAL_CCD)
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC WITH_RATIONAL_CCD)
 endif()
 
-# Unit tests
-if(IPC_WITH_TESTS)
-  include(CTest)
-  enable_testing()
-  add_subdirectory(tests)
-endif()
-
-# MKL Pardiso OSQP linear system solver
-if(IPC_WITH_OSQP_MKL)
-  find_library(MKL_RT_LIBRARY mkl_rt
-               PATHS $ENV{MKLROOT}/lib
-                     $ENV{MKLROOT}/lib/intel64
-                     $ENV{INTEL}/mkl/lib/intel64
-                     /opt/intel/mkl/lib)
-  if(MKL_RT_LIBRARY)
-    message(STATUS "MKL found: enabling OSQP MKL Pardiso linear system solver")
-    target_compile_definitions(${PROJECT_NAME}_dev PUBLIC OSQP_USE_MKL_PARDISO)
-  else()
-    message(WARNING "MKL not found: disabling OSQP MKL Pardiso linear system solver")
-  endif()
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_OSQP)
-endif()
-
+#TODO: Choosing linear solver should not be at compile time but rather at
 # Set the selected linear system solver
 if(IPC_LINSYSSOLVER STREQUAL "CHOLMOD")
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC LINSYSSOLVER_USE_CHOLMOD)
@@ -326,11 +230,6 @@ elseif(IPC_LINSYSSOLVER STREQUAL "AMGCL")
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC LINSYSSOLVER_USE_AMGCL)
 elseif(NOT (IPC_LINSYSSOLVER STREQUAL "EIGEN"))
   message(WARNING "Invalid linear system solver: ${IPC_LINSYSSOLVER}. Falling back to EIGEN.")
-endif()
-
-# Quiet the viewer
-if(LIBIGL_QUIET_VIEWER)
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC IGL_VIEWER_VIEWER_QUIET)
 endif()
 
 if(IPC_EXIT_UPON_QP_FAIL)
