@@ -37,7 +37,7 @@ target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_PREDICATES)
 
 # exact-ccd
 if(IPC_WITH_EXACT_CCD)
-  target_compile_definitions(${PROJECT_NAME}_dev USE_EXACT_CCD)
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_EXACT_CCD)
   if(IPC_WITH_PREBUILT_EXT)
     find_path(EXACT_CCD_INCLUDE_DIR REQUIRED)
     find_library(EXACT_CCD_LIBRARIES REQUIRED)
