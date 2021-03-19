@@ -68,12 +68,17 @@ endif()
 message(STATUS "Finish flag setting up")
 
 ### Configuration
-### Will not be used when IPC_WITH_PREBUILT_EXT ON
-message(STATUS "Using external downloads")
-set(IPC_EXTERNAL "${CMAKE_CURRENT_SOURCE_DIR}/external")
+if(IPC_WITH_PREBUILT_EXT)
+  message(STATUS "Using prebuilt external libs")
+else()
+  message(STATUS "Using external downloads")
+  set(IPC_EXTERNAL "${CMAKE_CURRENT_SOURCE_DIR}/external")
+endif()
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # include(Warnings)
+# The following file handles situations for both with and without prebuilt externals
 include(${PROJECT_NAME}Dependencies)
 
 ################################################################################

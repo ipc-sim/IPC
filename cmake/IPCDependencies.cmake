@@ -36,10 +36,13 @@ endif()
 
 # libigl
 if(IPC_WITH_PREBUILT_EXT )
-  message(STATUS "WE USE OUR OWN IGL")
+  message(STATUS "Building with prebuilt")
+  find_package(predicates REQUIRED)
 elseif(NOT TARGET igl)
   download_libigl()
   add_subdirectory(${IPC_EXTERNAL}/libigl EXCLUDE_FROM_ALL)
+else()
+  message(STATUS "Seems like igl is ready")
 endif()
 
 # TBB
