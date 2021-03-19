@@ -101,5 +101,7 @@ if(IPC_WITH_GUROBI AND NOT TARGET EigenGurobi::EigenGurobi)
 endif()
 
 # Rational CCD
-download_rational_ccd()
-add_subdirectory(${IPC_EXTERNAL}/rational_ccd)
+if(IPC_WITH_RATIONAL_CCD)
+  download_rational_ccd()
+  add_subdirectory(${IPC_EXTERNAL}/rational_ccd)
+endif()

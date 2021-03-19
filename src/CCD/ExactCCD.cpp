@@ -5,7 +5,9 @@
 #ifdef USE_EXACT_CCD
 #include <bsc.h>
 #include <rootparitycollisiontest.h>
+#ifdef WITH_RATIONAL_CCD
 #include "ECCD.hpp"
+#endif
 #endif
 
 namespace IPC {
@@ -47,9 +49,11 @@ bool edgeEdgeCCD(
             Vec3d(q0end.data()), Vec3d(p0end.data()),
             // Edge 2 at t=1
             Vec3d(q1end.data()), Vec3d(p1end.data()));
+#ifdef WITH_RATIONAL_CCD
     case Method::RATIONAL_ROOT_PARITY:
         return eccd::edgeEdgeCCD(q0start, p0start, q1start, p1start,
             q0end, p0end, q1end, p1end);
+#endif
 #endif
     default:
         return false;
@@ -103,9 +107,11 @@ bool vertexFaceCCD(
             Vec3d(q0end.data()),
             // Triangle at t = 1
             Vec3d(q1end.data()), Vec3d(q2end.data()), Vec3d(q3end.data()));
+#ifdef WITH_RATIONAL_CCD
     case Method::RATIONAL_ROOT_PARITY:
         return eccd::vertexFaceCCD(q0start, q1start, q2start, q3start,
             q0end, q1end, q2end, q3end);
+#endif
 #endif
     default:
         return false;

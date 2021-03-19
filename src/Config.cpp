@@ -45,7 +45,10 @@ const std::vector<std::string> Config::constraintSolverTypeStrs = {
     "QP", "SQP", "interiorPoint"
 };
 const std::vector<std::string> Config::exactCCDTypeStrs = {
-    "none", "rootParity", "BSC", "rationalRootParity"
+    "none", "rootParity", "BSC"
+#ifdef WITH_RATIONAL_CCD
+    , "rationalRootParity"
+#endif
 };
 const std::vector<std::string> Config::constraintTypeStrs = {
     "volume", "graphics", "nonsmoothNewmark", "gapFunction", "CMR", "Verschoor", "STIV"

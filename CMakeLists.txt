@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.9)
-
+cmake_policy(SET CMP0025 NEW)
 # use clang for compilation
 set(CMAKE_C_COMPILER "/usr/bin/clang")
 set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
-set(CMAKE_CXX_FLAGS "-std=gnu++17 -fopenmp")
+set(CMAKE_CXX_FLAGS "-std=c++17 -fopenmp")
 set(CMAKE_CXX_STANDARD, 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -51,6 +51,8 @@ option(IPC_EXIT_UPON_QP_FAIL  "Exit if the QP/SQP intersects or blows-up" OFF)
 option(IPC_WITH_MAIN                 "Build binary with library"     ON)
 option(IPC_WITH_AMGCL                  "Build with AMGCL"              OFF)
 option(IPC_WITH_TBB                    "Build with TBB"                OFF)
+option(IPC_WITH_PREBUILT_EXT "For externals, use prebuilt version" OFF)
+option(IPC_WITH_RATIONAL_CCD "With rational CCD if turned on when not using prebuilt externals" OFF)
 
 if(NOT IPC_WITH_OPENGL)
   set(LIBIGL_WITH_VIEWER OFF CACHE BOOL "" FORCE)
@@ -65,11 +67,14 @@ endif()
 ################################################################################
 
 ### Configuration
-set(IPC_EXTERNAL "${CMAKE_CURRENT_SOURCE_DIR}/external")
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+### Will not be used when IPC_WITH_PREBUILT_EXT ON
+if(NOT IPW_WITH_PREBUILT_EXIT)
+  set(IPC_EXTERNAL "${CMAKE_CURRENT_SOURCE_DIR}/external")
+  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-# include(Warnings)
-include(${PROJECT_NAME}Dependencies)
+  # include(Warnings)
+  include(${PROJECT_NAME}Dependencies)
+endif()
 
 ################################################################################
 # IPC Library
@@ -131,17 +136,29 @@ if(IPC_WITH_MAIN)
   # Link against the library
   target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME}_dev)
   # CLI11
-  target_link_libraries(${PROJECT_NAME}_bin PUBLIC CLI11::CLI11)
+  if(IPC_WITH_GFLAGS)
+    find_package(gflags REQUIRED)
+    message(STATUS "Linking main with GFLAGS")
+    target_link_libraries(${PROJECT_NAME}_bin PUBLIC gflags::gflags)
+  else()
+    message(STATUS "Linking main with CLI11")
+    target_link_libraries(${PROJECT_NAME}_bin PUBLIC CLI11::CLI11)
+  endif()
 endif()
 
 ################################################################################
 # Etienne Vouga's CTCD Library
 ################################################################################
-
 add_library(EVCTCD "src/CCD/EVCTCD/CTCD.cpp")
 target_include_directories(EVCTCD PUBLIC "src/CCD/EVCTCD/")
-# Link against Eigen in libigl
-target_link_libraries(EVCTCD PUBLIC igl::core)
+if(NOT IPC_WITH_PREBUILT_EXT)
+    # Link against Eigen in libigl
+    target_link_libraries(EVCTCD PUBLIC igl::core)
+else()
+    # find and link libigl outside which has Eigen
+    find_package(Eigen3 REQUIRED)
+    target_link_libraries(EVCTCD PUBLIC Eigen3::Eigen)
+endif()
 # Turn of floating point contraction for CCD robustness
 target_compile_options(EVCTCD PUBLIC "-ffp-contract=off")
 
@@ -173,7 +190,9 @@ if(LIBIGL_WITH_PREDICATES)
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_PREDICATES)
 endif()
 
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC RationalCCD)
+if(IPC_WITH_RATIONAL_CCD)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC RationalCCD)
+endif()
 
 # tbb
 if(IPC_WITH_TBB)
@@ -188,6 +207,9 @@ if(IPC_WITH_EXACT_CCD)
 endif()
 
 # Logger
+if(IPC_WITH_PREBUILT_EXT)
+  find_package(spdlog REQUIRED)
+endif()
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC spdlog::spdlog)
 
 # AMGCL
@@ -264,6 +286,10 @@ target_compile_definitions(${PROJECT_NAME}_dev PUBLIC DIM=3)
 
 # Ensure that PRId64 is defined
 target_compile_definitions(${PROJECT_NAME}_dev PUBLIC -D__STDC_FORMAT_MACROS)
+
+if(IPC_WITH_RATIONAL_CCD)
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC WITH_RATIONAL_CCD)
+endif()
 
 # Unit tests
 if(IPC_WITH_TESTS)

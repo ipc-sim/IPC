@@ -20,7 +20,9 @@
 
 #ifdef USE_PREDICATES
 #include <igl/predicates/predicates.h>
+#ifdef WITH_RATIONAL_CCD
 #include <ECCD.hpp>
+#endif
 #endif
 
 #include <Eigen/Eigen>
