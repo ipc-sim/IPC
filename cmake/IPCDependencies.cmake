@@ -35,7 +35,7 @@ if(IPC_WITH_OSQP_MKL AND NOT TARGET osqp::osqp)
 endif()
 
 # libigl
-if(IPC_WITH_PREBUILT_EXT)
+if(IPC_WITH_PREBUILT_EXT )
   message(STATUS "WE USE OUR OWN IGL")
 elseif(NOT TARGET igl)
   download_libigl()
