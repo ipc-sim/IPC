@@ -93,6 +93,11 @@ FOREACH(item ${SRCFILES})
 ENDFOREACH(item)
 
 add_library(${PROJECT_NAME}_dev ${SRCFILES})
+if(IPC_WITH_MAIN)
+  add_executable(${PROJECT_NAME}_bin "src/main.cpp")
+  # Link against the library
+  target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME}_dev)
+endif(IPC_WITH_MAIN)
 
 target_include_directories(${PROJECT_NAME}_dev PUBLIC
   "src"
@@ -138,25 +143,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 # include(Warnings)
 # The following file handles situations for both with and without prebuilt externals
 include(${PROJECT_NAME}Dependencies)
-
-################################################################################
-# Simulations Executable
-################################################################################
-
-if(IPC_WITH_MAIN)
-  add_executable(${PROJECT_NAME}_bin "src/main.cpp")
-  # Link against the library
-  target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME}_dev)
-  # CLI11
-  if(IPC_WITH_GFLAGS)
-    find_package(gflags REQUIRED)
-    message(STATUS "Linking main with GFLAGS")
-    target_link_libraries(${PROJECT_NAME}_bin PUBLIC gflags::gflags)
-  else()
-    message(STATUS "Linking main with CLI11")
-    target_link_libraries(${PROJECT_NAME}_bin PUBLIC CLI11::CLI11)
-  endif()
-endif()
 
 ################################################################################
 # Etienne Vouga's CTCD Library
