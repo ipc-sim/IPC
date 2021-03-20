@@ -77,7 +77,7 @@ SVD based on implicit QR with Wilkinson Shift
 #ifndef JIXIE_IMPLICIT_QR_SVD_H
 #define JIXIE_IMPLICIT_QR_SVD_H
 
-#include "Tools.h"
+#include "ipc/Utils/SVD/Tools.h"
 
 namespace JIXIE {
 

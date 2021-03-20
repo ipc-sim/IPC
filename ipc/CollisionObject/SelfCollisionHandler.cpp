@@ -6,7 +6,7 @@
 //
 
 #include "ipc/CollisionObject/SelfCollisionHandler.hpp"
-#include "FrictionUtils.hpp"
+#include "ipc/CollisionObject/FrictionUtils.hpp"
 
 #include "ipc/CCD/EVCTCD/CTCD.h"
 

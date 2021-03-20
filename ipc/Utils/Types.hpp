@@ -46,7 +46,7 @@
 #define DIM 3
 #endif
 
-#include "Triplet.h"
+#include "ipc/Utils/Triplet.h"
 
 #ifdef USE_TBB
 #include <tbb/tbb.h>

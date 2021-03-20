@@ -8,7 +8,7 @@
 #ifndef AMGCLSolver_hpp
 #define AMGCLSolver_hpp
 
-#include "LinSysSolver.hpp"
+#include "ipc/LinSysSolver/LinSysSolver.hpp"
 
 #include <amgcl/make_solver.hpp>
 #include <amgcl/solver/cg.hpp>

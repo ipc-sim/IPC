@@ -11,7 +11,7 @@
 #include "ipc/Energy/Energy.hpp"
 #include "ipc/Mesh.hpp"
 #include "ipc/LinSysSolver/LinSysSolver.hpp"
-#include "MeshCollisionUtils.hpp"
+#include "ipc/CollisionObject/MeshCollisionUtils.hpp"
 #include "ipc/CollisionObject/CollisionConstraints.hpp"
 #include "ipc/Utils/SpatialHash.hpp"
 #include "ipc/CCD/ExactCCD.hpp"

@@ -5,7 +5,7 @@
 //  Created by Minchen Li on 6/30/18.
 //
 
-#include "EigenLibSolver.hpp"
+#include "ipc/LinSysSolver/EigenLibSolver.hpp"
 
 namespace IPC {
 

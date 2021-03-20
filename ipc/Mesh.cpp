@@ -5,7 +5,7 @@
 //  Created by Minchen Li on 8/30/17.
 //
 
-#include "Mesh.hpp"
+#include "ipc/Mesh.hpp"
 #include "ipc/Utils/IglUtils.hpp"
 #include "ipc/TimeStepper/Optimizer.hpp"
 #include "ipc/Utils/Timer.hpp"

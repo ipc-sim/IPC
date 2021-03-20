@@ -10,16 +10,16 @@
 
 #include "Utils/Types.hpp"
 #include <cmath>
-#include "Utils/BarrierFunctions.hpp"
-#include "CollisionObject/MeshCollisionUtils.hpp"
+#include "ipc/Utils/BarrierFunctions.hpp"
+#include "ipc/CollisionObject/MeshCollisionUtils.hpp"
 #include "ipc/Energy/Physics_Elasticity/NeoHookeanEnergy.hpp"
 #include "ipc/Energy/Physics_Elasticity/FixedCoRotEnergy.hpp"
 
-#include "MeshCollisionUtils.hpp"
-#include "FrictionUtils.hpp"
+#include "ipc/CollisionObject/MeshCollisionUtils.hpp"
+#include "ipc/CollisionObject/FrictionUtils.hpp"
 
 #include "ipc/Utils/IglUtils.hpp"
-#include "Mesh.hpp"
+#include "ipc/Mesh.hpp"
 #include "ipc/Utils/GIF.hpp"
 #include "ipc/Utils/OSQPWrapper.h"
 #include "ipc/CCD/EVCTCD/CTCD.h"
@@ -29,9 +29,9 @@
 #ifdef LINSYSSOLVER_USE_CHOLMOD
 #include "ipc/LinSysSolver/CHOLMODSolver.hpp"
 #elif defined(LINSYSSOLVER_USE_AMGCL)
-#include "AMGCLSolver.hpp"
+#include "ipc/LinSysSolver/AMGCLSolver.hpp"
 #else
-#include "EigenLibSolver.hpp"
+#include "ipc/LinSysSolver/EigenLibSolver.hpp"
 #endif
 
 // amgcl

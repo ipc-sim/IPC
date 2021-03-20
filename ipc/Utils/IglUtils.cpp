@@ -6,7 +6,7 @@
 //
 
 #include "ipc/Utils/IglUtils.hpp"
-#include "Triplet.h"
+#include "ipc/Utils/Triplet.h"
 
 #include "ipc/Utils/Timer.hpp"
 

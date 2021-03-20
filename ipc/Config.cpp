@@ -5,7 +5,7 @@
 //  Created by Minchen Li on 7/12/18.
 //
 
-#include "Config.hpp"
+#include "ipc/Config.hpp"
 #include "ipc/Utils/IglUtils.hpp"
 
 #include "ipc/CollisionObject/HalfSpace.hpp"

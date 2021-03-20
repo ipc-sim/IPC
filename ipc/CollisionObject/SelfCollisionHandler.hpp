@@ -8,7 +8,7 @@
 #ifndef SelfCollisionHandler_hpp
 #define SelfCollisionHandler_hpp
 
-#include "MeshCollisionUtils.hpp"
+#include "ipc/CollisionObject/MeshCollisionUtils.hpp"
 #include "ipc/CollisionObject/CollisionConstraints.hpp"
 #include "ipc/Utils/SpatialHash.hpp"
 #include "ipc/LinSysSolver/LinSysSolver.hpp"

@@ -5,7 +5,7 @@
 //  Created by Minchen Li on 11/06/19.
 //
 
-#include "AMGCLSolver.hpp"
+#include "ipc/LinSysSolver/AMGCLSolver.hpp"
 #include "ipc/Utils/getRSS.hpp"
 
 #include <amgcl/io/mm.hpp>

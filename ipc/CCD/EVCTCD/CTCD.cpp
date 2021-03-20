@@ -4,7 +4,7 @@
 
 #include "ipc/CCD/EVCTCD/CTCD.h"
 #include <vector>
-#include "rpoly.h"
+#include "ipc/CCD/EVCTCD/rpoly.h"
 #include <Eigen/Geometry>
 #include <iostream>
 

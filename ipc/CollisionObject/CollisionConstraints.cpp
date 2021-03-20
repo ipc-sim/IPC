@@ -1,7 +1,7 @@
 /// @brief Constraint functions for use with constraint based collisions.
 
 #include "ipc/CollisionObject/CollisionConstraints.hpp"
-#include "MeshCollisionUtils.hpp"
+#include "ipc/CollisionObject/MeshCollisionUtils.hpp"
 
 #include "ipc/CCD/EVCTCD/CTCD.h"
 

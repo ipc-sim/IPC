@@ -10,7 +10,7 @@
 
 #include "ipc/Utils/Types.hpp"
 
-#include "MeshCollisionUtils.hpp"
+#include "ipc/CollisionObject/MeshCollisionUtils.hpp"
 
 #include <Eigen/Eigen>
 

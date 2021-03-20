@@ -8,7 +8,7 @@
 #ifndef EigenLibSolver_hpp
 #define EigenLibSolver_hpp
 
-#include "LinSysSolver.hpp"
+#include "ipc/LinSysSolver/LinSysSolver.hpp"
 
 #include <Eigen/Eigen>
 

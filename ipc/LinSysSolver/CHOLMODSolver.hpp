@@ -8,7 +8,7 @@
 #ifndef CHOLMODSolver_hpp
 #define CHOLMODSolver_hpp
 
-#include "LinSysSolver.hpp"
+#include "ipc/LinSysSolver/LinSysSolver.hpp"
 
 #include "cholmod.h"
 

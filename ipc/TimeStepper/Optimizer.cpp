@@ -12,9 +12,9 @@
 #ifdef LINSYSSOLVER_USE_CHOLMOD
 #include "ipc/LinSysSolver/CHOLMODSolver.hpp"
 #elif defined(LINSYSSOLVER_USE_AMGCL)
-#include "AMGCLSolver.hpp"
+#include "ipc/LinSysSolver/AMGCLSolver.hpp"
 #else
-#include "EigenLibSolver.hpp"
+#include "ipc/LinSysSolver/EigenLibSolver.hpp"
 #endif
 
 #include "ipc/Utils/IglUtils.hpp"
