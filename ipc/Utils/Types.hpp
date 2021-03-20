@@ -39,6 +39,12 @@
 #define SFCLAMPING_ORDER 1 // 0: C0 clamping, 1: C1, 2: C2
 // #define CHECK_FRIC_TANGENT
 
+// We will use this section to define any macro that cannot be correctly parsed
+// when we use bazel's cmake_external rule to compile the code
+#ifndef DIM
+#define DIM 3
+#endif
+
 #include "Triplet.h"
 
 #ifdef USE_TBB
