@@ -155,6 +155,10 @@ if(NOT IPC_WITH_PREBUILT_EXT)
 else()
     # find and link libigl outside which has Eigen
     target_link_libraries(EVCTCD PUBLIC ${EIGEN_INCLUDE_DIR})
+    message(STATUS "Test eigen")
+    foreach(subdir ${SUBDIR})
+      message(STATUS "${subdir}")
+    endforeach()
 endif()
 # Turn of floating point contraction for CCD robustness
 target_compile_options(EVCTCD PUBLIC "-ffp-contract=off")
