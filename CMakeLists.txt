@@ -3,10 +3,9 @@ cmake_policy(SET CMP0025 NEW)
 # use clang for compilation
 set(CMAKE_C_COMPILER "/usr/bin/clang")
 set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
-set(CMAKE_CXX_FLAGS "-std=c++17 -fopenmp")
+set(CMAKE_CXX_FLAGS "-std=c++17 -fopenmp -D_GLIBCXX_USE_CXX11_ABI=0")
 set(CMAKE_CXX_STANDARD, 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 project(IPC)
 
 message("Your C++ compiler supports these C++ features:")
