@@ -224,3 +224,9 @@ endif()
 if(IPC_EXIT_UPON_QP_FAIL)
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC EXIT_UPON_QP_FAIL)
 endif()
+
+set(LIB_INSTALL_DIR "lib")
+set(INCLUDE_INSTALL_DIR "include")
+set(BINARY_INSTALL_DIR "bin")
+
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/" DESTINATION ${INCLUDE_INSTALL_DIR})
