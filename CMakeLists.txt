@@ -71,19 +71,19 @@ message("Creating library")
 
 # project source files
 file(GLOB SRCFILES
-  "src/ipc/*.cpp"
-  "src/ipc/Energy/*.cpp"
-  "src/ipc/Energy/Physics_Elasticity/*.cpp"
-  "src/ipc/Energy/Geometry_Isometry/*.cpp"
-  "src/ipc/Energy/Connectivity/*.cpp"
-  "src/ipc/Energy/Collision/*.cpp"
-  "src/ipc/CollisionObject/*.cpp"
-  "src/ipc/CCD/*.cpp"
-  "src/ipc/Utils/*.cpp"
-  "src/ipc/LinSysSolver/EigenLibSolver.cpp"
-  "src/ipc/LinSysSolver/CHOLMODSolver.cpp"
+  "ipc/*.cpp"
+  "ipc/Energy/*.cpp"
+  "ipc/Energy/Physics_Elasticity/*.cpp"
+  "ipc/Energy/Geometry_Isometry/*.cpp"
+  "ipc/Energy/Connectivity/*.cpp"
+  "ipc/Energy/Collision/*.cpp"
+  "ipc/CollisionObject/*.cpp"
+  "ipc/CCD/*.cpp"
+  "ipc/Utils/*.cpp"
+  "ipc/LinSysSolver/EigenLibSolver.cpp"
+  "ipc/LinSysSolver/CHOLMODSolver.cpp"
 #  "src/LinSysSolver/AMGCLSolver.cpp"
-  "src/ipc/TimeStepper/*.cpp"
+  "ipc/TimeStepper/*.cpp"
 )
 
 FOREACH(item ${SRCFILES})
@@ -94,12 +94,12 @@ ENDFOREACH(item)
 
 add_library(${PROJECT_NAME}_dev ${SRCFILES})
 if(IPC_WITH_MAIN)
-  add_executable(${PROJECT_NAME}_bin "src/ipc/main.cpp")
+  add_executable(${PROJECT_NAME}_bin "ipc/main.cpp")
   # Link against the library
   target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME}_dev)
 endif(IPC_WITH_MAIN)
 
-target_include_directories(${PROJECT_NAME}_dev PUBLIC src)
+target_include_directories(${PROJECT_NAME}_dev PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 #target_include_directories(${PROJECT_NAME}_dev PUBLIC
 #  "src/ipc"
 #  "src/ipc/Energy"
@@ -148,8 +148,8 @@ include(${PROJECT_NAME}Dependencies)
 ################################################################################
 # Etienne Vouga's CTCD Library
 ################################################################################
-add_library(EVCTCD "src/ipc/CCD/EVCTCD/CTCD.cpp")
-target_include_directories(EVCTCD PUBLIC "src/")
+add_library(EVCTCD "ipc/CCD/EVCTCD/CTCD.cpp")
+target_include_directories(EVCTCD PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 if(NOT IPC_WITH_PREBUILT_EXT)
     # Link against Eigen in libigl
     target_link_libraries(EVCTCD PUBLIC igl::core)
