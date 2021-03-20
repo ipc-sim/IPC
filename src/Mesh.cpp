@@ -10,7 +10,6 @@
 #include "Optimizer.hpp"
 #include "Timer.hpp"
 
-#include <igl/triangle/triangulate.h>
 #include <igl/cotmatrix.h>
 #include <igl/avg_edge_length.h>
 #include <igl/writeOBJ.h>
