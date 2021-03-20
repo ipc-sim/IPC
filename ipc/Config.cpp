@@ -11,6 +11,7 @@
 #include "ipc/CollisionObject/HalfSpace.hpp"
 #include "ipc/CollisionObject/MeshCO.hpp"
 
+#include <string>
 #include <fstream>
 #include <sstream>
 #include <ctime>
