@@ -114,11 +114,11 @@ target_include_directories(${PROJECT_NAME}_dev PUBLIC ${CMAKE_CURRENT_SOURCE_DIR
 #  "src/ipc/TimeStepper"
 #)
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC stdc++fs)
-else()
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC c++fs)
-endif()
+#if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+#  target_link_libraries(${PROJECT_NAME}_dev PUBLIC stdc++fs)
+#else()
+#  target_link_libraries(${PROJECT_NAME}_dev PUBLIC c++fs)
+#endif()
 
 # Link with eigen when using prebuilt. If not with prebuilt externals, library will
 # be linked to igl::core in IPCDependencies.cmake which links to Eigen
@@ -161,7 +161,7 @@ else()
     endforeach()
 endif()
 # Turn of floating point contraction for CCD robustness
-target_compile_options(EVCTCD PUBLIC "-ffp-contract=off")
+#target_compile_options(EVCTCD PUBLIC "-ffp-contract=off")
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC EVCTCD)
 
 ################################################################################
