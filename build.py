@@ -12,7 +12,7 @@ runCommand = (
 c3d_path = '$HOME/c3d/devtools/c3d'
 store_base = '$HOME/c3d/bazel-out/k8-opt/bin'
 cmds = ['cd $HOME/c3d\n',
-        '{} build third_party/gmp_test\n'.format(c3d_path),
+        #'{} build third_party/gmp_test\n'.format(c3d_path),
         'cd -\n',
         'rm -rf build\n',
         'mkdir build\n',
