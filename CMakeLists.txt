@@ -229,14 +229,14 @@ set(LIB_INSTALL_DIR "lib")
 set(INCLUDE_INSTALL_DIR "include")
 set(BINARY_INSTALL_DIR "bin")
 
-#install(DIRECTORY "src/"
-#        DESTINATION ${INCLUDE_INSTALL_DIR}
-#        FILES_MATCHING
-#        PATTERN "*.h"
-#        PATTERN "*.hpp")
-#install(TARGETS "EVCTCD" "${PROJECT_NAME}_dev"
-#        LIBRARY DESTINATION ${LIB_INSTALL_DIR})
-#if(IPC_WITH_MAIN)
-#  install(TARGETS "${PROJECT_NAME}_bin"
-#          RUNTIME DESTINATION ${BIN_INSTALL_DIR})
-#endif()
+install(DIRECTORY "src/"
+        DESTINATION ${INCLUDE_INSTALL_DIR}
+        FILES_MATCHING
+        PATTERN "*.h"
+        PATTERN "*.hpp")
+install(TARGETS "EVCTCD" "${PROJECT_NAME}_dev"
+        LIBRARY DESTINATION ${LIB_INSTALL_DIR})
+if(IPC_WITH_MAIN)
+  install(TARGETS "${PROJECT_NAME}_bin"
+          RUNTIME DESTINATION ${BIN_INSTALL_DIR})
+endif()
