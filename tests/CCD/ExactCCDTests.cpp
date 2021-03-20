@@ -2,7 +2,7 @@
 
 #ifdef USE_EXACT_CCD
 
-#include "ExactCCD.hpp"
+#include "ipc/CCD/ExactCCD.hpp"
 
 static const double EPSILON = std::numeric_limits<float>::epsilon();
 

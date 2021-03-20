@@ -1,7 +1,7 @@
 #include <catch2/catch.hpp>
 
-#include "CollisionConstraints.hpp"
-#include "CTCD.h"
+#include "ipc/CollisionObject/CollisionConstraints.hpp"
+#include "ipc/CCD/EVCTCD/CTCD.h"
 
 #include <Eigen/Dense>
 #include <finitediff.hpp>

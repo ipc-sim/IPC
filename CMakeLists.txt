@@ -71,19 +71,19 @@ message("Creating library")
 
 # project source files
 file(GLOB SRCFILES
-  "src/*.cpp"
-  "src/Energy/*.cpp"
-  "src/Energy/Physics_Elasticity/*.cpp"
-  "src/Energy/Geometry_Isometry/*.cpp"
-  "src/Energy/Connectivity/*.cpp"
-  "src/Energy/Collision/*.cpp"
-  "src/CollisionObject/*.cpp"
-  "src/CCD/*.cpp"
-  "src/Utils/*.cpp"
-  "src/LinSysSolver/EigenLibSolver.cpp"
-  "src/LinSysSolver/CHOLMODSolver.cpp"
+  "src/ipc/*.cpp"
+  "src/ipc/Energy/*.cpp"
+  "src/ipc/Energy/Physics_Elasticity/*.cpp"
+  "src/ipc/Energy/Geometry_Isometry/*.cpp"
+  "src/ipc/Energy/Connectivity/*.cpp"
+  "src/ipc/Energy/Collision/*.cpp"
+  "src/ipc/CollisionObject/*.cpp"
+  "src/ipc/CCD/*.cpp"
+  "src/ipc/Utils/*.cpp"
+  "src/ipc/LinSysSolver/EigenLibSolver.cpp"
+  "src/ipc/LinSysSolver/CHOLMODSolver.cpp"
 #  "src/LinSysSolver/AMGCLSolver.cpp"
-  "src/TimeStepper/*.cpp"
+  "src/ipc/TimeStepper/*.cpp"
 )
 
 FOREACH(item ${SRCFILES})
@@ -94,25 +94,26 @@ ENDFOREACH(item)
 
 add_library(${PROJECT_NAME}_dev ${SRCFILES})
 if(IPC_WITH_MAIN)
-  add_executable(${PROJECT_NAME}_bin "src/main.cpp")
+  add_executable(${PROJECT_NAME}_bin "src/ipc/main.cpp")
   # Link against the library
   target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME}_dev)
 endif(IPC_WITH_MAIN)
 
-target_include_directories(${PROJECT_NAME}_dev PUBLIC
-  "src"
-  "src/Energy"
-  "src/Energy/Physics_Elasticity"
-  "src/Energy/Geometry_Isometry"
-  "src/Energy/Connectivity"
-  "src/Energy/Collision"
-  "src/CollisionObject/"
-  "src/CCD/"
-  "src/Utils"
-  "src/Utils/SVD"
-  "src/LinSysSolver"
-  "src/TimeStepper"
-)
+target_include_directories(${PROJECT_NAME}_dev PUBLIC src)
+#target_include_directories(${PROJECT_NAME}_dev PUBLIC
+#  "src/ipc"
+#  "src/ipc/Energy"
+#  "src/ipc/Energy/Physics_Elasticity"
+#  "src/ipc/Energy/Geometry_Isometry"
+#  "src/ipc/Energy/Connectivity"
+#  "src/ipc/Energy/Collision"
+#  "src/ipc/CollisionObject/"
+#  "src/ipc/CCD/"
+#  "src/ipc/Utils"
+#  "src/ipc/Utils/SVD"
+#  "src/ipc/LinSysSolver"
+#  "src/ipc/TimeStepper"
+#)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   target_link_libraries(${PROJECT_NAME}_dev PUBLIC stdc++fs)
@@ -147,8 +148,8 @@ include(${PROJECT_NAME}Dependencies)
 ################################################################################
 # Etienne Vouga's CTCD Library
 ################################################################################
-add_library(EVCTCD "src/CCD/EVCTCD/CTCD.cpp")
-target_include_directories(EVCTCD PUBLIC "src/CCD/EVCTCD/")
+add_library(EVCTCD "src/ipc/CCD/EVCTCD/CTCD.cpp")
+target_include_directories(EVCTCD PUBLIC "src/")
 if(NOT IPC_WITH_PREBUILT_EXT)
     # Link against Eigen in libigl
     target_link_libraries(EVCTCD PUBLIC igl::core)
