@@ -9,6 +9,7 @@
 #define Types_hpp
 
 #include <cstdio>
+#include <string>
 
 //#define OSQP_USE_MKL_PARDISO
 
