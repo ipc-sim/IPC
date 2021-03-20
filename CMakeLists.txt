@@ -154,8 +154,7 @@ if(NOT IPC_WITH_PREBUILT_EXT)
     target_link_libraries(EVCTCD PUBLIC igl::core)
 else()
     # find and link libigl outside which has Eigen
-    find_package(Eigen3 REQUIRED)
-    target_link_libraries(EVCTCD PUBLIC Eigen3::Eigen)
+    target_link_libraries(EVCTCD PUBLIC ${EIGEN_INCLUDE_DIR})
 endif()
 # Turn of floating point contraction for CCD robustness
 target_compile_options(EVCTCD PUBLIC "-ffp-contract=off")
