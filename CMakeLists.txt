@@ -194,7 +194,7 @@ find_package(FMA)
 
 # Add SSE, AVX, and FMA flags to compiler flags
 string(REPLACE " " ";" SIMD_FLAGS "${SSE_FLAGS} ${AVX_FLAGS} ${FMA_FLAGS}")
-target_compile_options(${PROJECT_NAME}_dev PUBLIC ${SIMD_FLAGS})
+#target_compile_options(${PROJECT_NAME}_dev PUBLIC ${SIMD_FLAGS})
 
 # Add -pthread to compilation and linking
 find_package(Threads)
