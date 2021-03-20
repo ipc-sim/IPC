@@ -230,7 +230,7 @@ set(LIB_INSTALL_DIR "libs")
 set(INCLUDE_INSTALL_DIR "include")
 set(BINARY_INSTALL_DIR "bin")
 
-install(DIRECTORY "src"
+install(DIRECTORY "ipc"
         DESTINATION ${INCLUDE_INSTALL_DIR}
         FILES_MATCHING
         PATTERN "*.h"
