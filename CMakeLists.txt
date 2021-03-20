@@ -154,7 +154,7 @@ if(NOT IPC_WITH_PREBUILT_EXT)
     target_link_libraries(EVCTCD PUBLIC igl::core)
 else()
     # find and link libigl outside which has Eigen
-    target_link_libraries(EVCTCD PUBLIC ${EIGEN_INCLUDE_DIR})
+    target_include_directories(EVCTCD PUBLIC ${EIGEN_INCLUDE_DIR})
     message(STATUS "Test eigen")
     foreach(subdir ${SUBDIR})
       message(STATUS "${subdir}")
