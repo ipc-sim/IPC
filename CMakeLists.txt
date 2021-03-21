@@ -180,20 +180,20 @@ target_include_directories(${PROJECT_NAME}_dev PUBLIC ${SUITESPARSE_INCLUDE_DIRS
 message(STATUS "Using scalar implmentation of SVD")
 target_compile_definitions(${PROJECT_NAME}_dev PUBLIC -DUSE_SCALAR_IMPLEMENTATION)
 
-# Figure out SSE level support
-message(STATUS "Seaching for SSE...")
-find_package(SSE)
-
-# Figure out AVX level support
-message(STATUS "Searching for AVX...")
-find_package(AVX)
-
-# Figure out FMA level support
-message(STATUS "Searching for FMA...")
-find_package(FMA)
-
-# Add SSE, AVX, and FMA flags to compiler flags
-string(REPLACE " " ";" SIMD_FLAGS "${SSE_FLAGS} ${AVX_FLAGS} ${FMA_FLAGS}")
+## Figure out SSE level support
+#message(STATUS "Seaching for SSE...")
+#find_package(SSE)
+#
+## Figure out AVX level support
+#message(STATUS "Searching for AVX...")
+#find_package(AVX)
+#
+## Figure out FMA level support
+#message(STATUS "Searching for FMA...")
+#find_package(FMA)
+#
+## Add SSE, AVX, and FMA flags to compiler flags
+#string(REPLACE " " ";" SIMD_FLAGS "${SSE_FLAGS} ${AVX_FLAGS} ${FMA_FLAGS}")
 #target_compile_options(${PROJECT_NAME}_dev PUBLIC ${SIMD_FLAGS})
 
 # Add -pthread to compilation and linking
