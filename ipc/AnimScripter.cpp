@@ -2300,7 +2300,7 @@ void AnimScripter<dim>::augmentMDBCHessian(const Mesh<dim>& data, LinSysSolver<E
         double val = rho * data.massMatrix.coeff(vI, vI);
         linSysSolver->addCoeff(startInd, startInd, val);
         linSysSolver->addCoeff(startInd + 1, startInd + 1, val);
-        if constexpr (dim == 3) {
+        {  // Note: it was if constexpr (dim == 3) {
             linSysSolver->addCoeff(startInd + 2, startInd + 2, val);
         }
     }

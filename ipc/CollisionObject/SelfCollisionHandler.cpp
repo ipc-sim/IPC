@@ -77,7 +77,7 @@ void SelfCollisionHandler<dim>::leftMultiplyConstraintJacobianT(const Mesh<dim>&
     double coef)
 {
     //TODO: parallelize
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         int constraintI = 0;
         for (const auto& MMCVIDI : activeSet) {
             if (MMCVIDI[0] >= 0) {
@@ -131,9 +131,6 @@ void SelfCollisionHandler<dim>::leftMultiplyConstraintJacobianT(const Mesh<dim>&
             ++constraintI;
         }
     }
-    else {
-        //TODO: 2D collision
-    }
 }
 
 // Evaluate the constraint for the SQP method.
@@ -143,7 +140,7 @@ void SelfCollisionHandler<dim>::evaluateConstraintQP(
     const CollisionConstraintType constraintType, double toi,
     double& val, double coef)
 {
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         if (MMCVIDI[0] >= 0) {
             // edge-edge ++++
             compute_collision_constraint(
@@ -185,9 +182,6 @@ void SelfCollisionHandler<dim>::evaluateConstraintQP(
             spdlog::debug("toi={:g}", toi);
             throw "constraint value is non-finite";
         }
-    }
-    else {
-        //TODO: 2D collision
     }
 }
 
@@ -244,7 +238,7 @@ void SelfCollisionHandler<dim>::leftMultiplyConstraintJacobianTQP(
     double coef)
 {
     //TODO: parallelize
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         int constraintI = 0;
         for (const auto& MMCVIDI : activeSet) {
             Eigen::Matrix<double, dim * 4, 1> grad;
@@ -310,9 +304,6 @@ void SelfCollisionHandler<dim>::leftMultiplyConstraintJacobianTQP(
 
             ++constraintI;
         }
-    }
-    else {
-        //TODO: 2D collision
     }
 }
 
@@ -410,7 +401,7 @@ void SelfCollisionHandler<dim>::augmentIPHessian(const Mesh<dim>& mesh,
     LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* mtr_incremental,
     double dHat, double coef, bool projectDBC)
 {
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         std::vector<Eigen::Matrix<double, 4 * dim, 4 * dim>> IPHessian(activeSet.size());
         std::vector<Eigen::Matrix<int, 4, 1>> rowIStart(activeSet.size());
 #ifdef USE_TBB
@@ -532,7 +523,7 @@ void SelfCollisionHandler<dim>::augmentIPHessian(const Mesh<dim>& mesh,
                             mtr_incremental->addCoeff(rowIStartI, colIStartI + 1, IPHessian[cI](i * dim, j * dim + 1));
                             mtr_incremental->addCoeff(rowIStartI + 1, colIStartI, IPHessian[cI](i * dim + 1, j * dim));
                             mtr_incremental->addCoeff(rowIStartI + 1, colIStartI + 1, IPHessian[cI](i * dim + 1, j * dim + 1));
-                            if constexpr (dim == 3) {
+                            {  // Note: it was if constexpr (dim == 3) {
                                 mtr_incremental->addCoeff(rowIStartI, colIStartI + 2, IPHessian[cI](i * dim, j * dim + 2));
                                 mtr_incremental->addCoeff(rowIStartI + 1, colIStartI + 2, IPHessian[cI](i * dim + 1, j * dim + 2));
 
@@ -545,9 +536,6 @@ void SelfCollisionHandler<dim>::augmentIPHessian(const Mesh<dim>& mesh,
                 }
             }
         }
-    }
-    else {
-        //TODO: 2D collision
     }
 }
 
@@ -1344,7 +1332,7 @@ void SelfCollisionHandler<dim>::updateConstraints_QP(
     const std::unordered_map<MMCVID, double, MMCVIDHash>& mmcvid_to_toi,
     std::vector<Eigen::Triplet<double>>& A_triplet, Eigen::VectorXd& l)
 {
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         A_triplet.reserve(A_triplet.size() + activeSet.size() * 4 * dim);
         int constraintI = l.size();
         for (const auto& MMCVIDI : activeSet) {
@@ -1424,9 +1412,6 @@ void SelfCollisionHandler<dim>::updateConstraints_QP(
         // inequality:  ∇g(x₀) * x + g(x₀) ≥ ϵ ≡ ∇g(x₀) * x ≥ -g(x₀) + ϵ
         SelfCollisionHandler<dim>::evaluateConstraintsQP(
             mesh, activeSet, constraintType, mmcvid_to_toi, l, /*coef=*/-1.0);
-    }
-    else {
-        // TODO: 2D collision
     }
 }
 
@@ -2427,7 +2412,7 @@ void SelfCollisionHandler<dim>::augmentFrictionHessian(const Mesh<dim>& mesh,
                         mtr_incremental->addCoeff(rowIStartI, colIStartI + 1, IPHessian[cI](i * dim, j * dim + 1));
                         mtr_incremental->addCoeff(rowIStartI + 1, colIStartI, IPHessian[cI](i * dim + 1, j * dim));
                         mtr_incremental->addCoeff(rowIStartI + 1, colIStartI + 1, IPHessian[cI](i * dim + 1, j * dim + 1));
-                        if constexpr (dim == 3) {
+                        {  // Note: it was if constexpr (dim == 3) {
                             mtr_incremental->addCoeff(rowIStartI, colIStartI + 2, IPHessian[cI](i * dim, j * dim + 2));
                             mtr_incremental->addCoeff(rowIStartI + 1, colIStartI + 2, IPHessian[cI](i * dim + 1, j * dim + 2));
 
@@ -2498,7 +2483,7 @@ void SelfCollisionHandler<dim>::augmentParaEEHessian(const Mesh<dim>& mesh,
     LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* H_inc,
     double dHat, double coef, bool projectDBC)
 {
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         std::vector<Eigen::Matrix<double, 4 * dim, 4 * dim>> PEEHessian(paraEEMMCVIDSet.size());
         std::vector<Eigen::Matrix<int, 4, 1>> rowIStart(paraEEMMCVIDSet.size());
 #ifdef USE_TBB
@@ -2641,7 +2626,7 @@ void SelfCollisionHandler<dim>::augmentParaEEHessian(const Mesh<dim>& mesh,
                             H_inc->addCoeff(rowIStartI, colIStartI + 1, PEEHessian[cI](i * dim, j * dim + 1));
                             H_inc->addCoeff(rowIStartI + 1, colIStartI, PEEHessian[cI](i * dim + 1, j * dim));
                             H_inc->addCoeff(rowIStartI + 1, colIStartI + 1, PEEHessian[cI](i * dim + 1, j * dim + 1));
-                            if constexpr (dim == 3) {
+                            {  // Note: it was if constexpr (dim == 3) {
                                 H_inc->addCoeff(rowIStartI, colIStartI + 2, PEEHessian[cI](i * dim, j * dim + 2));
                                 H_inc->addCoeff(rowIStartI + 1, colIStartI + 2, PEEHessian[cI](i * dim + 1, j * dim + 2));
 

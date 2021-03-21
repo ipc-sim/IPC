@@ -438,11 +438,11 @@ int Config::loadFromFile(const std::string& p_filePath)
             else if (token == "halfSpace") {
                 Eigen::Matrix<double, DIM, 1> origin, normal;
                 ss >> origin[0] >> origin[1];
-                if constexpr (DIM == 3) {
+                {  // Note: it was if constexpr (DIM == 3) {
                     ss >> origin[2];
                 }
                 ss >> normal[0] >> normal[1];
-                if constexpr (DIM == 3) {
+                {  // Note: it was if constexpr (DIM == 3) {
                     ss >> normal[2];
                 }
                 normal.normalize();
@@ -458,7 +458,7 @@ int Config::loadFromFile(const std::string& p_filePath)
 
                 Eigen::Matrix<double, DIM, 1> origin;
                 ss >> origin[0] >> origin[1];
-                if constexpr (DIM == 3) {
+                {  // Note: it was if constexpr (DIM == 3) {
                     ss >> origin[2];
                 }
 

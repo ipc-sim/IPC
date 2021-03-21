@@ -608,7 +608,7 @@ public: // API
             int vI = mesh.SVI[svI];
             pSize += std::abs(searchDir[vI * dim]);
             pSize += std::abs(searchDir[vI * dim + 1]);
-            if constexpr (dim == 3) {
+            {  // Note: it was if constexpr (dim == 3) {
                 pSize += std::abs(searchDir[vI * dim + 2]);
             }
         }

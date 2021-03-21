@@ -88,7 +88,7 @@ void FixedCoRotEnergy<dim>::compute_dE_div_dsigma(const Eigen::Matrix<double, di
     double _2u = u * 2;
     dE_div_dsigma[0] = (_2u * (singularValues[0] - 1.0) + sigmaProd_noI[0] * sigmaProdm1lambda);
     dE_div_dsigma[1] = (_2u * (singularValues[1] - 1.0) + sigmaProd_noI[1] * sigmaProdm1lambda);
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         dE_div_dsigma[2] = (_2u * (singularValues[2] - 1.0) + sigmaProd_noI[2] * sigmaProdm1lambda);
     }
 }
@@ -112,7 +112,7 @@ void FixedCoRotEnergy<dim>::compute_d2E_div_dsigma2(const Eigen::Matrix<double, 
     double _2u = u * 2;
     d2E_div_dsigma2(0, 0) = _2u + lambda * sigmaProd_noI[0] * sigmaProd_noI[0];
     d2E_div_dsigma2(1, 1) = _2u + lambda * sigmaProd_noI[1] * sigmaProd_noI[1];
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         d2E_div_dsigma2(2, 2) = _2u + lambda * sigmaProd_noI[2] * sigmaProd_noI[2];
     }
 

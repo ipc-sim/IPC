@@ -83,7 +83,7 @@ void NeoHookeanEnergy<dim>::compute_dE_div_dsigma(const Eigen::Matrix<double, di
     dE_div_dsigma[0] = u * (singularValues[0] - inv0) + lambda * inv0 * log_sigmaProd;
     const double inv1 = 1.0 / singularValues[1];
     dE_div_dsigma[1] = u * (singularValues[1] - inv1) + lambda * inv1 * log_sigmaProd;
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         const double inv2 = 1.0 / singularValues[2];
         dE_div_dsigma[2] = u * (singularValues[2] - inv2) + lambda * inv2 * log_sigmaProd;
     }
@@ -105,7 +105,7 @@ void NeoHookeanEnergy<dim>::compute_d2E_div_dsigma2(const Eigen::Matrix<double, 
     const double inv2_1 = 1.0 / singularValues[1] / singularValues[1];
     d2E_div_dsigma2(1, 1) = u * (1.0 + inv2_1) - lambda * inv2_1 * (log_sigmaProd - 1.0);
     d2E_div_dsigma2(0, 1) = d2E_div_dsigma2(1, 0) = lambda / singularValues[0] / singularValues[1];
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         const double inv2_2 = 1.0 / singularValues[2] / singularValues[2];
         d2E_div_dsigma2(2, 2) = u * (1.0 + inv2_2) - lambda * inv2_2 * (log_sigmaProd - 1.0);
         d2E_div_dsigma2(1, 2) = d2E_div_dsigma2(2, 1) = lambda / singularValues[1] / singularValues[2];

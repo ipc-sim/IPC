@@ -211,7 +211,7 @@ public:
                         V.resize(posRows, dim_in);
                         for (int vI = 0; vI < posRows; ++vI) {
                             in >> V(vI, 0) >> V(vI, 1);
-                            if constexpr (DIM == 3) {
+                            {  // Note: it was if constexpr (DIM == 3) {
                                 in >> V(vI, 2);
                             }
                         }

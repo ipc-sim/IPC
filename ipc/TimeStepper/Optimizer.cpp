@@ -197,7 +197,7 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
                 assert(dim_in == result.V.cols());
                 for (int vI = 0; vI < posRows; ++vI) {
                     in >> result.V(vI, 0) >> result.V(vI, 1);
-                    if constexpr (dim == 3) {
+                    {  // Note: it was if constexpr (dim == 3) {
                         in >> result.V(vI, 2);
                     }
                 }
@@ -221,7 +221,7 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
                 dx_Elastic.setZero(result.V.rows(), dim);
                 for (int vI = 0; vI < dxERows; ++vI) {
                     in >> dx_Elastic(vI, 0) >> dx_Elastic(vI, 1);
-                    if constexpr (dim == 3) {
+                    {  // Note: it was if constexpr (dim == 3) {
                         in >> dx_Elastic(vI, 2);
                     }
                 }
@@ -1999,7 +1999,7 @@ bool Optimizer<dim>::solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
             saveStatus("tinyStepSize");
             useGD = true;
             // // mu_IP *= 1.1;
-            // if constexpr (dim == 3) {
+            // {  // Note: it was if constexpr (dim == 3) {
             //     spdlog::info("check EE pairs:");
             //     for (const auto cI : MMActiveSet.back()) {
             //         if (cI[0] >= 0) { // EE
@@ -2843,11 +2843,8 @@ void Optimizer<dim>::saveStatus(const std::string& appendStr)
     for (int vI = 0; vI < result.V.rows(); ++vI) {
         fprintf(out, "%le %le", result.V(vI, 0),
             result.V(vI, 1));
-        if constexpr (dim == 3) {
+        {  // Note: it was if constexpr (dim == 3) {
             fprintf(out, " %le\n", result.V(vI, 2));
-        }
-        else {
-            fprintf(out, "\n");
         }
     }
 
@@ -2860,11 +2857,8 @@ void Optimizer<dim>::saveStatus(const std::string& appendStr)
     for (int velI = 0; velI < dx_Elastic.rows(); ++velI) {
         fprintf(out, "%le %le", dx_Elastic(velI, 0),
             dx_Elastic(velI, 1));
-        if constexpr (dim == 3) {
+        {  // Note: it was if constexpr (dim == 3) {
             fprintf(out, " %le\n", dx_Elastic(velI, 2));
-        }
-        else {
-            fprintf(out, "\n");
         }
     }
 
@@ -3392,7 +3386,7 @@ void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
                 int ind1 = ind0 + 1;
                 p_linSysSolver->addCoeff(ind0, ind0, massI);
                 p_linSysSolver->addCoeff(ind1, ind1, massI);
-                if constexpr (dim == 3) {
+                {  // Note: it was if constexpr (dim == 3) {
                     int ind2 = ind0 + 2;
                     p_linSysSolver->addCoeff(ind2, ind2, massI);
                 }
@@ -3403,7 +3397,7 @@ void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
                 int ind1 = ind0 + 1;
                 p_linSysSolver->setCoeff(ind0, ind0, 1.0);
                 p_linSysSolver->setCoeff(ind1, ind1, 1.0);
-                if constexpr (dim == 3) {
+                {  // Note: it was if constexpr (dim == 3) {
                     int ind2 = ind0 + 2;
                     p_linSysSolver->setCoeff(ind2, ind2, 1.0);
                 }
@@ -3513,12 +3507,12 @@ void Optimizer<dim>::computeSystemEnergy(std::vector<double>& sysE,
             Eigen::Matrix<double, 1, dim> p = result.massMatrix.coeff(vI, vI) / dt * (result.V.row(vI) - result.V_prev.row(vI));
             sysM[compI] += p;
 
-            if constexpr (dim == 3) {
+            {  // Note: it was if constexpr (dim == 3) {
                 sysL[compI] += Eigen::Matrix<double, 1, dim>(result.V.row(vI)).cross(p);
             }
-            else {
-                sysL[compI][0] += result.V(vI, 0) * p[1] - result.V(vI, 1) * p[0];
-            }
+            //else {
+            //    sysL[compI][0] += result.V(vI, 0) * p[1] - result.V(vI, 1) * p[0];
+            //}
         }
     }
 }
@@ -3588,7 +3582,7 @@ void Optimizer<dim>::checkHessian(void)
         if (result.fixedVert.find(vI) != result.fixedVert.end()) {
             hessian_finiteDiff.insert(vI * dim, vI * dim) = 1.0;
             hessian_finiteDiff.insert(vI * dim + 1, vI * dim + 1) = 1.0;
-            if constexpr (dim == 3) {
+            {  // Note: it was if constexpr (dim == 3) {
                 hessian_finiteDiff.insert(vI * dim + 2, vI * dim + 2) = 1.0;
             }
             continue;

@@ -84,50 +84,41 @@ inline void H_bC2(double d1, double dHat1, double& H)
 
 inline void compute_b(double d, double dHat, double& b)
 {
-    if constexpr (BARRIER_FUNC_TYPE == 0) {
+#if BARRIER_FUNC_TYPE == 0
         b_C0(d, dHat, b);
-    }
-    else if (BARRIER_FUNC_TYPE == 1) {
+#elif BARRIER_FUNC_TYPE == 1
         b_C1(d, dHat, b);
-    }
-    else if (BARRIER_FUNC_TYPE == 2) {
+#elif BARRIER_FUNC_TYPE == 2
         b_C2(d, dHat, b);
-    }
-    else {
+#else
         std::cout << "needs to define BARRIER_FUNC_TYPE to be 0 (C0 clamped log) or 2 (C2 clamped log)" << std::endl;
-    }
+#endif
 }
 
 inline void compute_g_b(double d, double dHat, double& g)
 {
-    if constexpr (BARRIER_FUNC_TYPE == 0) {
+#if BARRIER_FUNC_TYPE == 0
         g_bC0(d, g);
-    }
-    else if (BARRIER_FUNC_TYPE == 1) {
+#elif BARRIER_FUNC_TYPE == 1
         g_bC1(d, dHat, g);
-    }
-    else if (BARRIER_FUNC_TYPE == 2) {
+#elif BARRIER_FUNC_TYPE == 2
         g_bC2(d, dHat, g);
-    }
-    else {
+#else
         std::cout << "needs to define BARRIER_FUNC_TYPE to be 0 (C0 clamped log) or 2 (C2 clamped log)" << std::endl;
-    }
+#endif
 }
 
 inline void compute_H_b(double d, double dHat, double& H)
 {
-    if constexpr (BARRIER_FUNC_TYPE == 0) {
+#if BARRIER_FUNC_TYPE == 0
         H_bC0(d, H);
-    }
-    else if (BARRIER_FUNC_TYPE == 1) {
+#elif BARRIER_FUNC_TYPE == 1
         H_bC1(d, dHat, H);
-    }
-    else if (BARRIER_FUNC_TYPE == 2) {
+#elif BARRIER_FUNC_TYPE == 2
         H_bC2(d, dHat, H);
-    }
-    else {
+#else
         std::cout << "needs to define BARRIER_FUNC_TYPE to be 0 (C0 clamped log) or 2 (C2 clamped log)" << std::endl;
-    }
+#endif
 }
 
 } // namespace IPC

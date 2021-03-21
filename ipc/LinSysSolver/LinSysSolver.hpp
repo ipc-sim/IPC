@@ -61,7 +61,7 @@ public:
                 ja_v[vI][1] = ja_v[vI][0] + 1;
                 IJ2aI[ja_v[vI][0]][ja_v[vI][0]] = 0;
                 IJ2aI[ja_v[vI][0]][ja_v[vI][1]] = 1;
-                if constexpr (DIM == 3) {
+                {  // Note: it was if constexpr (DIM == 3) {
                     ja_v[vI][2] = ja_v[vI][0] + 2;
                     IJ2aI[ja_v[vI][0]][ja_v[vI][2]] = 2;
                 }
@@ -73,7 +73,7 @@ public:
                         ja_v[vI][nnz + 1] = ja_v[vI][nnz] + 1;
                         IJ2aI[ja_v[vI][0]][ja_v[vI][nnz]] = nnz;
                         IJ2aI[ja_v[vI][0]][ja_v[vI][nnz + 1]] = nnz + 1;
-                        if constexpr (DIM == 3) {
+                        {  // Note: it was if constexpr (DIM == 3) {
                             ja_v[vI][nnz + 2] = ja_v[vI][nnz] + 2;
                             IJ2aI[ja_v[vI][0]][ja_v[vI][nnz + 2]] = nnz + 2;
                         }
@@ -131,7 +131,7 @@ public:
                 for (auto& indexI : IJ2aI[rowIStart + 1]) {
                     indexI.second += ia[rowIStart + 1] - 2;
                 }
-                if constexpr (DIM == 3) {
+                {  // Note: it was if constexpr (DIM == 3) {
                     for (auto& indexI : IJ2aI[rowIStart + 2]) {
                         indexI.second += ia[rowIStart + 2] - 3;
                     }
@@ -306,7 +306,7 @@ public:
 
             rowIMapper[startRowI] = startI;
             rowIMapper[startRowI + 1] = startI + 1;
-            if constexpr (DIM == 3) {
+            {  // Note: it was if constexpr (DIM == 3) {
                 rowIMapper[startRowI + 2] = startI + 2;
             }
         }

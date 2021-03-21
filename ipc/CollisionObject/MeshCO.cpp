@@ -44,7 +44,7 @@ MeshCO<dim>::MeshCO(const char* objFilePath,
     Base::V *= scale / curScale;
     Base::V.rowwise() += Base::origin.transpose();
 
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         std::set<std::pair<int, int>> edgesSet;
         for (int sfI = 0; sfI < Base::F.rows(); ++sfI) {
             auto finder = edgesSet.find(std::pair<int, int>(Base::F(sfI, 1), Base::F(sfI, 0)));
@@ -114,7 +114,7 @@ void MeshCO<dim>::leftMultiplyConstraintJacobianT(const Mesh<dim>& mesh,
 {
     //TODO: parallelize
 
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         int constraintI = 0;
         for (const auto& MMCVIDI : activeSet) {
             if (MMCVIDI[0] >= 0) {
@@ -181,9 +181,6 @@ void MeshCO<dim>::leftMultiplyConstraintJacobianT(const Mesh<dim>& mesh,
             ++constraintI;
         }
     }
-    else {
-        //TODO: 2D collision
-    }
 }
 
 template <int dim>
@@ -207,7 +204,7 @@ void MeshCO<dim>::evaluateConstraintQP(
         }
         throw "missing toi for constraint";
     }
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         if (MMCVIDI[0] >= 0) {
             // edge-edge ++++
             compute_collision_constraint(
@@ -277,10 +274,6 @@ void MeshCO<dim>::evaluateConstraintQP(
             }
         }
     }
-    else {
-        // TODO: 2D collisions
-        spdlog::error("IPC does not handle 2D collisions.");
-    }
 }
 
 template <int dim>
@@ -293,7 +286,7 @@ void MeshCO<dim>::leftMultiplyConstraintJacobianTQP(
     double coef) const
 {
     //TODO: parallelize
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         int constraintI = 0;
         for (const auto& MMCVIDI : activeSet) {
             double toi;
@@ -385,9 +378,6 @@ void MeshCO<dim>::leftMultiplyConstraintJacobianTQP(
             ++constraintI;
         }
     }
-    else {
-        //TODO: 2D collision
-    }
 } // namespace IPC
 
 template <int dim>
@@ -398,7 +388,7 @@ void MeshCO<dim>::augmentIPHessian(const Mesh<dim>& mesh,
 {
     //TODO: parallelize
 
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         std::vector<Eigen::Matrix<double, 4 * dim, 4 * dim>> IPHessian(activeSet.size());
         std::vector<Eigen::Matrix<int, 4, 1>> rowIStart(activeSet.size());
 #ifdef USE_TBB
@@ -554,7 +544,7 @@ void MeshCO<dim>::augmentIPHessian(const Mesh<dim>& mesh,
                             mtr_incremental->addCoeff(rowIStartI, colIStartI + 1, IPHessian[cI](i * dim, j * dim + 1));
                             mtr_incremental->addCoeff(rowIStartI + 1, colIStartI, IPHessian[cI](i * dim + 1, j * dim));
                             mtr_incremental->addCoeff(rowIStartI + 1, colIStartI + 1, IPHessian[cI](i * dim + 1, j * dim + 1));
-                            if constexpr (dim == 3) {
+                            {  // Note: it was if constexpr (dim == 3) {
                                 mtr_incremental->addCoeff(rowIStartI, colIStartI + 2, IPHessian[cI](i * dim, j * dim + 2));
                                 mtr_incremental->addCoeff(rowIStartI + 1, colIStartI + 2, IPHessian[cI](i * dim + 1, j * dim + 2));
 
@@ -567,9 +557,6 @@ void MeshCO<dim>::augmentIPHessian(const Mesh<dim>& mesh,
                 }
             }
         }
-    }
-    else {
-        //TODO: 2D collision
     }
 }
 
@@ -1788,7 +1775,7 @@ void MeshCO<dim>::augmentParaEEHessian(const Mesh<dim>& mesh,
     LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* H_inc,
     double dHat, double coef, bool projectDBC) const
 {
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         std::vector<Eigen::Matrix<double, 4 * dim, 4 * dim>> PEEHessian(paraEEMMCVIDSet.size());
         std::vector<Eigen::Matrix<int, 4, 1>> rowIStart(paraEEMMCVIDSet.size());
 #ifdef USE_TBB
@@ -1975,7 +1962,7 @@ void MeshCO<dim>::augmentParaEEHessian(const Mesh<dim>& mesh,
                             H_inc->addCoeff(rowIStartI, colIStartI + 1, PEEHessian[cI](i * dim, j * dim + 1));
                             H_inc->addCoeff(rowIStartI + 1, colIStartI, PEEHessian[cI](i * dim + 1, j * dim));
                             H_inc->addCoeff(rowIStartI + 1, colIStartI + 1, PEEHessian[cI](i * dim + 1, j * dim + 1));
-                            if constexpr (dim == 3) {
+                            {  // Note: it was if constexpr (dim == 3) {
                                 H_inc->addCoeff(rowIStartI, colIStartI + 2, PEEHessian[cI](i * dim, j * dim + 2));
                                 H_inc->addCoeff(rowIStartI + 1, colIStartI + 2, PEEHessian[cI](i * dim + 1, j * dim + 2));
 
@@ -2159,7 +2146,7 @@ void MeshCO<dim>::updateConstraints_QP(
     std::vector<Eigen::Triplet<double>>& A_triplet,
     Eigen::VectorXd& l) const
 {
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         A_triplet.reserve(A_triplet.size() + activeSet.size() * 4 * dim);
         int constraintI = l.size();
         for (const auto& MMCVIDI : activeSet) {
@@ -2257,10 +2244,6 @@ void MeshCO<dim>::updateConstraints_QP(
         // inequality:  ∇g(x₀) * x + g(x₀) ≥ ϵ ≡ ∇g(x₀) * x ≥ -g(x₀) + ϵ
         this->evaluateConstraintsQP(
             mesh, activeSet, constraintType, l, /*coef=*/-1.0);
-    }
-    else {
-        // TODO: 2D collisions
-        spdlog::error("IPC does not handle 2D collisions.");
     }
 }
 

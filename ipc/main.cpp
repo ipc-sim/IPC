@@ -20,7 +20,10 @@
 #include <string>
 #include <ctime>
 
+// clang doesn't have this header since it's implemented in gcc
+#ifndef __clang__
 #include <bits/stdc++.h>
+#endif
 #include <sys/stat.h>
 #include <sys/types.h>
 // clang 8 doesn't have stable implementation of filesystem, so comment it out
@@ -967,15 +970,15 @@ int main(int argc, char* argv[])
                 for (int vI = 0; vI < UV.rows(); ++vI)
 #endif
                     {
-                        if constexpr (DIM == 3) {
+                        {  // Note: it was if constexpr (DIM == 3) {
                             UV.row(vI) = (rotMtr * (UV.row(vI) - center).transpose()).transpose() + center;
                         }
-                        else {
-                            Eigen::Vector3d pos;
-                            pos.head(2) = (UV.row(vI) - center).transpose();
-                            pos[2] = 0.0;
-                            UV.row(vI) = (rotMtr * pos).transpose().head(2) + center;
-                        }
+                        //else {
+                        //    Eigen::Vector3d pos;
+                        //    pos.head(2) = (UV.row(vI) - center).transpose();
+                        //    pos[2] = 0.0;
+                        //    UV.row(vI) = (rotMtr * pos).transpose().head(2) + center;
+                        //}
                     }
 #ifdef USE_TBB
                 );

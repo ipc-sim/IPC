@@ -125,10 +125,8 @@ inline void compute_c(
     const Eigen::Matrix<double, 1, dim>& v3, // triangle point 1
     double& c, double coef)
 {
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         c = coef * (v3 - v0).dot((v1 - v0).cross(v2 - v0));
-    }
-    else {
     }
 }
 inline bool pointInTriangle(double x, double y)

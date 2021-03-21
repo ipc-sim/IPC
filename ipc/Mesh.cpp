@@ -96,47 +96,6 @@ Mesh<dim>::Mesh(const Eigen::MatrixXd& V_mesh,
     setLameParam(YM, PR);
 }
 
-void initCylinder(double r1_x, double r1_y, double r2_x, double r2_y, double height, int circle_res, int height_resolution,
-    Eigen::MatrixXd& V,
-    Eigen::MatrixXi& F,
-    Eigen::MatrixXd* uv_coords_per_face = NULL,
-    Eigen::MatrixXi* uv_coords_face_ids = NULL)
-{
-    assert(DIM == 2);
-#if (DIM == 2)
-    int nvertices = circle_res * (height_resolution + 1);
-    int nfaces = 2 * circle_res * height_resolution;
-
-    V.resize(nvertices, 3);
-    if (uv_coords_per_face) {
-        uv_coords_per_face->resize(nvertices, 2);
-    }
-    F.resize(nfaces, 3);
-    for (int j = 0; j < height_resolution + 1; j++) {
-        for (int i = 0; i < circle_res; i++) {
-            double t = (double)j / (double)height_resolution;
-            double h = height * t;
-            double theta = i * 2 * M_PI / circle_res;
-            double r_x = r1_x * t + r2_x * (1 - t);
-            double r_y = r1_y * t + r2_y * (1 - t);
-            V.row(j * circle_res + i) = Eigen::Vector3d(r_x * cos(theta), height - h, r_y * sin(theta));
-            if (uv_coords_per_face) {
-                uv_coords_per_face->row(j * circle_res + i) = Eigen::Vector2d(r_x * cos(theta), r_y * sin(theta));
-            }
-
-            if (j < height_resolution) {
-                int vl0 = j * circle_res + i;
-                int vl1 = j * circle_res + (i + 1) % circle_res;
-                int vu0 = (j + 1) * circle_res + i;
-                int vu1 = (j + 1) * circle_res + (i + 1) % circle_res;
-                F.row(2 * (j * circle_res + i) + 0) = Eigen::Vector3i(vl0, vl1, vu1);
-                F.row(2 * (j * circle_res + i) + 1) = Eigen::Vector3i(vu0, vl0, vu1);
-            }
-        }
-    }
-#endif
-}
-
 template <int dim>
 void Mesh<dim>::computeMassMatrix(const igl::MassMatrixType type)
 {
@@ -275,7 +234,7 @@ void Mesh<dim>::computeMassMatrix(const igl::MassMatrixType type)
         assert(false && "Unsupported simplex size");
     }
 
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         // for surface mesh as kinematic object
         for (int compI = 0; compI < componentCoDim.size(); ++compI) {
             if (componentCoDim[compI] == 3) {
@@ -438,7 +397,7 @@ void Mesh<dim>::computeFeatures(bool multiComp, bool resetFixedV)
         vFLoc[triVInd[0]].insert(std::pair<int, int>(triI, 0));
         vFLoc[triVInd[1]].insert(std::pair<int, int>(triI, 1));
         vFLoc[triVInd[2]].insert(std::pair<int, int>(triI, 2));
-        if constexpr (dim == 3) {
+        {  // Note: it was if constexpr (dim == 3) {
             vFLoc[triVInd[3]].insert(std::pair<int, int>(triI, 3));
         }
 
@@ -726,7 +685,7 @@ bool Mesh<dim>::checkInversion(int triI, bool mute) const
     Eigen::Matrix<double, dim, dim> e_u;
     e_u.col(0) = (V.row(triVInd[1]) - V.row(triVInd[0])).transpose();
     e_u.col(1) = (V.row(triVInd[2]) - V.row(triVInd[0])).transpose();
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         e_u.col(2) = (V.row(triVInd[3]) - V.row(triVInd[0])).transpose();
     }
 
@@ -818,7 +777,7 @@ void Mesh<dim>::saveAsMesh(const std::string& filePath, bool scaleUV,
 template <int dim>
 void Mesh<dim>::saveSurfaceMesh(const std::string& filePath) const
 {
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         Eigen::MatrixXd V_surf(SVI.size(), 3);
         std::unordered_map<int, int> vI2SVI;
         for (int svI = 0; svI < SVI.size(); ++svI) {
@@ -834,9 +793,6 @@ void Mesh<dim>::saveSurfaceMesh(const std::string& filePath) const
         }
 
         igl::writeOBJ(filePath, V_surf, F_surf);
-    }
-    else {
-        saveAsMesh(filePath);
     }
 }
 
@@ -885,7 +841,7 @@ void Mesh<dim>::computeBoundaryVert(const Eigen::MatrixXi& SF)
         const Eigen::Matrix<int, 1, dim>& sfVInd = SF.row(sfI);
         m_isBoundaryVert[sfVInd[0]] = true;
         m_isBoundaryVert[sfVInd[1]] = true;
-        if constexpr (dim == 3) {
+        {  // Note: it was if constexpr (dim == 3) {
             m_isBoundaryVert[sfVInd[2]] = true;
         }
     }

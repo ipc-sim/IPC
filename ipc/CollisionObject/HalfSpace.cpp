@@ -50,7 +50,7 @@ void HalfSpace<dim>::init(const Eigen::Matrix<double, dim, 1>& p_origin,
     Base::velocitydt = p_velocitydt;
     D = -normal.dot(Base::origin);
     nnT = normal * normal.transpose();
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         Eigen::RowVector3d xCross = Eigen::RowVector3d::UnitX().cross(normal);
         Eigen::RowVector3d yCross = Eigen::RowVector3d::UnitY().cross(normal);
         if (xCross.squaredNorm() > yCross.squaredNorm()) {
@@ -93,7 +93,7 @@ void HalfSpace<dim>::updateConstraints_QP(const Mesh<dim>& mesh,
     for (const auto& vI : activeSet) {
         A_triplet.emplace_back(constraintI, vI * dim, normal[0]);
         A_triplet.emplace_back(constraintI, vI * dim + 1, normal[1]);
-        if constexpr (dim == 3) {
+        {  // Note: it was if constexpr (dim == 3) {
             A_triplet.emplace_back(constraintI, vI * dim + 2, normal[2]);
         }
         ++constraintI;
@@ -199,7 +199,7 @@ void HalfSpace<dim>::augmentIPHessian(const Mesh<dim>& mesh,
                     mtr_incremental->addCoeff(rowStartI, rowStartI + 1, H(0, 1));
                     mtr_incremental->addCoeff(rowStartI + 1, rowStartI, H(1, 0));
                     mtr_incremental->addCoeff(rowStartI + 1, rowStartI + 1, H(1, 1));
-                    if constexpr (dim == 3) {
+                    {  // Note: it was if constexpr (dim == 3) {
                         mtr_incremental->addCoeff(rowStartI, rowStartI + 2, H(0, 2));
                         mtr_incremental->addCoeff(rowStartI + 1, rowStartI + 2, H(1, 2));
 
@@ -281,7 +281,7 @@ void HalfSpace<dim>::computeFrictionEnergy(const Eigen::MatrixXd& V,
     assert(multipliers.size() == activeSet.size());
     double eps = std::sqrt(eps2);
 
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         //TODO: parallelize
         Ef = 0.0;
         int contactPairI = 0;
@@ -310,7 +310,7 @@ void HalfSpace<dim>::augmentFrictionGradient(const Eigen::MatrixXd& V,
     assert(multipliers.size() == activeSet.size());
     double eps = std::sqrt(eps2);
 
-    if constexpr (dim == 3) {
+    {  // Note: it was if constexpr (dim == 3) {
         //TODO: parallelize
         int contactPairI = 0;
         for (const auto& vI : activeSet) {
@@ -370,7 +370,7 @@ void HalfSpace<dim>::augmentFrictionHessian(const Mesh<dim>& mesh,
         H_inc->addCoeff(startInd, startInd + 1, H_vI(0, 1));
         H_inc->addCoeff(startInd + 1, startInd, H_vI(1, 0));
         H_inc->addCoeff(startInd + 1, startInd + 1, H_vI(1, 1));
-        if constexpr (dim == 3) {
+        {  // Note: it was if constexpr (dim == 3) {
             H_inc->addCoeff(startInd, startInd + 2, H_vI(0, 2));
             H_inc->addCoeff(startInd + 1, startInd + 2, H_vI(1, 2));
 
@@ -437,7 +437,7 @@ void HalfSpace<dim>::initRenderingData(double extensionScale)
             Eigen::Matrix<double, 1, dim> coord;
             coord[0] = spacing * colI - size / 2.0;
             coord[1] = 0.0;
-            if constexpr (dim == 3) {
+            {  // Note: it was if constexpr (dim == 3) {
                 coord[2] = spacing * rowI - size / 2.0;
             }
             Base::V.row(vI).leftCols(dim) = (rotMtr * coord.transpose() + Base::origin).transpose();
