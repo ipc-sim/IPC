@@ -87,7 +87,6 @@ std::string getRootDirectory()
 bool SeparatePathComps(const std::string& in, std::vector<std::string>* out) {
     if (in[0] != '/') return false;
     out->clear();
-    std::istringstream ss(in);
     std::string token;
     for (const char c : in) {
         if (c == '/' && !token.empty()) {
