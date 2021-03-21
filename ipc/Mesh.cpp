@@ -38,18 +38,6 @@ extern std::ofstream logFile;
 extern Timer timer_step;
 
 namespace IPC {
-#ifdef __clang__
-  #if __cplusplus >= 201703L
-    static_assert(true, "we get C++17");
-  #elif __cplusplus == 201402L
-    static_assert(false, "expect C++17 we get 14");
-  #else
-    static_assert(false, "expect C++17, get lower than 14");
-  #endif
-#else
-  static_assert(false, "expect clang, did not get it");
-#endif
-
 template <int dim>
 Mesh<dim>::Mesh(void)
 {

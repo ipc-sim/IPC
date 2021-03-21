@@ -1,13 +1,14 @@
 cmake_minimum_required(VERSION 3.9)
 cmake_policy(SET CMP0025 NEW)
 # use clang for compilation
-#set(CMAKE_C_COMPILER "/usr/bin/clang")
+set(CMAKE_C_COMPILER "/usr/bin/clang")
 set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
-set(CMAKE_CXX_FLAGS "-std=c++17 -fopenmp")# -D_GLIBCXX_USE_CXX11_ABI=0")
-set(CMAKE_CXX_STANDARD, 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_FLAGS "-std=c++14 -fopenmp")# -D_GLIBCXX_USE_CXX11_ABI=0")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -v")
+# the following 2 are for fixing undefined symbol caused by CMake unable to find
+# correct ABI implementation. See the source of this fix:
+# https://gitlab.kitware.com/cmake/cmake/-/issues/18275
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -lc++abi")
 
 project(IPC)

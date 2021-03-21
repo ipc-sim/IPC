@@ -12,7 +12,7 @@
 #include "ipc/CollisionObject/CollisionObject.h"
 #include "ipc/CollisionObject/CollisionConstraints.hpp"
 #include "ipc/CCD/ExactCCD.hpp"
-
+#include <optional>
 #include <iostream>
 #include <map>
 
