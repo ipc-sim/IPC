@@ -74,13 +74,14 @@ Config::~Config(void)
     }
 }
 
-std::string getRootDirectory()
-{
-    std::string file_path(__FILE__);
-    std::string parent_dir = file_path.substr(0, file_path.find_last_of("/"));
-    std::string parent_parent_dir = parent_dir.substr(0, parent_dir.find_last_of("/"));
-    return parent_parent_dir;
-}
+// C++ 17 cannot be correctly parsed in when clang++-8 is used with CMake
+//std::string getRootDirectory()
+//{
+//    std::string file_path(__FILE__);
+//    std::string parent_dir = file_path.substr(0, file_path.find_last_of("/"));
+//    std::string parent_parent_dir = parent_dir.substr(0, parent_dir.find_last_of("/"));
+//    return parent_parent_dir;
+//}
 
 // Separate path components:
 // /tmp/arbitrary_dir/file_name.txt -> {tmp, arbitrary_dir, file_name.txt}
