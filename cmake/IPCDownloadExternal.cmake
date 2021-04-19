@@ -100,6 +100,6 @@ endfunction()
 function(download_ccd_wrapper)
   custom_download_project(ccd-wrapper
     GIT_REPOSITORY https://github.com/Continuous-Collision-Detection/CCD-Wrapper.git
-    GIT_TAG        ae980163f2507f2a678e08bfeb36f774536ea958
+    GIT_TAG        f01e803d46f017d3e948881d7b3267b9098feb4f
   )
 endfunction()
