@@ -429,7 +429,8 @@ void saveInfoForPresent(const std::string fileName, double save_dt)
 
 void saveStats(void)
 {
-    FILE* out = fopen("output/resultsStats.txt", "a+");
+    std::string o = outputFolderPath + "/resultsStats.txt";
+    FILE* out = fopen(o.c_str(), "a+");
     assert(out);
 
     fprintf(out, "%s %lf %lf\n", outputFolderPath.c_str(),
