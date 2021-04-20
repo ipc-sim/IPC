@@ -1,6 +1,8 @@
 #include <CCDUtils.hpp>
 
+#ifdef USE_FPRP_CCD
 #include <doubleCCD/doubleccd.hpp>
+#endif
 
 #include <spdlog/spdlog.h>
 
@@ -51,6 +53,7 @@ Eigen::Vector3d shiftVertices(
 {
     assert(dim == 3);
 
+#ifdef USE_FPRP_CCD
     // Stack all vertices to shift by the same amount
     size_t num_vertices = mesh.V.rows();
     for (CollisionObject<dim>* meshCO : meshCollisionObjects) {
@@ -81,6 +84,9 @@ Eigen::Vector3d shiftVertices(
     mesh.V = all_vertices.bottomRows(mesh.V.rows());
 
     return invShift;
+#else
+    throw "FPRP disabled, unable to shift vertices";
+#endif
 }
 
 bool vertexFaceToIBisection(
