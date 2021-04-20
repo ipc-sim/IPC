@@ -198,6 +198,7 @@ public:
         const Eigen::VectorXd& searchDir,
         const CollisionConstraintType constraintType,
         std::vector<MMCVID>& activeSet,
+        const ccd::CCDMethod ccdMethod,
         const double eta = 0,
         const double ccd_tol = 1e-6) override;
 

@@ -164,6 +164,7 @@ public:
         const CollisionConstraintType constraintType,
         std::vector<MMCVID>& activeSet,
         std::unordered_map<MMCVID, double, MMCVIDHash>& mmcvid_to_toi,
+        const ccd::CCDMethod ccdMethod,
         const double eta = 0,
         const double ccd_tol = 1e-6);
 

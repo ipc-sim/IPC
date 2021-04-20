@@ -7,6 +7,7 @@
 #include "GIF.hpp"
 #include "Timer.hpp"
 #include "getRSS.hpp"
+#include "CCDUtils.hpp"
 
 #include <igl/readOBJ.h>
 #ifdef USE_OPENGL
@@ -103,6 +104,31 @@ void saveInfo(bool writePNG = true, bool writeGIF = true, int writeMesh = 1, dou
 void saveScreenshot(const std::string& filePath, double scale = 1.0, bool writeGIF = false, bool writePNG = true);
 void saveInfoForPresent(const std::string fileName = "info.txt", double save_dt = 1e-2);
 
+static int progressBarMaxIter = 0;
+void printProgressBar(
+    int cur_iter,
+    int max_iter,
+    int bar_width = 70,
+    bool clear_end = false)
+{
+    float progress = std::max(0.0f, std::min(1.0f, cur_iter / float(max_iter)));
+    int pos = bar_width * progress;
+    int len = fmt::format("{:d}", max_iter).length();
+    fmt::print(
+        "{3:2d}%|{0:█>{1}}{0: >{2}}| {4: >{6}d}/{5:d}\r", //
+        "", pos, std::max(bar_width - pos, 0), int(progress * 100.0), cur_iter,
+        max_iter, len);
+    if (progress >= 1) {
+        if (clear_end) {
+            fmt::print("{0: {1}}", "", bar_width * 2);
+        }
+        else {
+            std::cout << std::endl;
+        }
+    }
+    std::cout.flush();
+}
+
 void proceedOptimization(int proceedNum = 1)
 {
     for (int proceedI = 0; (proceedI < proceedNum) && (!converged); proceedI++) {
@@ -137,6 +163,7 @@ void proceedOptimization(int proceedNum = 1)
             logFile << "!!! maxIter reached for timeStep" << iterNum << std::endl;
         }
         iterNum = optimizer->getIterNum();
+        printProgressBar(iterNum, optimizer->getFrameAmt());
 
         saveInfoForPresent("info" + std::to_string(iterNum) + ".txt");
 
@@ -1034,6 +1061,11 @@ int main(int argc, char* argv[])
     }
     triSoup.emplace_back(temp);
 
+    if (config.ccdMethod == ccd::CCDMethod::FLOATING_POINT_ROOT_PARITY) {
+        // shift entire mesh so the CCD will be exact in doubles
+        IPC::invShift = shiftVertices(*temp, config.meshCollisionObjects);
+    }
+
     {
         // for output surface mesh
         isSurfNode.resize(0);
@@ -1115,10 +1147,10 @@ int main(int argc, char* argv[])
     fs::create_directories(fs::path(outputFolderPath));
     config.backUpConfig(outputFolderPath + "/config.txt");
     for (int coI = 0; coI < config.collisionObjects.size(); ++coI) {
-        config.collisionObjects[coI]->saveMesh(outputFolderPath + "/ACO" + std::to_string(coI) + "_0.obj");
+        config.collisionObjects[coI]->saveMesh(outputFolderPath + "/ACO" + std::to_string(coI) + "_0.obj", IPC::invShift);
     }
     for (int mcoI = 0; mcoI < config.meshCollisionObjects.size(); ++mcoI) {
-        config.meshCollisionObjects[mcoI]->saveMesh(outputFolderPath + "/MCO" + std::to_string(mcoI) + "_0.obj");
+        config.meshCollisionObjects[mcoI]->saveMesh(outputFolderPath + "/MCO" + std::to_string(mcoI) + "_0.obj", IPC::invShift);
     }
 
     // create log file

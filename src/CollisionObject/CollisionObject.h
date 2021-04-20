@@ -153,6 +153,7 @@ public:
         const Eigen::VectorXd& searchDir,
         const CollisionConstraintType constraintType,
         std::vector<MMCVID>& activeSet,
+        const ccd::CCDMethod ccdMethod,
         const double eta = 0,
         const double ccd_tol = 1e-6) { return false; };
 
@@ -322,7 +323,7 @@ public:
             {
                 int vI = mesh.SVI[svI];
                 if (!mesh.isFixedVert[vI] && mesh.vICoDim(vI) == 3) {
-                    double d=0;
+                    double d = 0;
                     evaluateConstraint(mesh, vI, d);
                     if (d < dHat) {
                         isActive[svI] = 1;
@@ -450,9 +451,9 @@ public:
         color.bottomRows(F.rows()).setConstant(0.9);
     }
 
-    virtual void saveMesh(const std::string& filePath) const
+    virtual void saveMesh(const std::string& filePath, const Eigen::Vector3d& shift = Eigen::Vector3d::Zero()) const
     {
-        igl::writeOBJ(filePath, V, F);
+        igl::writeOBJ(filePath, V.rowwise() + shift.transpose(), F);
     }
 };
 

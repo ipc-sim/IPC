@@ -1,0 +1,30 @@
+time 7.00 0.07
+
+constraintSolver IP
+warmStart 0
+selfCollisionOn
+
+#CCDMethod FloatingPointRootFinder
+#CCDMethod TightInclusion
+#CCDTolerance 1e-3
+#CCDTolerance 3.162277e-5
+#CCDTolerance 1e-6
+CCDMethod FloatingPointRootParity
+
+shapes input 4
+input/tetMeshes/32770_octocat.msh  0 -1.00 0  -90 0 0  0.05 0.05 0.05
+input/tetMeshes/32770_octocat.msh  0  0.75 0  -90 0 0  0.05 0.05 0.05
+input/tetMeshes/32770_octocat.msh  0  2.50 0  -90 0 0  0.05 0.05 0.05
+input/triMeshes/bowl.obj           0  0.00 0    0 0 0  1.00 1.00 1.00  material 7680 2e11 0.3  linearVelocity 0 0 0
+
+view orthographic
+# zoom 0.3
+
+section SQP QP
+time 7.00 1e-3
+warmStart 1
+constraintType Verschoor
+constraintOffset 1e-1
+tol 1
+1e-1
+section end

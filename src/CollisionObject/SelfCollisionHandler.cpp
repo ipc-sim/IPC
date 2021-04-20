@@ -12,8 +12,8 @@
 #include <CTCD.h>
 #include <tight_inclusion/inclusion_ccd.hpp>
 #include <tight_inclusion/interval_root_finder.hpp>
+#include "CCDUtils.hpp"
 #define CCD_MAX_ITER 1e6
-#define QP_USE_TIGHT_INTERVAL_CCD
 #define TIGHT_INTERVAL_CCD_TYPE 1
 #define DIST_P 0.2
 #define CCD_MIN_DIST tolerance
@@ -1836,6 +1836,7 @@ bool SelfCollisionHandler<dim>::updateActiveSet_QP(
     const CollisionConstraintType constraintType,
     std::vector<MMCVID>& activeSet,
     std::unordered_map<MMCVID, double, MMCVIDHash>& mmcvid_to_toi,
+    const ccd::CCDMethod ccdMethod,
     const double eta,
     const double ccd_tol)
 {
@@ -1898,34 +1899,56 @@ bool SelfCollisionHandler<dim>::updateActiveSet_QP(
             }
 
             double toi;
-#ifdef QP_USE_TIGHT_INTERVAL_CCD
-            double output_tolerance;
-            bool intersects = inclusion_ccd::vertexFaceCCD_double(
-#else
-            bool intersects = CTCD::vertexFaceCTCD(
-#endif
-                mesh.V_prev.row(vI).transpose(),
-                mesh.V_prev.row(sfVInd[0]).transpose(),
-                mesh.V_prev.row(sfVInd[1]).transpose(),
-                mesh.V_prev.row(sfVInd[2]).transpose(),
-                mesh.V.row(vI).transpose() + searchDir.segment<dim>(vI * dim),
-                mesh.V.row(sfVInd[0]).transpose() + searchDir.segment<dim>(sfVInd[0] * dim),
-                mesh.V.row(sfVInd[1]).transpose() + searchDir.segment<dim>(sfVInd[1] * dim),
-                mesh.V.row(sfVInd[2]).transpose() + searchDir.segment<dim>(sfVInd[2] * dim),
-#ifdef QP_USE_TIGHT_INTERVAL_CCD
-                vf_err,
-#endif
-                eta,
-                toi
-#ifdef QP_USE_TIGHT_INTERVAL_CCD
-                ,
-                /*tolerance=*/ccd_tol,
-                /*max_t=*/1,
-                /* max_itr=*/CCD_MAX_ITER,
-                output_tolerance,
-                /*CCD_TYPE=*/TIGHT_INTERVAL_CCD_TYPE
-#endif
-            );
+            bool intersects;
+            switch (ccdMethod) {
+            case ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER: {
+                intersects = CTCD::vertexFaceCTCD(
+                    mesh.V_prev.row(vI).transpose(),
+                    mesh.V_prev.row(sfVInd[0]).transpose(),
+                    mesh.V_prev.row(sfVInd[1]).transpose(),
+                    mesh.V_prev.row(sfVInd[2]).transpose(),
+                    mesh.V.row(vI).transpose() + searchDir.segment<dim>(vI * dim),
+                    mesh.V.row(sfVInd[0]).transpose() + searchDir.segment<dim>(sfVInd[0] * dim),
+                    mesh.V.row(sfVInd[1]).transpose() + searchDir.segment<dim>(sfVInd[1] * dim),
+                    mesh.V.row(sfVInd[2]).transpose() + searchDir.segment<dim>(sfVInd[2] * dim),
+                    eta,
+                    toi);
+                break;
+            }
+            case ccd::CCDMethod::TIGHT_INCLUSION: {
+                double output_tolerance;
+                intersects = inclusion_ccd::vertexFaceCCD_double(
+                    mesh.V_prev.row(vI).transpose(),
+                    mesh.V_prev.row(sfVInd[0]).transpose(),
+                    mesh.V_prev.row(sfVInd[1]).transpose(),
+                    mesh.V_prev.row(sfVInd[2]).transpose(),
+                    mesh.V.row(vI).transpose() + searchDir.segment<dim>(vI * dim),
+                    mesh.V.row(sfVInd[0]).transpose() + searchDir.segment<dim>(sfVInd[0] * dim),
+                    mesh.V.row(sfVInd[1]).transpose() + searchDir.segment<dim>(sfVInd[1] * dim),
+                    mesh.V.row(sfVInd[2]).transpose() + searchDir.segment<dim>(sfVInd[2] * dim),
+                    vf_err,
+                    eta,
+                    toi,
+                    /*tolerance=*/ccd_tol,
+                    /*max_t=*/1,
+                    /* max_itr=*/CCD_MAX_ITER,
+                    output_tolerance,
+                    /*CCD_TYPE=*/TIGHT_INTERVAL_CCD_TYPE);
+                break;
+            }
+            default:
+                intersects = vertexFaceToIBisection(
+                    mesh.V_prev.row(vI).transpose(),
+                    mesh.V_prev.row(sfVInd[0]).transpose(),
+                    mesh.V_prev.row(sfVInd[1]).transpose(),
+                    mesh.V_prev.row(sfVInd[2]).transpose(),
+                    mesh.V.row(vI).transpose() + searchDir.segment<dim>(vI * dim),
+                    mesh.V.row(sfVInd[0]).transpose() + searchDir.segment<dim>(sfVInd[0] * dim),
+                    mesh.V.row(sfVInd[1]).transpose() + searchDir.segment<dim>(sfVInd[1] * dim),
+                    mesh.V.row(sfVInd[2]).transpose() + searchDir.segment<dim>(sfVInd[2] * dim),
+                    ccdMethod,
+                    toi);
+            }
 
             MMCVID mmcvid(
                 -vI - 1, // mesh point
@@ -1972,34 +1995,55 @@ bool SelfCollisionHandler<dim>::updateActiveSet_QP(
             }
 
             double toi;
-#ifdef QP_USE_TIGHT_INTERVAL_CCD
-            double output_tolerance;
-            bool intersects = inclusion_ccd::edgeEdgeCCD_double(
-#else
-            bool intersects = CTCD::edgeEdgeCTCD(
-#endif
-                mesh.V_prev.row(edge1.first).transpose(),
-                mesh.V_prev.row(edge1.second).transpose(),
-                mesh.V_prev.row(edge2.first).transpose(),
-                mesh.V_prev.row(edge2.second).transpose(),
-                mesh.V.row(edge1.first).transpose() + searchDir.segment<dim>(edge1.first * dim),
-                mesh.V.row(edge1.second).transpose() + searchDir.segment<dim>(edge1.second * dim),
-                mesh.V.row(edge2.first).transpose() + searchDir.segment<dim>(edge2.first * dim),
-                mesh.V.row(edge2.second).transpose() + searchDir.segment<dim>(edge2.first * dim),
-#ifdef QP_USE_TIGHT_INTERVAL_CCD
-                ee_err,
-#endif
-                eta,
-                toi
-#ifdef QP_USE_TIGHT_INTERVAL_CCD
-                ,
-                /*tolerance=*/ccd_tol,
-                /*max_t=*/1,
-                /* max_itr=*/CCD_MAX_ITER,
-                output_tolerance,
-                /*CCD_TYPE=*/TIGHT_INTERVAL_CCD_TYPE
-#endif
-            );
+            bool intersects;
+            switch (ccdMethod) {
+            case ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER:
+                intersects = CTCD::edgeEdgeCTCD(
+                    mesh.V_prev.row(edge1.first).transpose(),
+                    mesh.V_prev.row(edge1.second).transpose(),
+                    mesh.V_prev.row(edge2.first).transpose(),
+                    mesh.V_prev.row(edge2.second).transpose(),
+                    mesh.V.row(edge1.first).transpose() + searchDir.segment<dim>(edge1.first * dim),
+                    mesh.V.row(edge1.second).transpose() + searchDir.segment<dim>(edge1.second * dim),
+                    mesh.V.row(edge2.first).transpose() + searchDir.segment<dim>(edge2.first * dim),
+                    mesh.V.row(edge2.second).transpose() + searchDir.segment<dim>(edge2.first * dim),
+                    eta,
+                    toi);
+                break;
+            case ccd::CCDMethod::TIGHT_INCLUSION: {
+                double output_tolerance;
+                intersects = inclusion_ccd::edgeEdgeCCD_double(
+                    mesh.V_prev.row(edge1.first).transpose(),
+                    mesh.V_prev.row(edge1.second).transpose(),
+                    mesh.V_prev.row(edge2.first).transpose(),
+                    mesh.V_prev.row(edge2.second).transpose(),
+                    mesh.V.row(edge1.first).transpose() + searchDir.segment<dim>(edge1.first * dim),
+                    mesh.V.row(edge1.second).transpose() + searchDir.segment<dim>(edge1.second * dim),
+                    mesh.V.row(edge2.first).transpose() + searchDir.segment<dim>(edge2.first * dim),
+                    mesh.V.row(edge2.second).transpose() + searchDir.segment<dim>(edge2.first * dim),
+                    ee_err,
+                    eta,
+                    toi,
+                    /*tolerance=*/ccd_tol,
+                    /*max_t=*/1,
+                    /* max_itr=*/CCD_MAX_ITER,
+                    output_tolerance,
+                    /*CCD_TYPE=*/TIGHT_INTERVAL_CCD_TYPE);
+                break;
+            }
+            default:
+                intersects = edgeEdgeToIBisection(
+                    mesh.V_prev.row(edge1.first).transpose(),
+                    mesh.V_prev.row(edge1.second).transpose(),
+                    mesh.V_prev.row(edge2.first).transpose(),
+                    mesh.V_prev.row(edge2.second).transpose(),
+                    mesh.V.row(edge1.first).transpose() + searchDir.segment<dim>(edge1.first * dim),
+                    mesh.V.row(edge1.second).transpose() + searchDir.segment<dim>(edge1.second * dim),
+                    mesh.V.row(edge2.first).transpose() + searchDir.segment<dim>(edge2.first * dim),
+                    mesh.V.row(edge2.second).transpose() + searchDir.segment<dim>(edge2.first * dim),
+                    ccdMethod,
+                    toi);
+            }
 
             if (intersects && constraintType == CollisionConstraintType::VERSCHOOR) {
                 Eigen::Vector3d v0_toi = (mesh.V.row(edge1.first) - mesh.V_prev.row(edge1.first)) * toi + mesh.V_prev.row(edge1.first);

@@ -20,6 +20,7 @@
 #include "IglUtils.hpp"
 #include "BarrierFunctions.hpp"
 #include "Timer.hpp"
+#include "CCDUtils.hpp"
 
 #include <igl/avg_edge_length.h>
 #include <igl/face_areas.h>
@@ -39,6 +40,8 @@
 #include <numeric>
 
 #include <sys/stat.h> // for mkdir
+
+#define SAVE_EXTREME_LINESEARCH_CCD
 
 extern const std::string outputFolderPath;
 
@@ -352,6 +355,11 @@ template <int dim>
 int Optimizer<dim>::getIterNum(void) const
 {
     return globalIterNum;
+}
+template <int dim>
+int Optimizer<dim>::getFrameAmt(void) const
+{
+    return frameAmt;
 }
 template <int dim>
 int Optimizer<dim>::getInnerIterAmt(void) const
@@ -1260,14 +1268,15 @@ bool Optimizer<dim>::updateActiveSet_QP()
     for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); coI++) {
         newConstraintsAdded |= animConfig.meshCollisionObjects[coI]->updateActiveSet_QP(
             result, searchDir, animConfig.constraintType,
-            MMActiveSet_next[coI], eta, animConfig.ccdTolerance);
+            MMActiveSet_next[coI], animConfig.ccdMethod, eta,
+            animConfig.ccdTolerance);
         MMActiveSet[coI] = MMActiveSet_next[coI];
     }
     if (animConfig.isSelfCollision) {
         newConstraintsAdded |= SelfCollisionHandler<dim>::updateActiveSet_QP(
             result, searchDir, animConfig.constraintType,
-            MMActiveSet_next.back(), mesh_mmcvid_to_toi, eta,
-            animConfig.ccdTolerance);
+            MMActiveSet_next.back(), mesh_mmcvid_to_toi, animConfig.ccdMethod,
+            eta, animConfig.ccdTolerance);
         MMActiveSet.back() = MMActiveSet_next.back();
     }
     return newConstraintsAdded;
@@ -1920,1427 +1929,1428 @@ bool Optimizer<dim>::solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
                             spdlog::info("take a full CCD instead {:g}", alpha);
                         }
                     }
-                    else
-                    {
-                        alpha = std::min(alpha, alpha_CFL);
-                        spdlog::info("take the smaller one {:g}", alpha);
-                    }
+                }
+                else {
+                    alpha = std::min(alpha, alpha_CFL);
+                    spdlog::info("take the smaller one {:g}", alpha);
                 }
             }
+        }
 #endif
-            // double largestFeasibleStepSize = alpha;
+        // double largestFeasibleStepSize = alpha;
 
-            if (alpha == 0.0) {
-                spdlog::error("CCD gives 0 step size");
-                exit(-1);
+        if (alpha == 0.0) {
+            spdlog::error("CCD gives 0 step size");
+            exit(-1);
 
-                alpha = 1.0; // fail-safe, let safe-guard in line search find the stepsize
-            }
-            else {
-                spdlog::critical("stepsize={:g}", alpha);
-            }
-            timer_step.stop();
+            alpha = 1.0; // fail-safe, let safe-guard in line search find the stepsize
+        }
+        else {
+            spdlog::info("stepsize={:g}", alpha);
+        }
+        timer_step.stop();
 
-            file_iterStats << globalIterNum << " ";
+        file_iterStats << globalIterNum << " ";
 
-            // Eigen::MatrixXd Vlast = result.V;
-            double alpha_feasible = alpha;
-            lineSearch(alpha);
-            if (alpha_feasible < 1.0e-8) {
-                logFile << "tiny feasible step size " << alpha_feasible << " " << alpha << std::endl;
-            }
-            else if (alpha < 1.0e-8) {
-                logFile << "tiny step size after armijo " << alpha_feasible << " " << alpha << std::endl;
-            }
+        // Eigen::MatrixXd Vlast = result.V;
+        double alpha_feasible = alpha;
+#ifdef SAVE_EXTREME_LINESEARCH_CCD
+        if (alpha_feasible < 0.25) {
+            static int count = 0;
+            fmt::print("count={:d} alpha_feasible={:g}\n", count, alpha_feasible);
+            Eigen::MatrixXd V0 = result.V;
+            result.saveSurfaceMesh(fmt::format("{}lineSearch-{:05d}-t0.obj", outputFolderPath, count));
+            stepForward(V0, result, alpha_feasible);
+            result.saveSurfaceMesh(fmt::format("{}lineSearch-{:05d}-tα.obj", outputFolderPath, count));
+            stepForward(V0, result, 1);
+            result.saveSurfaceMesh(fmt::format("{}lineSearch-{:05d}-t1.obj", outputFolderPath, count));
+            result.V = V0;
+            count++;
+        }
+#endif
+        lineSearch(alpha);
+        if (alpha_feasible < 1.0e-8) {
+            logFile << "tiny feasible step size " << alpha_feasible << " " << alpha << std::endl;
+        }
+        else if (alpha < 1.0e-8) {
+            logFile << "tiny step size after armijo " << alpha_feasible << " " << alpha << std::endl;
+        }
 
 #ifdef LINSYSSOLVER_USE_AMGCL
-            if (alpha < 1.0e-8) { // only for debugging tiny step size issue
-                // output system in AMGCL format
-                // Eigen::VectorXd minusG = -gradient;
-                // dynamic_cast<AMGCLSolver<Eigen::VectorXi, Eigen::VectorXd>*>(linSysSolver)->write_AMGCL("Stiff", minusG);
-                // exit(-1);
+        if (alpha < 1.0e-8) { // only for debugging tiny step size issue
+            // output system in AMGCL format
+            // Eigen::VectorXd minusG = -gradient;
+            // dynamic_cast<AMGCLSolver<Eigen::VectorXi, Eigen::VectorXd>*>(linSysSolver)->write_AMGCL("Stiff", minusG);
+            // exit(-1);
 #else
         if (false) {
 #endif
-                // tiny step size issue
-                // if (useGD) {
-                // MMCVID i = paraEEMMCVIDSet.back()[0];
-                // for (int j = 0; j < 4; ++j) {
-                //     printf("%.20le %.20le %.20le\n",
-                //         Vlast(i[j], 0), Vlast(i[j], 1), Vlast(i[j], 2));
-                // }
-                // for (int j = 0; j < 4; ++j) {
-                //     printf("%.20le %.20le %.20le\n",
-                //         searchDir[i[j] * dim], searchDir[i[j] * dim + 1], searchDir[i[j] * dim + 2]);
-                // }
-                // FILE* out = fopen((outputFolderPath + "E.txt").c_str(), "w");
-                // for (int i = -1000; i < 1000; ++i) {
-                //     stepForward(Vlast, result, i / 1000.0 * largestFeasibleStepSize);
-                //     double E;
-                //     computeConstraintSets(result);
-                //     computeEnergyVal(result, true, E);
-                //     fprintf(out, "%.20le %.20le %.20le %.20le %.20le %.20le\n", i / 1000.0 * largestFeasibleStepSize,
-                //         energies[0], energies[1], energies[2], energies[3], E);
-                //     if (i == -1) {
-                //         for (int j = -999; j < 0; ++j) {
-                //             stepForward(Vlast, result, j / 1000000.0 * largestFeasibleStepSize);
-                //             double E;
-                //             computeConstraintSets(result);
-                //             computeEnergyVal(result, true, E);
-                //             fprintf(out, "%.20le %.20le %.20le %.20le %.20le %.20le\n", j / 1000000.0 * largestFeasibleStepSize,
-                //                 energies[0], energies[1], energies[2], energies[3], E);
-                //             if (j > -15) {
-                //                 std::cout << "j=" << j << std::endl;
-                //                 for (const auto& i : MMActiveSet.back()) {
-                //                     std::cout << i[0] << " " << i[1] << " " << i[2] << " " << i[3] << std::endl;
-                //                 }
-                //             }
-                //         }
-                //     }
-                //     else if (i == 0) {
-                //         for (int j = 1; j < 1000; ++j) {
-                //             stepForward(Vlast, result, j / 1000000.0 * largestFeasibleStepSize);
-                //             double E;
-                //             computeConstraintSets(result);
-                //             computeEnergyVal(result, true, E);
-                //             fprintf(out, "%.20le %.20le %.20le %.20le %.20le %.20le\n", j / 1000000.0 * largestFeasibleStepSize,
-                //                 energies[0], energies[1], energies[2], energies[3], E);
-                //             if (j < 15) {
-                //                 std::cout << "j=" << j << std::endl;
-                //                 for (const auto& i : MMActiveSet.back()) {
-                //                     std::cout << i[0] << " " << i[1] << " " << i[2] << " " << i[3] << std::endl;
-                //                 }
-                //             }
-                //         }
-                //     }
-                // }
-                // fclose(out);
-                //     exit(0);
-                // }
+            // tiny step size issue
+            // if (useGD) {
+            // MMCVID i = paraEEMMCVIDSet.back()[0];
+            // for (int j = 0; j < 4; ++j) {
+            //     printf("%.20le %.20le %.20le\n",
+            //         Vlast(i[j], 0), Vlast(i[j], 1), Vlast(i[j], 2));
+            // }
+            // for (int j = 0; j < 4; ++j) {
+            //     printf("%.20le %.20le %.20le\n",
+            //         searchDir[i[j] * dim], searchDir[i[j] * dim + 1], searchDir[i[j] * dim + 2]);
+            // }
+            // FILE* out = fopen((outputFolderPath + "E.txt").c_str(), "w");
+            // for (int i = -1000; i < 1000; ++i) {
+            //     stepForward(Vlast, result, i / 1000.0 * largestFeasibleStepSize);
+            //     double E;
+            //     computeConstraintSets(result);
+            //     computeEnergyVal(result, true, E);
+            //     fprintf(out, "%.20le %.20le %.20le %.20le %.20le %.20le\n", i / 1000.0 * largestFeasibleStepSize,
+            //         energies[0], energies[1], energies[2], energies[3], E);
+            //     if (i == -1) {
+            //         for (int j = -999; j < 0; ++j) {
+            //             stepForward(Vlast, result, j / 1000000.0 * largestFeasibleStepSize);
+            //             double E;
+            //             computeConstraintSets(result);
+            //             computeEnergyVal(result, true, E);
+            //             fprintf(out, "%.20le %.20le %.20le %.20le %.20le %.20le\n", j / 1000000.0 * largestFeasibleStepSize,
+            //                 energies[0], energies[1], energies[2], energies[3], E);
+            //             if (j > -15) {
+            //                 std::cout << "j=" << j << std::endl;
+            //                 for (const auto& i : MMActiveSet.back()) {
+            //                     std::cout << i[0] << " " << i[1] << " " << i[2] << " " << i[3] << std::endl;
+            //                 }
+            //             }
+            //         }
+            //     }
+            //     else if (i == 0) {
+            //         for (int j = 1; j < 1000; ++j) {
+            //             stepForward(Vlast, result, j / 1000000.0 * largestFeasibleStepSize);
+            //             double E;
+            //             computeConstraintSets(result);
+            //             computeEnergyVal(result, true, E);
+            //             fprintf(out, "%.20le %.20le %.20le %.20le %.20le %.20le\n", j / 1000000.0 * largestFeasibleStepSize,
+            //                 energies[0], energies[1], energies[2], energies[3], E);
+            //             if (j < 15) {
+            //                 std::cout << "j=" << j << std::endl;
+            //                 for (const auto& i : MMActiveSet.back()) {
+            //                     std::cout << i[0] << " " << i[1] << " " << i[2] << " " << i[3] << std::endl;
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
+            // fclose(out);
+            //     exit(0);
+            // }
 
-                saveStatus("tinyStepSize");
-                useGD = true;
-                // // mu_IP *= 1.1;
-                // if constexpr (dim == 3) {
-                //     spdlog::info("check EE pairs:");
-                //     for (const auto cI : MMActiveSet.back()) {
-                //         if (cI[0] >= 0) { // EE
-                //             const Eigen::Matrix<double, 1, dim> e01 = result.V.row(cI[1]) - result.V.row(cI[0]);
-                //             const Eigen::Matrix<double, 1, dim> e23 = result.V.row(cI[3]) - result.V.row(cI[2]);
-                //             double sine = std::sqrt(e01.cross(e23).squaredNorm() / (e01.squaredNorm() * e23.squaredNorm()));
-                //             if (sine < 0.02) {
-                //                 spdlog::info("{:d}-{:d} {:d}-{:d} sine = {:g}", cI[0], cI[1], cI[2], cI[3], sine);
-                //             }
-                //         }
-                //     }
-                //     spdlog::info("cosine p g = {:g}", searchDir.dot(gradient) / std::sqrt(searchDir.squaredNorm() * gradient.squaredNorm()));
-                // }
-            }
-            else {
-                useGD = false;
-            }
+            saveStatus("tinyStepSize");
+            useGD = true;
+            // // mu_IP *= 1.1;
+            // if constexpr (dim == 3) {
+            //     spdlog::info("check EE pairs:");
+            //     for (const auto cI : MMActiveSet.back()) {
+            //         if (cI[0] >= 0) { // EE
+            //             const Eigen::Matrix<double, 1, dim> e01 = result.V.row(cI[1]) - result.V.row(cI[0]);
+            //             const Eigen::Matrix<double, 1, dim> e23 = result.V.row(cI[3]) - result.V.row(cI[2]);
+            //             double sine = std::sqrt(e01.cross(e23).squaredNorm() / (e01.squaredNorm() * e23.squaredNorm()));
+            //             if (sine < 0.02) {
+            //                 spdlog::info("{:d}-{:d} {:d}-{:d} sine = {:g}", cI[0], cI[1], cI[2], cI[3], sine);
+            //             }
+            //         }
+            //     }
+            //     spdlog::info("cosine p g = {:g}", searchDir.dot(gradient) / std::sqrt(searchDir.squaredNorm() * gradient.squaredNorm()));
+            // }
+        }
+        else {
+            useGD = false;
+        }
 
 #ifdef CHECK_ET_INTERSECTION
-            bool intersected = false;
-            for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
-                intersected |= !animConfig.meshCollisionObjects[coI]->checkEdgeTriIntersection(result, sh);
-            }
-            if (animConfig.isSelfCollision) {
-                intersected |= !SelfCollisionHandler<dim>::checkEdgeTriIntersection(result, sh);
-            }
-            if (intersected) {
-                getchar();
-            }
+        bool intersected = false;
+        for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
+            intersected |= !animConfig.meshCollisionObjects[coI]->checkEdgeTriIntersection(result, sh);
+        }
+        if (animConfig.isSelfCollision) {
+            intersected |= !SelfCollisionHandler<dim>::checkEdgeTriIntersection(result, sh);
+        }
+        if (intersected) {
+            getchar();
+        }
 #endif
 
-            postLineSearch(alpha);
+        postLineSearch(alpha);
 
-            file_iterStats << constraintStartInds.back() << std::endl;
+        file_iterStats << constraintStartInds.back() << std::endl;
 
-            if (m_projectDBC) {
-                if (animScripter.getCompletedStepSize() < 1.0 - 1.0e-3) {
-                    // setup KKT solving option
-                    m_projectDBC = false;
-                    rho_DBC = 1.0e6;
-                    spdlog::info("setup penalty solve");
-                }
+        if (m_projectDBC) {
+            if (animScripter.getCompletedStepSize() < 1.0 - 1.0e-3) {
+                // setup KKT solving option
+                m_projectDBC = false;
+                rho_DBC = 1.0e6;
+                spdlog::info("setup penalty solve");
+            }
+        }
+        else {
+            double completedStepSize = animScripter.computeCompletedStepSize(result);
+            spdlog::info("completed step size of MBC = {:g}", completedStepSize);
+            if (completedStepSize > 1.0 - 1.0e-3) {
+                m_projectDBC = true;
+                spdlog::info("penalty solve finished");
             }
             else {
-                double completedStepSize = animScripter.computeCompletedStepSize(result);
-                spdlog::info("completed step size of MBC = {:g}", completedStepSize);
-                if (completedStepSize > 1.0 - 1.0e-3) {
-                    m_projectDBC = true;
-                    spdlog::info("penalty solve finished");
+                if (completedStepSize < lastMove && rho_DBC < 1.0e8) {
+                    rho_DBC *= 2.0;
+                    spdlog::info("set rho_DBC to {:g}", rho_DBC);
                 }
                 else {
-                    if (completedStepSize < lastMove && rho_DBC < 1.0e8) {
-                        rho_DBC *= 2.0;
-                        spdlog::info("set rho_DBC to {:g}", rho_DBC);
-                    }
-                    else {
-                        bool safeToPull = (searchDir.cwiseAbs().maxCoeff() < CN_MBC);
-                        if (safeToPull) {
-                            if (completedStepSize < 0.99 && rho_DBC < 1.0e8) {
-                                rho_DBC *= 2.0;
-                                spdlog::info("set rho_DBC to {:g}", rho_DBC);
-                            }
-                            else {
-                                animScripter.updateLambda(result, rho_DBC);
-                                //TODO: use second order dual update
-                                spdlog::info("MBC lambda updated with rho_DBC = {:g}", rho_DBC);
-                            }
+                    bool safeToPull = (searchDir.cwiseAbs().maxCoeff() < CN_MBC);
+                    if (safeToPull) {
+                        if (completedStepSize < 0.99 && rho_DBC < 1.0e8) {
+                            rho_DBC *= 2.0;
+                            spdlog::info("set rho_DBC to {:g}", rho_DBC);
+                        }
+                        else {
+                            animScripter.updateLambda(result, rho_DBC);
+                            //TODO: use second order dual update
+                            spdlog::info("MBC lambda updated with rho_DBC = {:g}", rho_DBC);
                         }
                     }
                 }
             }
         }
-
-        if (k >= iterCap) {
-            logFile << "iteration cap reached for IP subproblem solve!!!" << std::endl;
-            exit(0); // for stopping comparative schemes that can potentially not converge
-        }
-
-        return true;
-    } // namespace IPC
-
-    template <int dim>
-    void Optimizer<dim>::upperBoundMu(double& mu)
-    {
-        double H_b;
-        compute_H_b(1.0e-16 * bboxDiagSize2, dHat, H_b);
-        double muMax = 1.0e13 * result.avgNodeMass(dim) / (4.0e-16 * bboxDiagSize2 * H_b);
-        if (mu > muMax) {
-            mu = muMax;
-            logFile << "upper bounded mu to " << muMax << " at dHat = " << dHat << std::endl;
-        }
     }
 
-    template <int dim>
-    void Optimizer<dim>::suggestMu(double& mu)
-    {
-        double H_b;
-        compute_H_b(1.0e-16 * bboxDiagSize2, dHat, H_b);
-        mu = 1.0e11 * result.avgNodeMass(dim) / (4.0e-16 * bboxDiagSize2 * H_b);
+    if (k >= iterCap) {
+        logFile << "iteration cap reached for IP subproblem solve!!!" << std::endl;
+        exit(0); // for stopping comparative schemes that can potentially not converge
     }
 
-    template <int dim>
-    void Optimizer<dim>::initMu_IP(double& mu)
-    {
-        //TODO: optimize implementation and pipeline
-        buildConstraintStartIndsWithMM(activeSet, MMActiveSet, constraintStartInds);
-        if (constraintStartInds.back()) {
-            Eigen::VectorXd g_E;
-            solveIP = false;
-            computeGradient(result, true, g_E);
-            solveIP = true;
+    return true;
+} // namespace IPC
 
-            Eigen::VectorXd constraintVal, g_c;
-            g_c.setZero(g_E.size());
-            for (int coI = 0; coI < animConfig.collisionObjects.size(); ++coI) {
-                animConfig.collisionObjects[coI]->evaluateConstraints(result, activeSet[coI], constraintVal);
-                int startCI = constraintStartInds[coI];
-                for (int cI = startCI; cI < constraintStartInds[coI + 1]; ++cI) {
-                    compute_g_b(constraintVal[cI], dHat, constraintVal[cI]);
-                }
-                animConfig.collisionObjects[coI]->leftMultiplyConstraintJacobianT(result, activeSet[coI],
-                    constraintVal.segment(startCI, activeSet[coI].size()), g_c);
-            }
-            for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
-                animConfig.meshCollisionObjects[coI]->evaluateConstraints(result, MMActiveSet[coI], constraintVal);
-                int startCI = constraintStartInds[coI + animConfig.collisionObjects.size()];
-                for (int cI = startCI; cI < constraintStartInds[coI + 1 + animConfig.collisionObjects.size()]; ++cI) {
-                    compute_g_b(constraintVal[cI], dHat, constraintVal[cI]);
-                }
-                animConfig.meshCollisionObjects[coI]->leftMultiplyConstraintJacobianT(result, MMActiveSet[coI],
-                    constraintVal.segment(startCI, MMActiveSet[coI].size()), g_c);
-            }
-            if (animConfig.isSelfCollision) {
-                SelfCollisionHandler<dim>::evaluateConstraints(result, MMActiveSet.back(), constraintVal);
-                int startCI = constraintStartInds[animConfig.meshCollisionObjects.size() + animConfig.collisionObjects.size()];
-                for (int cI = startCI; cI < constraintVal.size(); ++cI) {
-                    compute_g_b(constraintVal[cI], dHat, constraintVal[cI]);
-                }
-                SelfCollisionHandler<dim>::leftMultiplyConstraintJacobianT(result, MMActiveSet.back(),
-                    constraintVal.segment(startCI, MMActiveSet.back().size()), g_c);
-            }
-            for (const auto& fixedVI : result.fixedVert) {
-                g_c.segment<dim>(fixedVI * dim).setZero();
-            }
-
-            // balance current gradient at constrained DOF
-            double mu_trial = -g_c.dot(g_E) / g_c.squaredNorm();
-            if (mu_trial > 0.0) {
-                mu = mu_trial;
-            }
-            suggestMu(mu_trial);
-            if (mu < mu_trial) {
-                mu = mu_trial;
-            }
-            upperBoundMu(mu);
-
-            // minimize approximated next search direction
-            //            Eigen::VectorXd HInvGc, HInvGE;
-            //            linSysSolver->solve(g_c, HInvGc);
-            //            linSysSolver->solve(g_E, HInvGE);
-            //            mu = HInvGE.dot(HInvGc) / HInvGc.squaredNorm();
-            //            if(mu < 0.0) {
-            //                mu = g_c.dot(g_E) / g_c.squaredNorm();
-            //            }
-
-            // minimize approximated next search direction at constrained DOF
-            //            Eigen::VectorXd HInvGc;
-            //            linSysSolver->solve(g_c, HInvGc);
-            //            mu = g_E.dot(HInvGc) / g_c.dot(HInvGc);
-            //            if(mu < 0.0) {
-            //                mu = g_c.dot(g_E) / g_c.squaredNorm();
-            //            }
-
-            spdlog::info("mu initialized to {:g}", mu);
-        }
-        else {
-            spdlog::info("no constraint detected, start with default mu");
-        }
+template <int dim>
+void Optimizer<dim>::upperBoundMu(double& mu)
+{
+    double H_b;
+    compute_H_b(1.0e-16 * bboxDiagSize2, dHat, H_b);
+    double muMax = 1.0e13 * result.avgNodeMass(dim) / (4.0e-16 * bboxDiagSize2 * H_b);
+    if (mu > muMax) {
+        mu = muMax;
+        logFile << "upper bounded mu to " << muMax << " at dHat = " << dHat << std::endl;
     }
+}
 
-    template <int dim>
-    void Optimizer<dim>::initSubProb_IP(void)
-    {
-        closeConstraintID.resize(0);
-        closeMConstraintID.resize(0);
-        closeConstraintVal.resize(0);
-        closeMConstraintVal.resize(0);
-    }
-    template <int dim>
-    void Optimizer<dim>::computeSearchDir(int k, bool projectDBC)
-    {
-        // compute matrix
-        computePrecondMtr(result, false, linSysSolver, false, projectDBC);
+template <int dim>
+void Optimizer<dim>::suggestMu(double& mu)
+{
+    double H_b;
+    compute_H_b(1.0e-16 * bboxDiagSize2, dHat, H_b);
+    mu = 1.0e11 * result.avgNodeMass(dim) / (4.0e-16 * bboxDiagSize2 * H_b);
+}
 
-        timer_step.start(3);
-        Eigen::VectorXd minusG = -gradient;
-        if (useGD || !linSysSolver->factorize()) {
-            if (!useGD) {
-                spdlog::warn("matrix not positive definite");
-                logFile << "matrix not positive definite" << std::endl;
+template <int dim>
+void Optimizer<dim>::initMu_IP(double& mu)
+{
+    //TODO: optimize implementation and pipeline
+    buildConstraintStartIndsWithMM(activeSet, MMActiveSet, constraintStartInds);
+    if (constraintStartInds.back()) {
+        Eigen::VectorXd g_E;
+        solveIP = false;
+        computeGradient(result, true, g_E);
+        solveIP = true;
+
+        Eigen::VectorXd constraintVal, g_c;
+        g_c.setZero(g_E.size());
+        for (int coI = 0; coI < animConfig.collisionObjects.size(); ++coI) {
+            animConfig.collisionObjects[coI]->evaluateConstraints(result, activeSet[coI], constraintVal);
+            int startCI = constraintStartInds[coI];
+            for (int cI = startCI; cI < constraintStartInds[coI + 1]; ++cI) {
+                compute_g_b(constraintVal[cI], dHat, constraintVal[cI]);
             }
-
-            // std::cout << "writing it to disk for debug..." << std::endl;
-            // IglUtils::writeSparseMatrixToFile(outputFolderPath + "H_IP", linSysSolver, true);
-            // std::cout << "writing complete, terminate program" << std::endl;
-            // exit(0);
-
-            spdlog::warn("use diagonal preconditioned -gradient direction");
-            logFile << "use diagonal preconditioned -gradient direction" << std::endl;
-            timer_step.start(4);
-            linSysSolver->precondition_diag(minusG, searchDir);
-            // searchDir = minusG;
-            timer_step.stop();
+            animConfig.collisionObjects[coI]->leftMultiplyConstraintJacobianT(result, activeSet[coI],
+                constraintVal.segment(startCI, activeSet[coI].size()), g_c);
         }
-        else {
-            // solve for searchDir
-            timer_step.start(4);
-            linSysSolver->solve(minusG, searchDir);
-            timer_step.stop();
+        for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
+            animConfig.meshCollisionObjects[coI]->evaluateConstraints(result, MMActiveSet[coI], constraintVal);
+            int startCI = constraintStartInds[coI + animConfig.collisionObjects.size()];
+            for (int cI = startCI; cI < constraintStartInds[coI + 1 + animConfig.collisionObjects.size()]; ++cI) {
+                compute_g_b(constraintVal[cI], dHat, constraintVal[cI]);
+            }
+            animConfig.meshCollisionObjects[coI]->leftMultiplyConstraintJacobianT(result, MMActiveSet[coI],
+                constraintVal.segment(startCI, MMActiveSet[coI].size()), g_c);
         }
+        if (animConfig.isSelfCollision) {
+            SelfCollisionHandler<dim>::evaluateConstraints(result, MMActiveSet.back(), constraintVal);
+            int startCI = constraintStartInds[animConfig.meshCollisionObjects.size() + animConfig.collisionObjects.size()];
+            for (int cI = startCI; cI < constraintVal.size(); ++cI) {
+                compute_g_b(constraintVal[cI], dHat, constraintVal[cI]);
+            }
+            SelfCollisionHandler<dim>::leftMultiplyConstraintJacobianT(result, MMActiveSet.back(),
+                constraintVal.segment(startCI, MMActiveSet.back().size()), g_c);
+        }
+        for (const auto& fixedVI : result.fixedVert) {
+            g_c.segment<dim>(fixedVI * dim).setZero();
+        }
+
+        // balance current gradient at constrained DOF
+        double mu_trial = -g_c.dot(g_E) / g_c.squaredNorm();
+        if (mu_trial > 0.0) {
+            mu = mu_trial;
+        }
+        suggestMu(mu_trial);
+        if (mu < mu_trial) {
+            mu = mu_trial;
+        }
+        upperBoundMu(mu);
+
+        // minimize approximated next search direction
+        //            Eigen::VectorXd HInvGc, HInvGE;
+        //            linSysSolver->solve(g_c, HInvGc);
+        //            linSysSolver->solve(g_E, HInvGE);
+        //            mu = HInvGE.dot(HInvGc) / HInvGc.squaredNorm();
+        //            if(mu < 0.0) {
+        //                mu = g_c.dot(g_E) / g_c.squaredNorm();
+        //            }
+
+        // minimize approximated next search direction at constrained DOF
+        //            Eigen::VectorXd HInvGc;
+        //            linSysSolver->solve(g_c, HInvGc);
+        //            mu = g_E.dot(HInvGc) / g_c.dot(HInvGc);
+        //            if(mu < 0.0) {
+        //                mu = g_c.dot(g_E) / g_c.squaredNorm();
+        //            }
+
+        spdlog::info("mu initialized to {:g}", mu);
     }
-    template <int dim>
-    void Optimizer<dim>::postLineSearch(double alpha)
-    {
+    else {
+        spdlog::info("no constraint detected, start with default mu");
+    }
+}
+
+template <int dim>
+void Optimizer<dim>::initSubProb_IP(void)
+{
+    closeConstraintID.resize(0);
+    closeMConstraintID.resize(0);
+    closeConstraintVal.resize(0);
+    closeMConstraintVal.resize(0);
+}
+template <int dim>
+void Optimizer<dim>::computeSearchDir(int k, bool projectDBC)
+{
+    // compute matrix
+    computePrecondMtr(result, false, linSysSolver, false, projectDBC);
+
+    timer_step.start(3);
+    Eigen::VectorXd minusG = -gradient;
+    if (useGD || !linSysSolver->factorize()) {
+        if (!useGD) {
+            spdlog::warn("matrix not positive definite");
+            logFile << "matrix not positive definite" << std::endl;
+        }
+
+        // std::cout << "writing it to disk for debug..." << std::endl;
+        // IglUtils::writeSparseMatrixToFile(outputFolderPath + "H_IP", linSysSolver, true);
+        // std::cout << "writing complete, terminate program" << std::endl;
+        // exit(0);
+
+        spdlog::warn("use diagonal preconditioned -gradient direction");
+        logFile << "use diagonal preconditioned -gradient direction" << std::endl;
+        timer_step.start(4);
+        linSysSolver->precondition_diag(minusG, searchDir);
+        // searchDir = minusG;
+        timer_step.stop();
+    }
+    else {
+        // solve for searchDir
+        timer_step.start(4);
+        linSysSolver->solve(minusG, searchDir);
+        timer_step.stop();
+    }
+}
+template <int dim>
+void Optimizer<dim>::postLineSearch(double alpha)
+{
 #ifdef ADAPTIVE_MU
-        if (mu_IP == 0.0) {
-            initMu_IP(mu_IP);
+    if (mu_IP == 0.0) {
+        initMu_IP(mu_IP);
+    }
+    else {
+        //TODO: avoid recomputation of constraint functions
+        bool updateMu = false;
+        for (int i = 0; i < closeConstraintID.size(); ++i) {
+            double d;
+            animConfig.collisionObjects[closeConstraintID[i].first]->evaluateConstraint(result,
+                closeConstraintID[i].second, d);
+            if (d <= closeConstraintVal[i]) {
+                updateMu = true;
+                break;
+            }
         }
-        else {
-            //TODO: avoid recomputation of constraint functions
-            bool updateMu = false;
-            for (int i = 0; i < closeConstraintID.size(); ++i) {
+        if (!updateMu) {
+            for (int i = 0; i < closeMConstraintID.size(); ++i) {
                 double d;
-                animConfig.collisionObjects[closeConstraintID[i].first]->evaluateConstraint(result,
-                    closeConstraintID[i].second, d);
-                if (d <= closeConstraintVal[i]) {
+                if (closeMConstraintID[i].first < animConfig.meshCollisionObjects.size()) {
+                    animConfig.meshCollisionObjects[closeMConstraintID[i].first]->evaluateConstraint(result,
+                        closeMConstraintID[i].second, d);
+                }
+                else {
+                    SelfCollisionHandler<dim>::evaluateConstraint(result, closeMConstraintID[i].second, d);
+                }
+                if (d <= closeMConstraintVal[i]) {
                     updateMu = true;
                     break;
                 }
             }
-            if (!updateMu) {
-                for (int i = 0; i < closeMConstraintID.size(); ++i) {
-                    double d;
-                    if (closeMConstraintID[i].first < animConfig.meshCollisionObjects.size()) {
-                        animConfig.meshCollisionObjects[closeMConstraintID[i].first]->evaluateConstraint(result,
-                            closeMConstraintID[i].second, d);
-                    }
-                    else {
-                        SelfCollisionHandler<dim>::evaluateConstraint(result, closeMConstraintID[i].second, d);
-                    }
-                    if (d <= closeMConstraintVal[i]) {
-                        updateMu = true;
-                        break;
-                    }
-                }
-            }
-            if (updateMu) {
-                mu_IP *= 2.0;
-                upperBoundMu(mu_IP);
-            }
+        }
+        if (updateMu) {
+            mu_IP *= 2.0;
+            upperBoundMu(mu_IP);
+        }
 #endif
 
 #ifdef ADAPTIVE_MU
-            closeConstraintID.resize(0);
-            closeMConstraintID.resize(0);
-            closeConstraintVal.resize(0);
-            closeMConstraintVal.resize(0);
-            Eigen::VectorXd constraintVal;
-            for (int coI = 0; coI < animConfig.collisionObjects.size(); ++coI) {
-                int constraintValIndStart = constraintVal.size();
-                animConfig.collisionObjects[coI]->evaluateConstraints(result,
-                    activeSet[coI], constraintVal);
+        closeConstraintID.resize(0);
+        closeMConstraintID.resize(0);
+        closeConstraintVal.resize(0);
+        closeMConstraintVal.resize(0);
+        Eigen::VectorXd constraintVal;
+        for (int coI = 0; coI < animConfig.collisionObjects.size(); ++coI) {
+            int constraintValIndStart = constraintVal.size();
+            animConfig.collisionObjects[coI]->evaluateConstraints(result,
+                activeSet[coI], constraintVal);
 
-                for (int i = 0; i < activeSet[coI].size(); ++i) {
-                    if (constraintVal[constraintValIndStart + i] < dTol) {
-                        closeConstraintID.emplace_back(coI, activeSet[coI][i]);
-                        closeConstraintVal.emplace_back(constraintVal[constraintValIndStart + i]);
-                    }
+            for (int i = 0; i < activeSet[coI].size(); ++i) {
+                if (constraintVal[constraintValIndStart + i] < dTol) {
+                    closeConstraintID.emplace_back(coI, activeSet[coI][i]);
+                    closeConstraintVal.emplace_back(constraintVal[constraintValIndStart + i]);
                 }
-            }
-            for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
-                int constraintValIndStart = constraintVal.size();
-                animConfig.meshCollisionObjects[coI]->evaluateConstraints(result,
-                    MMActiveSet[coI], constraintVal);
-
-                for (int i = 0; i < MMActiveSet[coI].size(); ++i) {
-                    // std::cout << MMActiveSet[coI][i][0] << " " << MMActiveSet[coI][i][1] << " " << MMActiveSet[coI][i][2] << " " << MMActiveSet[coI][i][3] << ", d=" << constraintVal[constraintValIndStart + i] << std::endl;
-                    if (constraintVal[constraintValIndStart + i] < dTol) {
-                        closeMConstraintID.emplace_back(coI, MMActiveSet[coI][i]);
-                        closeMConstraintVal.emplace_back(constraintVal[constraintValIndStart + i]);
-                    }
-                }
-            }
-            if (animConfig.isSelfCollision) {
-                int constraintValIndStart = constraintVal.size();
-                SelfCollisionHandler<dim>::evaluateConstraints(result, MMActiveSet.back(), constraintVal);
-
-                for (int i = 0; i < MMActiveSet.back().size(); ++i) {
-                    // std::cout << MMActiveSet.back()[i][0] << " " << MMActiveSet.back()[i][1] << " " << MMActiveSet.back()[i][2] << " " << MMActiveSet.back()[i][3] << ", d=" << constraintVal[constraintValIndStart + i] << std::endl;
-                    if (constraintVal[constraintValIndStart + i] < dTol) {
-                        closeMConstraintID.emplace_back(MMActiveSet.size() - 1, MMActiveSet.back()[i]);
-                        closeMConstraintVal.emplace_back(constraintVal[constraintValIndStart + i]);
-                    }
-                }
-            }
-            if (constraintVal.size()) {
-                spdlog::info("min distance^2 = {:g}", constraintVal.minCoeff());
             }
         }
-#endif
-    }
+        for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
+            int constraintValIndStart = constraintVal.size();
+            animConfig.meshCollisionObjects[coI]->evaluateConstraints(result,
+                MMActiveSet[coI], constraintVal);
 
-    template <int dim>
-    void Optimizer<dim>::computeConstraintSets(const Mesh<dim>& data, bool rehash)
-    {
-        timer_step.start(14);
+            for (int i = 0; i < MMActiveSet[coI].size(); ++i) {
+                // std::cout << MMActiveSet[coI][i][0] << " " << MMActiveSet[coI][i][1] << " " << MMActiveSet[coI][i][2] << " " << MMActiveSet[coI][i][3] << ", d=" << constraintVal[constraintValIndStart + i] << std::endl;
+                if (constraintVal[constraintValIndStart + i] < dTol) {
+                    closeMConstraintID.emplace_back(coI, MMActiveSet[coI][i]);
+                    closeMConstraintVal.emplace_back(constraintVal[constraintValIndStart + i]);
+                }
+            }
+        }
+        if (animConfig.isSelfCollision) {
+            int constraintValIndStart = constraintVal.size();
+            SelfCollisionHandler<dim>::evaluateConstraints(result, MMActiveSet.back(), constraintVal);
+
+            for (int i = 0; i < MMActiveSet.back().size(); ++i) {
+                // std::cout << MMActiveSet.back()[i][0] << " " << MMActiveSet.back()[i][1] << " " << MMActiveSet.back()[i][2] << " " << MMActiveSet.back()[i][3] << ", d=" << constraintVal[constraintValIndStart + i] << std::endl;
+                if (constraintVal[constraintValIndStart + i] < dTol) {
+                    closeMConstraintID.emplace_back(MMActiveSet.size() - 1, MMActiveSet.back()[i]);
+                    closeMConstraintVal.emplace_back(constraintVal[constraintValIndStart + i]);
+                }
+            }
+        }
+        if (constraintVal.size()) {
+            spdlog::info("min distance^2 = {:g}", constraintVal.minCoeff());
+        }
+    }
+#endif
+}
+
+template <int dim>
+void Optimizer<dim>::computeConstraintSets(const Mesh<dim>& data, bool rehash)
+{
+    timer_step.start(14);
 #ifndef CCD_FILTERED_CS
 #ifdef USE_SH_CCS
-        if (rehash) {
-            timer_temp3.start(7);
-            sh.build(data, data.avgEdgeLen / 3.0);
-            timer_temp3.stop();
-        }
+    if (rehash) {
+        timer_temp3.start(7);
+        sh.build(data, data.avgEdgeLen / 3.0);
+        timer_temp3.stop();
+    }
 #endif
 #endif
-        for (int coI = 0; coI < animConfig.collisionObjects.size(); ++coI) {
-            animConfig.collisionObjects[coI]->computeConstraintSet(data, dHat, activeSet[coI]);
-        }
-        for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
-            animConfig.meshCollisionObjects[coI]->computeConstraintSet(data, sh, dHat, MMActiveSet[coI], paraEEMMCVIDSet[coI], paraEEeIeJSet[coI], CFL_FOR_CCD, MMActiveSet_CCD[coI]);
-        }
-        if (animConfig.isSelfCollision) {
-            SelfCollisionHandler<dim>::computeConstraintSet(data, sh, dHat, MMActiveSet.back(), paraEEMMCVIDSet.back(), paraEEeIeJSet.back(), CFL_FOR_CCD, MMActiveSet_CCD.back());
-        }
-        timer_step.stop();
+    for (int coI = 0; coI < animConfig.collisionObjects.size(); ++coI) {
+        animConfig.collisionObjects[coI]->computeConstraintSet(data, dHat, activeSet[coI]);
     }
-
-    template <int dim>
-    void Optimizer<dim>::buildConstraintStartInds(const std::vector<std::vector<int>>& activeSet,
-        std::vector<int>& constraintStartInds)
-    {
-        constraintStartInds.resize(1);
-        constraintStartInds[0] = 0;
-        for (int coI = 0; coI < animConfig.collisionObjects.size(); ++coI) {
-            constraintStartInds.emplace_back(constraintStartInds.back() + activeSet[coI].size());
-        }
+    for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
+        animConfig.meshCollisionObjects[coI]->computeConstraintSet(data, sh, dHat, MMActiveSet[coI], paraEEMMCVIDSet[coI], paraEEeIeJSet[coI], CFL_FOR_CCD, MMActiveSet_CCD[coI]);
     }
-    template <int dim>
-    void Optimizer<dim>::buildConstraintStartIndsWithMM(const std::vector<std::vector<int>>& activeSet,
-        const std::vector<std::vector<MMCVID>>& MMActiveSet,
-        std::vector<int>& constraintStartInds)
-    {
-        constraintStartInds.resize(1);
-        constraintStartInds[0] = 0;
-        for (int coI = 0; coI < animConfig.collisionObjects.size(); ++coI) {
-            constraintStartInds.emplace_back(constraintStartInds.back() + activeSet[coI].size());
-        }
-        for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
-            constraintStartInds.emplace_back(constraintStartInds.back() + MMActiveSet[coI].size());
-        }
-        if (animConfig.isSelfCollision) {
-            constraintStartInds.emplace_back(constraintStartInds.back() + MMActiveSet.back().size());
-        }
+    if (animConfig.isSelfCollision) {
+        SelfCollisionHandler<dim>::computeConstraintSet(data, sh, dHat, MMActiveSet.back(), paraEEMMCVIDSet.back(), paraEEeIeJSet.back(), CFL_FOR_CCD, MMActiveSet_CCD.back());
     }
+    timer_step.stop();
+}
 
-    template <int dim>
-    bool Optimizer<dim>::solve_oneStep(void)
-    {
-        if (!solveWithQP) {
-            // for the changing hessian
-            // Update matrix entries
-            computePrecondMtr(result, false, linSysSolver);
+template <int dim>
+void Optimizer<dim>::buildConstraintStartInds(const std::vector<std::vector<int>>& activeSet,
+    std::vector<int>& constraintStartInds)
+{
+    constraintStartInds.resize(1);
+    constraintStartInds[0] = 0;
+    for (int coI = 0; coI < animConfig.collisionObjects.size(); ++coI) {
+        constraintStartInds.emplace_back(constraintStartInds.back() + activeSet[coI].size());
+    }
+}
+template <int dim>
+void Optimizer<dim>::buildConstraintStartIndsWithMM(const std::vector<std::vector<int>>& activeSet,
+    const std::vector<std::vector<MMCVID>>& MMActiveSet,
+    std::vector<int>& constraintStartInds)
+{
+    constraintStartInds.resize(1);
+    constraintStartInds[0] = 0;
+    for (int coI = 0; coI < animConfig.collisionObjects.size(); ++coI) {
+        constraintStartInds.emplace_back(constraintStartInds.back() + activeSet[coI].size());
+    }
+    for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
+        constraintStartInds.emplace_back(constraintStartInds.back() + MMActiveSet[coI].size());
+    }
+    if (animConfig.isSelfCollision) {
+        constraintStartInds.emplace_back(constraintStartInds.back() + MMActiveSet.back().size());
+    }
+}
 
-            try {
-                // Numerically factorizing Hessian/Proxy matrix
-                if (!mute) { timer_step.start(3); }
-                if (!solveWithSQP) {
-                    linSysSolver->factorize();
-                    // output factorization and exit
-                    // linSysSolver->outputFactorization("/Users/mincli/Desktop/test/IPC/output/L");
-                    // std::cout << "matrix written" << std::endl;
-                    // exit(0);
-                }
-                if (!mute) { timer_step.stop(); }
+template <int dim>
+bool Optimizer<dim>::solve_oneStep(void)
+{
+    if (!solveWithQP) {
+        // for the changing hessian
+        // Update matrix entries
+        computePrecondMtr(result, false, linSysSolver);
+
+        try {
+            // Numerically factorizing Hessian/Proxy matrix
+            if (!mute) { timer_step.start(3); }
+            if (!solveWithSQP) {
+                linSysSolver->factorize();
+                // output factorization and exit
+                // linSysSolver->outputFactorization("/Users/mincli/Desktop/test/IPC/output/L");
+                // std::cout << "matrix written" << std::endl;
+                // exit(0);
             }
-            catch (std::exception e) {
-                IglUtils::writeSparseMatrixToFile(outputFolderPath + "mtr_numFacFail",
-                    linSysSolver, true);
-                spdlog::error("numerical factorization failed, matrix written into {}mtr_numFacFail", outputFolderPath);
-                exit(-1);
-            }
+            if (!mute) { timer_step.stop(); }
         }
+        catch (std::exception e) {
+            IglUtils::writeSparseMatrixToFile(outputFolderPath + "mtr_numFacFail",
+                linSysSolver, true);
+            spdlog::error("numerical factorization failed, matrix written into {}mtr_numFacFail", outputFolderPath);
+            exit(-1);
+        }
+    }
 
-        // Back solve
-        if (!mute) { timer_step.start(4); }
-        if (solveWithQP || solveWithSQP) {
+    // Back solve
+    if (!mute) { timer_step.start(4); }
+    if (solveWithQP || solveWithSQP) {
 #ifdef EXIT_UPON_QP_FAIL
-            bool prevQPsuccess = solveQPSuccess;
+        bool prevQPsuccess = solveQPSuccess;
 #endif
-            solveQPSuccess = solveQP(
-                result, animConfig.collisionObjects, activeSet,
-                linSysSolver, P_QP, elemPtr_P_QP, gradient,
-                OSQPSolver,
+        solveQPSuccess = solveQP(
+            result, animConfig.collisionObjects, activeSet,
+            linSysSolver, P_QP, elemPtr_P_QP, gradient,
+            OSQPSolver,
 #ifdef USE_GUROBI
-                gurobiQPSolver,
+            gurobiQPSolver,
 #endif
-                constraintStartInds, searchDir, dual_QP,
-                animConfig.qpSolverType);
+            constraintStartInds, searchDir, dual_QP,
+            animConfig.qpSolverType);
 
 #ifdef USE_GUROBI
-            if (animConfig.qpSolverType == QP_GUROBI) {
-                if (solveQPSuccess) {
-                    spdlog::debug(
-                        "timestep={:d} Gurobi_status={:d} description=\"{:s}\"",
-                        globalIterNum, gurobiQPSolver.status(), gurobiQPSolver.statusDescription());
-                }
-                else {
-                    spdlog::error(
-                        "timestep={:d} Gurobi_status={:d} description=\"{:s}\"",
-                        globalIterNum, gurobiQPSolver.status(), gurobiQPSolver.statusDescription());
-                }
-            }
-#endif
-
-            if (!solveQPSuccess) {
-#ifdef EXIT_UPON_QP_FAIL
-                if (!prevQPsuccess) {
-                    spdlog::error(
-                        "timestep={:d} msg=\"unable to solve QP for two successive iterations; exiting\"",
-                        globalIterNum);
-                    exit(3);
-                }
-#endif
-                spdlog::error("timestep={:d} msg=\"unable to solve QP; resetting active set\"", globalIterNum);
-
-                searchDir.setZero(gradient.size());
-                for (int coI = 0; coI < animConfig.collisionObjects.size(); ++coI) {
-                    activeSet_next[coI].clear();
-                }
-                for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
-                    MMActiveSet_next[coI].clear();
-                }
-                if (animConfig.isSelfCollision) {
-                    MMActiveSet_next.back().clear();
-                }
-            }
-        }
-        else {
-            Eigen::VectorXd minusG = -gradient;
-            linSysSolver->solve(minusG, searchDir);
-        }
-        if (!mute) { timer_step.stop(); }
-
-        double stepSize;
-        bool stopped;
-        if (solveWithQP || solveWithSQP) {
-            // stopped = lineSearch(stepSize);
-            stepSize = 1.0;
-            Eigen::MatrixXd resultV0 = result.V;
-            if (animConfig.energyType == ET_NH) {
-                // Line search to prevent element inversions
-                stopped = true; // Fail until a valid stepSize is found
-                energyTerms[0]->filterStepSize(result, searchDir, stepSize);
-                while (stepSize > 0) {
-                    stepSize /= 2.0;
-                    stepForward(resultV0, result, stepSize);
-                    if (result.checkInversion(true)) {
-                        // No inversions found
-                        stopped = false;
-                        break;
-                    }
-                }
+        if (animConfig.qpSolverType == QP_GUROBI) {
+            if (solveQPSuccess) {
+                spdlog::debug(
+                    "timestep={:d} Gurobi_status={:d} description=\"{:s}\"",
+                    globalIterNum, gurobiQPSolver.status(), gurobiQPSolver.statusDescription());
             }
             else {
-                stopped = false;
-                stepForward(resultV0, result, stepSize);
+                spdlog::error(
+                    "timestep={:d} Gurobi_status={:d} description=\"{:s}\"",
+                    globalIterNum, gurobiQPSolver.status(), gurobiQPSolver.statusDescription());
             }
         }
-        else {
-            stopped = lineSearch(stepSize); // Also takes the step
-        }
-        if (stopped) {
-            // IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_stopped_" + std::to_string(globalIterNum), precondMtr);
-            // logFile << "descent step stopped at overallIter" << globalIterNum << " for no prominent energy decrease." << std::endl;
-        }
-        if (!solveWithQP) { // Do not update the gradient for a single QP
-            computeGradient(result, false, gradient);
-        }
-        return stopped;
-    }
-
-    template <int dim>
-    bool isIntersected(
-        const Mesh<dim>& mesh,
-        const SpatialHash<dim>& sh,
-        const Eigen::MatrixXd& V0,
-        const Config& p_animConfig)
-    {
-#ifdef NO_CCD_FAILSAFE
-        return false;
 #endif
 
-        for (const auto& obj : p_animConfig.collisionObjects) {
-            if (obj->isIntersected(mesh, V0)) {
-                logFile << "mesh intersects with analytical collision object" << std::endl;
-                return true;
+        if (!solveQPSuccess) {
+#ifdef EXIT_UPON_QP_FAIL
+            if (!prevQPsuccess) {
+                spdlog::error(
+                    "timestep={:d} msg=\"unable to solve QP for two successive iterations; exiting\"",
+                    globalIterNum);
+                exit(3);
+            }
+#endif
+            spdlog::error("timestep={:d} msg=\"unable to solve QP; resetting active set\"", globalIterNum);
+
+            searchDir.setZero(gradient.size());
+            for (int coI = 0; coI < animConfig.collisionObjects.size(); ++coI) {
+                activeSet_next[coI].clear();
+            }
+            for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
+                MMActiveSet_next[coI].clear();
+            }
+            if (animConfig.isSelfCollision) {
+                MMActiveSet_next.back().clear();
             }
         }
-
-        for (int coI = 0; coI < p_animConfig.meshCollisionObjects.size(); ++coI) {
-            if (!p_animConfig.meshCollisionObjects[coI]->checkEdgeTriIntersectionIfAny(mesh, sh)) {
-                logFile << "mesh intersects with mesh collision object" << std::endl;
-                return true;
-            }
-        }
-
-        if (p_animConfig.isSelfCollision) {
-            if (!SelfCollisionHandler<dim>::checkEdgeTriIntersectionIfAny(mesh, sh)) {
-                logFile << "mesh intersects with itself" << std::endl;
-                return true;
-            }
-        }
-
-        return false;
     }
+    else {
+        Eigen::VectorXd minusG = -gradient;
+        linSysSolver->solve(minusG, searchDir);
+    }
+    if (!mute) { timer_step.stop(); }
 
-    template <int dim>
-    bool Optimizer<dim>::lineSearch(double& stepSize,
-        double armijoParam,
-        double lowerBound)
-    {
-        timer_step.start(5);
-        std::stringstream msg;
-
-        bool outputLineSearch = false;
-        if (outputLineSearch) {
-            result.saveAsMesh(outputFolderPath + ((dim == 2) ? "lineSearchBase.obj" : "lineSearchBase.msh"));
-        }
-
-        bool stopped = false;
-
-        if (!solveIP) {
-            initStepSize(result, stepSize);
-        }
-        else {
-            timer_step.start(9);
-            computeEnergyVal(result, false, lastEnergyVal); //TODO: only for updated constraints set and mu
-            timer_step.start(5);
-        }
-        msg << "E_last = " << lastEnergyVal << " stepSize: " << stepSize << " -> ";
-
-        // const double m = searchDir.dot(gradient);
-        // const double c1m = 1.0e-4 * m;
-        double c1m = 0.0;
-        if (armijoParam > 0.0) {
-            c1m = armijoParam * searchDir.dot(gradient);
-        }
+    double stepSize;
+    bool stopped;
+    if (solveWithQP || solveWithSQP) {
+        // stopped = lineSearch(stepSize);
+        stepSize = 1.0;
         Eigen::MatrixXd resultV0 = result.V;
-        // Mesh<dim> temp = result; // TEST
-
-        if (outputLineSearch) {
-            Eigen::VectorXd energyValPerElem;
-            energyTerms[0]->getEnergyValPerElemBySVD(result, false, svd, F,
-                energyValPerElem, false);
-            IglUtils::writeVectorToFile(outputFolderPath + "E0.txt", energyValPerElem);
-        }
-
-#ifdef OUTPUT_CCD_FAIL
-        bool output = false;
-        if (solveIP && animConfig.ccdMethod != ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER) {
-            result.saveSurfaceMesh(outputFolderPath + "before" + std::to_string(numOfCCDFail) + ".obj");
-            output = true;
-        }
-#endif
-        stepForward(resultV0, result, stepSize);
-        if (energyTerms[0]->getNeedElemInvSafeGuard()) {
-            while (!result.checkInversion(true)) {
-                logFile << "element inversion detected during line search, backtrack!" << std::endl;
+        if (animConfig.energyType == ET_NH) {
+            // Line search to prevent element inversions
+            stopped = true; // Fail until a valid stepSize is found
+            energyTerms[0]->filterStepSize(result, searchDir, stepSize);
+            while (stepSize > 0) {
                 stepSize /= 2.0;
                 stepForward(resultV0, result, stepSize);
-            }
-            msg << stepSize << "(safeGuard) -> ";
-        }
-        bool rehash = true;
-        if (solveIP) {
-            sh.build(result, result.avgEdgeLen / 3.0);
-            while (isIntersected(result, sh, resultV0, animConfig)) {
-                logFile << "intersection detected during line search, backtrack!" << std::endl;
-#ifdef OUTPUT_CCD_FAIL
-                if (output) {
-                    result.saveSurfaceMesh(outputFolderPath + "after" + std::to_string(numOfCCDFail) + ".obj");
-                    ++numOfCCDFail;
-                    output = false;
+                if (result.checkInversion(true)) {
+                    // No inversions found
+                    stopped = false;
+                    break;
                 }
-#endif
-                stepSize /= 2.0;
-                stepForward(resultV0, result, stepSize);
-                sh.build(result, result.avgEdgeLen / 3.0);
             }
-            msg << stepSize << "(safeGuard_IP) -> ";
-            rehash = false;
         }
-        double testingE;
-        //        Eigen::VectorXd testingG;
+        else {
+            stopped = false;
+            stepForward(resultV0, result, stepSize);
+        }
+    }
+    else {
+        stopped = lineSearch(stepSize); // Also takes the step
+    }
+    if (stopped) {
+        // IglUtils::writeSparseMatrixToFile(outputFolderPath + "precondMtr_stopped_" + std::to_string(globalIterNum), precondMtr);
+        // logFile << "descent step stopped at overallIter" << globalIterNum << " for no prominent energy decrease." << std::endl;
+    }
+    if (!solveWithQP) { // Do not update the gradient for a single QP
+        computeGradient(result, false, gradient);
+    }
+    return stopped;
+}
+
+template <int dim>
+bool isIntersected(
+    const Mesh<dim>& mesh,
+    const SpatialHash<dim>& sh,
+    const Eigen::MatrixXd& V0,
+    const Config& p_animConfig)
+{
+#ifdef NO_CCD_FAILSAFE
+    return false;
+#endif
+
+    for (const auto& obj : p_animConfig.collisionObjects) {
+        if (obj->isIntersected(mesh, V0)) {
+            logFile << "mesh intersects with analytical collision object" << std::endl;
+            return true;
+        }
+    }
+
+    for (int coI = 0; coI < p_animConfig.meshCollisionObjects.size(); ++coI) {
+        if (!p_animConfig.meshCollisionObjects[coI]->checkEdgeTriIntersectionIfAny(mesh, sh)) {
+            logFile << "mesh intersects with mesh collision object" << std::endl;
+            return true;
+        }
+    }
+
+    if (p_animConfig.isSelfCollision) {
+        if (!SelfCollisionHandler<dim>::checkEdgeTriIntersectionIfAny(mesh, sh)) {
+            logFile << "mesh intersects with itself" << std::endl;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+template <int dim>
+bool Optimizer<dim>::lineSearch(double& stepSize,
+    double armijoParam,
+    double lowerBound)
+{
+    timer_step.start(5);
+    std::stringstream msg;
+
+    bool outputLineSearch = false;
+    if (outputLineSearch) {
+        result.saveAsMesh(outputFolderPath + ((dim == 2) ? "lineSearchBase.obj" : "lineSearchBase.msh"));
+    }
+
+    bool stopped = false;
+
+    if (!solveIP) {
+        initStepSize(result, stepSize);
+    }
+    else {
+        timer_step.start(9);
+        computeEnergyVal(result, false, lastEnergyVal); //TODO: only for updated constraints set and mu
+        timer_step.start(5);
+    }
+    msg << "E_last = " << lastEnergyVal << " stepSize: " << stepSize << " -> ";
+
+    // const double m = searchDir.dot(gradient);
+    // const double c1m = 1.0e-4 * m;
+    double c1m = 0.0;
+    if (armijoParam > 0.0) {
+        c1m = armijoParam * searchDir.dot(gradient);
+    }
+    Eigen::MatrixXd resultV0 = result.V;
+    // Mesh<dim> temp = result; // TEST
+
+    if (outputLineSearch) {
+        Eigen::VectorXd energyValPerElem;
+        energyTerms[0]->getEnergyValPerElemBySVD(result, false, svd, F,
+            energyValPerElem, false);
+        IglUtils::writeVectorToFile(outputFolderPath + "E0.txt", energyValPerElem);
+    }
+
+#ifdef OUTPUT_CCD_FAIL
+    bool output = false;
+    if (solveIP && animConfig.ccdMethod != ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER) {
+        result.saveSurfaceMesh(outputFolderPath + "before" + std::to_string(numOfCCDFail) + ".obj");
+        output = true;
+    }
+#endif
+    stepForward(resultV0, result, stepSize);
+    if (energyTerms[0]->getNeedElemInvSafeGuard()) {
+        while (!result.checkInversion(true)) {
+            logFile << "element inversion detected during line search, backtrack!" << std::endl;
+            stepSize /= 2.0;
+            stepForward(resultV0, result, stepSize);
+        }
+        msg << stepSize << "(safeGuard) -> ";
+    }
+    bool rehash = true;
+    if (solveIP) {
+        sh.build(result, result.avgEdgeLen / 3.0);
+        while (isIntersected(result, sh, resultV0, animConfig)) {
+            logFile << "intersection detected during line search, backtrack!" << std::endl;
+#ifdef OUTPUT_CCD_FAIL
+            if (output) {
+                result.saveSurfaceMesh(outputFolderPath + "after" + std::to_string(numOfCCDFail) + ".obj");
+                ++numOfCCDFail;
+                output = false;
+            }
+#endif
+            stepSize /= 2.0;
+            stepForward(resultV0, result, stepSize);
+            sh.build(result, result.avgEdgeLen / 3.0);
+        }
+        msg << stepSize << "(safeGuard_IP) -> ";
+        rehash = false;
+    }
+    double testingE;
+    //        Eigen::VectorXd testingG;
+    timer_step.stop();
+    if (solveIP) {
+        computeConstraintSets(result, rehash);
+    }
+    timer_step.start(9);
+    computeEnergyVal(result, 2, testingE);
+    timer_step.start(5);
+    //        computeGradient(testingData, testingG);
+
+    if (outputLineSearch) {
+        Eigen::VectorXd energyValPerElem;
+        energyTerms[0]->getEnergyValPerElemBySVD(result, false, svd, F,
+            energyValPerElem, false);
+        IglUtils::writeVectorToFile(outputFolderPath + "E.txt", energyValPerElem);
+    }
+
+#define ARMIJO_RULE
+#ifdef ARMIJO_RULE
+    //        while((testingE > lastEnergyVal + stepSize * c1m) ||
+    //              (searchDir.dot(testingG) < c2m)) // Wolfe condition
+    // FILE* out = fopen((outputFolderPath + "Els.txt").c_str(), "w");
+    double LFStepSize = stepSize;
+    while ((testingE > lastEnergyVal + stepSize * c1m) && // Armijo condition
+        (stepSize > lowerBound)) {
+        // fprintf(out, "%.9le %.9le\n", stepSize, testingE);
+        if (stepSize == 1.0) {
+            // can try cubic interpolation here
+            stepSize /= 2.0;
+        }
+        else {
+            stepSize /= 2.0;
+        }
+
+        ++numOfLineSearch;
+        if (stepSize == 0.0) {
+            stopped = true;
+            if (!mute) {
+                logFile << "testingE" << globalIterNum << " " << testingE << " > " << lastEnergyVal << " " << stepSize * c1m << std::endl;
+                //                    logFile << "testingG" << globalIterNum << " " << searchDir.dot(testingG) << " < " << c2m << std::endl;
+            }
+            break;
+        }
+
+        stepForward(resultV0, result, stepSize);
+        // while (isIntersected(result, resultV0, animConfig)) {
+        //     stepSize /= 2.0;
+        //     stepForward(resultV0, result, stepSize);
+        // }
+        msg << stepSize << " -> ";
+
         timer_step.stop();
         if (solveIP) {
-            computeConstraintSets(result, rehash);
+            computeConstraintSets(result);
         }
         timer_step.start(9);
         computeEnergyVal(result, 2, testingE);
         timer_step.start(5);
-        //        computeGradient(testingData, testingG);
-
-        if (outputLineSearch) {
-            Eigen::VectorXd energyValPerElem;
-            energyTerms[0]->getEnergyValPerElemBySVD(result, false, svd, F,
-                energyValPerElem, false);
-            IglUtils::writeVectorToFile(outputFolderPath + "E.txt", energyValPerElem);
-        }
-
-#define ARMIJO_RULE
-#ifdef ARMIJO_RULE
-        //        while((testingE > lastEnergyVal + stepSize * c1m) ||
-        //              (searchDir.dot(testingG) < c2m)) // Wolfe condition
-        // FILE* out = fopen((outputFolderPath + "Els.txt").c_str(), "w");
-        double LFStepSize = stepSize;
-        while ((testingE > lastEnergyVal + stepSize * c1m) && // Armijo condition
-            (stepSize > lowerBound)) {
-            // fprintf(out, "%.9le %.9le\n", stepSize, testingE);
-            if (stepSize == 1.0) {
-                // can try cubic interpolation here
-                stepSize /= 2.0;
-            }
-            else {
-                stepSize /= 2.0;
-            }
-
-            ++numOfLineSearch;
-            if (stepSize == 0.0) {
-                stopped = true;
-                if (!mute) {
-                    logFile << "testingE" << globalIterNum << " " << testingE << " > " << lastEnergyVal << " " << stepSize * c1m << std::endl;
-                    //                    logFile << "testingG" << globalIterNum << " " << searchDir.dot(testingG) << " < " << c2m << std::endl;
-                }
-                break;
-            }
-
-            stepForward(resultV0, result, stepSize);
-            // while (isIntersected(result, resultV0, animConfig)) {
-            //     stepSize /= 2.0;
-            //     stepForward(resultV0, result, stepSize);
-            // }
-            msg << stepSize << " -> ";
-
-            timer_step.stop();
-            if (solveIP) {
-                computeConstraintSets(result);
-            }
-            timer_step.start(9);
-            computeEnergyVal(result, 2, testingE);
-            timer_step.start(5);
-            //            computeGradient(testingData, testingG);
-        }
-
-        if (stepSize < LFStepSize && solveIP) {
-            bool needRecomputeCS = false;
-            while (isIntersected(result, sh, resultV0, animConfig)) {
-                logFile << "intersection detected after line search, backtrack!" << std::endl;
-                stepSize /= 2.0;
-                stepForward(resultV0, result, stepSize);
-                sh.build(result, result.avgEdgeLen / 3.0);
-                needRecomputeCS = true;
-            }
-            if (needRecomputeCS) {
-                computeConstraintSets(result, false);
-            }
-        }
-
-#ifdef CHECK_RATIONAL_CCD_GLOBAL
-        Eigen::MatrixXd V_bk = result.V;
-
-        result.V = resultV0;
-        sh.build(result, searchDir, stepSize, result.avgEdgeLen / 3.0);
-        double stepSize_rational = stepSize;
-        SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(result, sh, searchDir, ccd::CCDMethod::RATIONAL_ROOT_PARITY, stepSize_rational);
-        if (stepSize_rational != stepSize) {
-            std::cout << "rational CCD detects interpenetration but inexact didn't" << std::endl;
-        }
-
-        result.V = V_bk;
-#endif
-
-        // fclose(out);
-#endif
-        // // further search
-        // double stepSize_fs = stepSize / 2.0;
-        // stepForward(resultV0, result, stepSize_fs);
-        // double E_fs;
-        // timer_step.stop();
-        // computeConstraintSets(result);
-        // timer_step.start(9);
-        // computeEnergyVal(result, 2, E_fs);
-        // timer_step.start(5);
-        // while (E_fs < testingE) {
-        //     testingE = E_fs;
-        //     stepSize_fs /= 2.0;
-        //     stepForward(resultV0, result, stepSize_fs);
-
-        //     timer_step.stop();
-        //     computeConstraintSets(result);
-        //     timer_step.start(9);
-        //     computeEnergyVal(result, 2, E_fs);
-        //     timer_step.start(5);
-        // }
-        // stepForward(resultV0, result, stepSize_fs * 2.0);
-        // timer_step.stop();
-        // computeConstraintSets(result);
-        // timer_step.start(9);
-        // computeEnergyVal(result, 2, testingE);
-        // timer_step.start(5);
-
-        msg << stepSize << "(armijo) ";
-
-        // if (energyTerms[0]->getNeedElemInvSafeGuard()) {
-        //     if (!result.checkInversion(true)) {
-        //         logFile << "element inversion detected after line search, backtrack!" << std::endl;
-        //         stepSize /= 2.0;
-        //         stepForward(resultV0, result, stepSize);
-        //     }
-        // }
-        // if (solveIP) {
-        //     while (isIntersected(result, sh, resultV0, animConfig)) {
-        //         logFile << "intersection detected after line search, backtrack!" << std::endl;
-        //         stepSize /= 2.0;
-        //         stepForward(resultV0, result, stepSize);
-        //         sh.build(result, result.avgEdgeLen / 3.0);
-        //     }
-        // }
-
-        // while((!result.checkInversion()) ||
-        //       ((scaffolding) && (!scaffold.airMesh.checkInversion())))
-        // {
-        //     assert(0 && "element inversion after armijo shouldn't happen!");
-        //
-        //     stepSize /= 2.0;
-        //     if(stepSize == 0.0) {
-        //         assert(0 && "line search failed!");
-        //         stopped = true;
-        //         break;
-        //     }
-        //
-        //     stepForward(resultV0, scaffoldV0, result, scaffold, stepSize);
-        //     computeEnergyVal(result, scaffold, testingE);
-        // }
-        //
-        // // projection method for collision handling
-        // for(int vI = 0; vI < result.V.rows(); vI++) {
-        //     if(result.V(vI, 1) < 0.0) {
-        //         result.V(vI, 1) = 0.0;
-        //     }
-        // }
-        // computeEnergyVal(result, scaffold, true, testingE);
-
-        lastEnergyVal = testingE;
-
-        if (!mute) {
-            msg << stepSize << " (E = " << testingE << ")";
-            spdlog::info("{:s}", msg.str());
-            spdlog::info("stepLen = {:g}", (stepSize * searchDir).squaredNorm());
-        }
-        file_iterStats << stepSize << " ";
-
-        if (outputLineSearch) {
-            IglUtils::writeVectorToFile(outputFolderPath + "searchDir.txt",
-                searchDir);
-            exit(0);
-        }
-
-        timer_step.stop();
-
-        return stopped;
+        //            computeGradient(testingData, testingG);
     }
 
-    template <int dim>
-    void Optimizer<dim>::stepForward(const Eigen::MatrixXd& dataV0,
-        Mesh<dim>& data,
-        double stepSize) const
-    {
-        assert(dataV0.rows() == data.V.rows());
-        assert(data.V.rows() * dim == searchDir.size());
-        assert(data.V.rows() == result.V.rows());
+    if (stepSize < LFStepSize && solveIP) {
+        bool needRecomputeCS = false;
+        while (isIntersected(result, sh, resultV0, animConfig)) {
+            logFile << "intersection detected after line search, backtrack!" << std::endl;
+            stepSize /= 2.0;
+            stepForward(resultV0, result, stepSize);
+            sh.build(result, result.avgEdgeLen / 3.0);
+            needRecomputeCS = true;
+        }
+        if (needRecomputeCS) {
+            computeConstraintSets(result, false);
+        }
+    }
+
+#ifdef CHECK_RATIONAL_CCD_GLOBAL
+    Eigen::MatrixXd V_bk = result.V;
+
+    result.V = resultV0;
+    sh.build(result, searchDir, stepSize, result.avgEdgeLen / 3.0);
+    double stepSize_rational = stepSize;
+    SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(result, sh, searchDir, ccd::CCDMethod::RATIONAL_ROOT_PARITY, stepSize_rational);
+    if (stepSize_rational != stepSize) {
+        std::cout << "rational CCD detects interpenetration but inexact didn't" << std::endl;
+    }
+
+    result.V = V_bk;
+#endif
+
+    // fclose(out);
+#endif
+    // // further search
+    // double stepSize_fs = stepSize / 2.0;
+    // stepForward(resultV0, result, stepSize_fs);
+    // double E_fs;
+    // timer_step.stop();
+    // computeConstraintSets(result);
+    // timer_step.start(9);
+    // computeEnergyVal(result, 2, E_fs);
+    // timer_step.start(5);
+    // while (E_fs < testingE) {
+    //     testingE = E_fs;
+    //     stepSize_fs /= 2.0;
+    //     stepForward(resultV0, result, stepSize_fs);
+
+    //     timer_step.stop();
+    //     computeConstraintSets(result);
+    //     timer_step.start(9);
+    //     computeEnergyVal(result, 2, E_fs);
+    //     timer_step.start(5);
+    // }
+    // stepForward(resultV0, result, stepSize_fs * 2.0);
+    // timer_step.stop();
+    // computeConstraintSets(result);
+    // timer_step.start(9);
+    // computeEnergyVal(result, 2, testingE);
+    // timer_step.start(5);
+
+    msg << stepSize << "(armijo) ";
+
+    // if (energyTerms[0]->getNeedElemInvSafeGuard()) {
+    //     if (!result.checkInversion(true)) {
+    //         logFile << "element inversion detected after line search, backtrack!" << std::endl;
+    //         stepSize /= 2.0;
+    //         stepForward(resultV0, result, stepSize);
+    //     }
+    // }
+    // if (solveIP) {
+    //     while (isIntersected(result, sh, resultV0, animConfig)) {
+    //         logFile << "intersection detected after line search, backtrack!" << std::endl;
+    //         stepSize /= 2.0;
+    //         stepForward(resultV0, result, stepSize);
+    //         sh.build(result, result.avgEdgeLen / 3.0);
+    //     }
+    // }
+
+    // while((!result.checkInversion()) ||
+    //       ((scaffolding) && (!scaffold.airMesh.checkInversion())))
+    // {
+    //     assert(0 && "element inversion after armijo shouldn't happen!");
+    //
+    //     stepSize /= 2.0;
+    //     if(stepSize == 0.0) {
+    //         assert(0 && "line search failed!");
+    //         stopped = true;
+    //         break;
+    //     }
+    //
+    //     stepForward(resultV0, scaffoldV0, result, scaffold, stepSize);
+    //     computeEnergyVal(result, scaffold, testingE);
+    // }
+    //
+    // // projection method for collision handling
+    // for(int vI = 0; vI < result.V.rows(); vI++) {
+    //     if(result.V(vI, 1) < 0.0) {
+    //         result.V(vI, 1) = 0.0;
+    //     }
+    // }
+    // computeEnergyVal(result, scaffold, true, testingE);
+
+    lastEnergyVal = testingE;
+
+    if (!mute) {
+        msg << stepSize << " (E = " << testingE << ")";
+        spdlog::info("{:s}", msg.str());
+        spdlog::info("stepLen = {:g}", (stepSize * searchDir).squaredNorm());
+    }
+    file_iterStats << stepSize << " ";
+
+    if (outputLineSearch) {
+        IglUtils::writeVectorToFile(outputFolderPath + "searchDir.txt",
+            searchDir);
+        exit(0);
+    }
+
+    timer_step.stop();
+
+    return stopped;
+}
+
+template <int dim>
+void Optimizer<dim>::stepForward(const Eigen::MatrixXd& dataV0,
+    Mesh<dim>& data,
+    double stepSize) const
+{
+    assert(dataV0.rows() == data.V.rows());
+    assert(data.V.rows() * dim == searchDir.size());
+    assert(data.V.rows() == result.V.rows());
 
 #ifdef USE_TBB
-        tbb::parallel_for(0, (int)data.V.rows(), 1, [&](int vI)
+    tbb::parallel_for(0, (int)data.V.rows(), 1, [&](int vI)
 #else
     for (int vI = 0; vI < data.V.rows(); vI++)
 #endif
-            {
-                data.V.row(vI) = dataV0.row(vI) + stepSize * searchDir.segment<dim>(vI * dim).transpose();
-            }
+        {
+            data.V.row(vI) = dataV0.row(vI) + stepSize * searchDir.segment<dim>(vI * dim).transpose();
+        }
 #ifdef USE_TBB
-        );
+    );
 #endif
+}
+
+template <int dim>
+void Optimizer<dim>::updateTargetGRes(void)
+{
+    targetGRes = std::sqrt(relGL2Tol * bboxDiagSize2 * dtSq);
+}
+
+template <int dim>
+void Optimizer<dim>::getFaceFieldForVis(Eigen::VectorXd& field)
+{
+    //        field = Eigen::VectorXd::Zero(result.F.rows());
+    field = result.u;
+}
+
+template <int dim>
+void Optimizer<dim>::initStepSize(const Mesh<dim>& data, double& stepSize)
+{
+    stepSize = 1.0;
+
+    for (int eI = 0; eI < energyTerms.size(); eI++) {
+        energyTerms[eI]->filterStepSize(data, searchDir, stepSize);
     }
+}
 
-    template <int dim>
-    void Optimizer<dim>::updateTargetGRes(void)
-    {
-        targetGRes = std::sqrt(relGL2Tol * bboxDiagSize2 * dtSq);
-    }
+template <int dim>
+void Optimizer<dim>::saveStatus(const std::string& appendStr)
+{
+    FILE* out = fopen((outputFolderPath + "status" + std::to_string(globalIterNum) + appendStr).c_str(), "w");
+    assert(out);
 
-    template <int dim>
-    void Optimizer<dim>::getFaceFieldForVis(Eigen::VectorXd & field)
-    {
-        //        field = Eigen::VectorXd::Zero(result.F.rows());
-        field = result.u;
-    }
+    fprintf(out, "timestep %d\n", globalIterNum);
 
-    template <int dim>
-    void Optimizer<dim>::initStepSize(const Mesh<dim>& data, double& stepSize)
-    {
-        stepSize = 1.0;
-
-        for (int eI = 0; eI < energyTerms.size(); eI++) {
-            energyTerms[eI]->filterStepSize(data, searchDir, stepSize);
+    fprintf(out, "\nposition %ld %ld\n", result.V.rows(), result.V.cols());
+    for (int vI = 0; vI < result.V.rows(); ++vI) {
+        fprintf(out, "%le %le", result.V(vI, 0),
+            result.V(vI, 1));
+        if constexpr (dim == 3) {
+            fprintf(out, " %le\n", result.V(vI, 2));
+        }
+        else {
+            fprintf(out, "\n");
         }
     }
 
-    template <int dim>
-    void Optimizer<dim>::saveStatus(const std::string& appendStr)
-    {
-        FILE* out = fopen((outputFolderPath + "status" + std::to_string(globalIterNum) + appendStr).c_str(), "w");
-        assert(out);
+    fprintf(out, "\nvelocity %ld\n", velocity.size());
+    for (int velI = 0; velI < velocity.size(); ++velI) {
+        fprintf(out, "%le\n", velocity[velI]);
+    }
 
-        fprintf(out, "timestep %d\n", globalIterNum);
-
-        fprintf(out, "\nposition %ld %ld\n", result.V.rows(), result.V.cols());
-        for (int vI = 0; vI < result.V.rows(); ++vI) {
-            fprintf(out, "%le %le", result.V(vI, 0),
-                result.V(vI, 1));
-            if constexpr (dim == 3) {
-                fprintf(out, " %le\n", result.V(vI, 2));
-            }
-            else {
-                fprintf(out, "\n");
-            }
+    fprintf(out, "\ndx_Elastic %ld %d\n", dx_Elastic.rows(), dim);
+    for (int velI = 0; velI < dx_Elastic.rows(); ++velI) {
+        fprintf(out, "%le %le", dx_Elastic(velI, 0),
+            dx_Elastic(velI, 1));
+        if constexpr (dim == 3) {
+            fprintf(out, " %le\n", dx_Elastic(velI, 2));
         }
-
-        fprintf(out, "\nvelocity %ld\n", velocity.size());
-        for (int velI = 0; velI < velocity.size(); ++velI) {
-            fprintf(out, "%le\n", velocity[velI]);
+        else {
+            fprintf(out, "\n");
         }
+    }
 
-        fprintf(out, "\ndx_Elastic %ld %d\n", dx_Elastic.rows(), dim);
-        for (int velI = 0; velI < dx_Elastic.rows(); ++velI) {
-            fprintf(out, "%le %le", dx_Elastic(velI, 0),
-                dx_Elastic(velI, 1));
-            if constexpr (dim == 3) {
-                fprintf(out, " %le\n", dx_Elastic(velI, 2));
-            }
-            else {
-                fprintf(out, "\n");
-            }
-        }
+    fclose(out);
 
-        fclose(out);
-
-        // surface mesh, including codimensional surface CO
+    // surface mesh, including codimensional surface CO
 #ifdef USE_TBB
-        tbb::parallel_for(0, (int)V_surf.rows(), 1, [&](int vI)
+    tbb::parallel_for(0, (int)V_surf.rows(), 1, [&](int vI)
 #else
     for (int vI = 0; vI < V_surf.rows(); ++vI)
 #endif
-            {
-                V_surf.row(vI) = result.V.row(surfIndToTet[vI]);
-            }
+        {
+            V_surf.row(vI) = result.V.row(surfIndToTet[vI]);
+        }
 #ifdef USE_TBB
-        );
+    );
 #endif
 
-        igl::writeOBJ(outputFolderPath + std::to_string(globalIterNum) + ".obj", V_surf, F_surf);
+    igl::writeOBJ(outputFolderPath + std::to_string(globalIterNum) + ".obj", V_surf.rowwise() + invShift.transpose(), F_surf);
 
-        // codimensional segment CO
-        if (result.CE.rows()) {
+    // codimensional segment CO
+    if (result.CE.rows()) {
 #ifdef USE_TBB
-            tbb::parallel_for(0, (int)V_CE.rows(), 1, [&](int vI)
+        tbb::parallel_for(0, (int)V_CE.rows(), 1, [&](int vI)
 #else
         for (int vI = 0; vI < V_CE.rows(); ++vI)
 #endif
-                {
-                    V_CE.row(vI) = result.V.row(CEIndToTet[vI]);
-                }
+            {
+                V_CE.row(vI) = result.V.row(CEIndToTet[vI]);
+            }
 #ifdef USE_TBB
-            );
+        );
 #endif
-            IglUtils::writeSEG(outputFolderPath + std::to_string(globalIterNum) + ".seg",
-                V_CE, F_CE);
-        }
-
-        // codimensional point CO
-        bool hasPointCO = false;
-        for (const auto& coDimI : result.componentCoDim) {
-            if (coDimI == 0) {
-                hasPointCO = true;
-                break;
-            }
-        }
-        if (hasPointCO) {
-            FILE* out = fopen((outputFolderPath + "pt" + std::to_string(globalIterNum) + ".obj").c_str(), "w");
-            for (int compI = 0; compI < result.componentCoDim.size(); ++compI) {
-                if (result.componentCoDim[compI] == 0) {
-                    for (int vI = result.componentNodeRange[compI];
-                         vI < result.componentNodeRange[compI + 1]; ++vI) {
-                        fprintf(out, "v %le %le %le\n", result.V(vI, 0), result.V(vI, 1), result.V(vI, 2));
-                    }
-                }
-            }
-            fclose(out);
-        }
+        IglUtils::writeSEG(outputFolderPath + std::to_string(globalIterNum) + ".seg",
+            V_CE, F_CE);
     }
 
-    template <int dim>
-    void Optimizer<dim>::outputCollStats(std::ostream & out)
-    {
-        for (int i = 0; i < n_collPairs_sum.size(); ++i) {
-            out << "avg # collision pairs / iter = " << n_collPairs_sum[i] / (innerIterAmt ? innerIterAmt : 1) << std::endl;
-            out << "max # collision pairs / iter = " << n_collPairs_max[i] << std::endl;
-            out << "avg # collision pairs / end of ts = " << n_convCollPairs_sum[i] / globalIterNum << std::endl;
-            out << "max # collision pairs / end of ts = " << n_convCollPairs_max[i] << std::endl;
-            out << std::endl;
+    // codimensional point CO
+    bool hasPointCO = false;
+    for (const auto& coDimI : result.componentCoDim) {
+        if (coDimI == 0) {
+            hasPointCO = true;
+            break;
         }
+    }
+    if (hasPointCO) {
+        FILE* out = fopen((outputFolderPath + "pt" + std::to_string(globalIterNum) + ".obj").c_str(), "w");
+        for (int compI = 0; compI < result.componentCoDim.size(); ++compI) {
+            if (result.componentCoDim[compI] == 0) {
+                for (int vI = result.componentNodeRange[compI];
+                     vI < result.componentNodeRange[compI + 1]; ++vI) {
+                    fprintf(out, "v %le %le %le\n", result.V(vI, 0), result.V(vI, 1), result.V(vI, 2));
+                }
+            }
+        }
+        fclose(out);
+    }
+}
 
-        out << "Total:" << std::endl;
-        out << "avg # collision pairs / iter = " << n_collPairs_sum.sum() / (innerIterAmt ? innerIterAmt : 1) << std::endl;
-        out << "max # collision pairs / iter = " << n_collPairs_total_max << std::endl;
-        out << "avg # collision pairs / end of ts = " << n_convCollPairs_sum.sum() / globalIterNum << std::endl;
-        out << "max # collision pairs / end of ts = " << n_convCollPairs_total_max << std::endl;
+template <int dim>
+void Optimizer<dim>::outputCollStats(std::ostream& out)
+{
+    for (int i = 0; i < n_collPairs_sum.size(); ++i) {
+        out << "avg # collision pairs / iter = " << n_collPairs_sum[i] / (innerIterAmt ? innerIterAmt : 1) << std::endl;
+        out << "max # collision pairs / iter = " << n_collPairs_max[i] << std::endl;
+        out << "avg # collision pairs / end of ts = " << n_convCollPairs_sum[i] / globalIterNum << std::endl;
+        out << "max # collision pairs / end of ts = " << n_convCollPairs_max[i] << std::endl;
         out << std::endl;
     }
 
-    template <int dim>
-    void Optimizer<dim>::computeEnergyVal(const Mesh<dim>& data, int redoSVD, double& energyVal)
-    {
-        //TODO: write inertia and augmented Lagrangian term into energyTerms
-        //        if(!mute) { timer_step.start(0); }
-        switch (animConfig.timeIntegrationType) {
-        case TIT_BE: {
-            energyTerms[0]->computeEnergyVal(data, redoSVD, svd, F,
-                dtSq * energyParams[0], energyVal_ET[0]);
-            energyVal = energyVal_ET[0];
-            for (int eI = 1; eI < energyTerms.size(); eI++) {
-                energyTerms[eI]->computeEnergyVal(data, redoSVD, svd, F,
-                    dtSq * energyParams[eI], energyVal_ET[eI]);
-                energyVal += energyVal_ET[eI];
-            }
-            break;
-        }
+    out << "Total:" << std::endl;
+    out << "avg # collision pairs / iter = " << n_collPairs_sum.sum() / (innerIterAmt ? innerIterAmt : 1) << std::endl;
+    out << "max # collision pairs / iter = " << n_collPairs_total_max << std::endl;
+    out << "avg # collision pairs / end of ts = " << n_convCollPairs_sum.sum() / globalIterNum << std::endl;
+    out << "max # collision pairs / end of ts = " << n_convCollPairs_total_max << std::endl;
+    out << std::endl;
+}
 
-        case TIT_NM: {
-            energyTerms[0]->computeEnergyVal(data, redoSVD, svd, F, dtSq * beta_NM * energyParams[0], energyVal_ET[0]);
-            energyVal = energyVal_ET[0];
-            for (int eI = 1; eI < energyTerms.size(); eI++) {
-                energyTerms[eI]->computeEnergyVal(data, redoSVD, svd, F, dtSq * beta_NM * energyParams[eI], energyVal_ET[eI]);
-                energyVal += energyVal_ET[eI];
-            }
-            break;
+template <int dim>
+void Optimizer<dim>::computeEnergyVal(const Mesh<dim>& data, int redoSVD, double& energyVal)
+{
+    //TODO: write inertia and augmented Lagrangian term into energyTerms
+    //        if(!mute) { timer_step.start(0); }
+    switch (animConfig.timeIntegrationType) {
+    case TIT_BE: {
+        energyTerms[0]->computeEnergyVal(data, redoSVD, svd, F,
+            dtSq * energyParams[0], energyVal_ET[0]);
+        energyVal = energyVal_ET[0];
+        for (int eI = 1; eI < energyTerms.size(); eI++) {
+            energyTerms[eI]->computeEnergyVal(data, redoSVD, svd, F,
+                dtSq * energyParams[eI], energyVal_ET[eI]);
+            energyVal += energyVal_ET[eI];
         }
-        }
+        break;
+    }
 
-        Eigen::VectorXd energyVals(data.V.rows());
+    case TIT_NM: {
+        energyTerms[0]->computeEnergyVal(data, redoSVD, svd, F, dtSq * beta_NM * energyParams[0], energyVal_ET[0]);
+        energyVal = energyVal_ET[0];
+        for (int eI = 1; eI < energyTerms.size(); eI++) {
+            energyTerms[eI]->computeEnergyVal(data, redoSVD, svd, F, dtSq * beta_NM * energyParams[eI], energyVal_ET[eI]);
+            energyVal += energyVal_ET[eI];
+        }
+        break;
+    }
+    }
+
+    Eigen::VectorXd energyVals(data.V.rows());
 #ifdef USE_TBB
-        tbb::parallel_for(0, (int)data.V.rows(), 1, [&](int vI)
+    tbb::parallel_for(0, (int)data.V.rows(), 1, [&](int vI)
 #else
     for (int vI = 0; vI < data.V.rows(); vI++)
 #endif
+        {
+            energyVals[vI] = ((data.V.row(vI) - xTilta.row(vI)).squaredNorm() * data.massMatrix.coeff(vI, vI) / 2.0);
+        }
+#ifdef USE_TBB
+    );
+#endif
+    energyVal += energyVals.sum();
+
+    if (animScripter.isNBCActive()) {
+        for (const auto& NMI : data.NeumannBC) {
+            if (!data.isFixedVert[NMI.first]) {
+                energyVal -= dtSq * data.massMatrix.coeff(NMI.first, NMI.first) * data.V.row(NMI.first).dot(NMI.second);
+            }
+        }
+    }
+
+    if (solveIP) {
+        Eigen::VectorXd constraintVals, bVals;
+        for (int coI = 0; coI < animConfig.collisionObjects.size(); ++coI) {
+            int startCI = constraintVals.size();
+            animConfig.collisionObjects[coI]->evaluateConstraints(data, activeSet[coI], constraintVals);
+            bVals.conservativeResize(constraintVals.size());
+            for (int cI = startCI; cI < constraintVals.size(); ++cI) {
+                if (constraintVals[cI] <= 0.0) {
+                    spdlog::error("constraintVal = {:g} when evaluating constraints", constraintVals[cI]);
+                    exit(0);
+                }
+                else {
+                    compute_b(constraintVals[cI], dHat, bVals[cI]);
+                }
+            }
+        }
+        for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
+            int startCI = constraintVals.size();
+            animConfig.meshCollisionObjects[coI]->evaluateConstraints(data, MMActiveSet[coI], constraintVals);
+            bVals.conservativeResize(constraintVals.size());
+            for (int cI = startCI; cI < constraintVals.size(); ++cI) {
+                if (constraintVals[cI] <= 0.0) {
+                    spdlog::error("constraintVal = {:g} when evaluating constraints", constraintVals[cI]);
+                    exit(0);
+                }
+                else {
+                    compute_b(constraintVals[cI], dHat, bVals[cI]);
+                    int duplication = MMActiveSet[coI][cI - startCI][3];
+                    if (duplication < -1) {
+                        // PP or PE or EP, handle duplication
+                        bVals[cI] *= -duplication;
+                    }
+                }
+            }
+
+            animConfig.meshCollisionObjects[coI]->augmentParaEEEnergy(data, paraEEMMCVIDSet[coI], paraEEeIeJSet[coI],
+                constraintVals, bVals, dHat, 1.0);
+        }
+        if (animConfig.isSelfCollision) {
+            int startCI = constraintVals.size();
+            SelfCollisionHandler<dim>::evaluateConstraints(data, MMActiveSet.back(), constraintVals);
+            bVals.conservativeResize(constraintVals.size());
+            //TODO: parallelize
+            for (int cI = startCI; cI < constraintVals.size(); ++cI) {
+                if (constraintVals[cI] <= 0.0) {
+                    spdlog::error("constraintVal = {:g} when evaluating constraints {:d} {:d} {:d} {:d}",
+                        constraintVals[cI], MMActiveSet.back()[cI][0], MMActiveSet.back()[cI][1],
+                        MMActiveSet.back()[cI][2], MMActiveSet.back()[cI][3]);
+                    std::cout << data.V.row(MMActiveSet.back()[cI][0] >= 0 ? MMActiveSet.back()[cI][0] : (-MMActiveSet.back()[cI][0] - 1)) << std::endl;
+                    std::cout << data.V.row(MMActiveSet.back()[cI][1] >= 0 ? MMActiveSet.back()[cI][1] : (-MMActiveSet.back()[cI][1] - 1)) << std::endl;
+                    std::cout << data.V.row(MMActiveSet.back()[cI][2] >= 0 ? MMActiveSet.back()[cI][2] : (-MMActiveSet.back()[cI][2] - 1)) << std::endl;
+                    std::cout << data.V.row(MMActiveSet.back()[cI][3] >= 0 ? MMActiveSet.back()[cI][3] : (-MMActiveSet.back()[cI][3] - 1)) << std::endl;
+                    data.saveSurfaceMesh("debug.obj");
+                    exit(0);
+                }
+                else {
+                    compute_b(constraintVals[cI], dHat, bVals[cI]);
+                    int duplication = MMActiveSet.back()[cI - startCI][3];
+                    if (duplication < -1) {
+                        // PP or PE, handle duplication
+                        bVals[cI] *= -duplication;
+                    }
+                }
+            }
+
+            startCI = constraintVals.size();
+            SelfCollisionHandler<dim>::evaluateConstraints(data, paraEEMMCVIDSet.back(), constraintVals);
+            bVals.conservativeResize(constraintVals.size());
+            for (int cI = startCI; cI < constraintVals.size(); ++cI) {
+                if (constraintVals[cI] <= 0.0) {
+                    spdlog::error("constraintVal = {:g} when evaluating constraints {:d} {:d} {:d} {:d}",
+                        constraintVals[cI], MMActiveSet.back()[cI][0], MMActiveSet.back()[cI][1],
+                        MMActiveSet.back()[cI][2], MMActiveSet.back()[cI][3]);
+                    std::cout << data.V.row(MMActiveSet.back()[cI][0] >= 0 ? MMActiveSet.back()[cI][0] : (-MMActiveSet.back()[cI][0] - 1)) << std::endl;
+                    std::cout << data.V.row(MMActiveSet.back()[cI][1] >= 0 ? MMActiveSet.back()[cI][1] : (-MMActiveSet.back()[cI][1] - 1)) << std::endl;
+                    std::cout << data.V.row(MMActiveSet.back()[cI][2] >= 0 ? MMActiveSet.back()[cI][2] : (-MMActiveSet.back()[cI][2] - 1)) << std::endl;
+                    std::cout << data.V.row(MMActiveSet.back()[cI][3] >= 0 ? MMActiveSet.back()[cI][3] : (-MMActiveSet.back()[cI][3] - 1)) << std::endl;
+                    data.saveSurfaceMesh("debug.obj");
+                    exit(0);
+                }
+                else {
+                    const MMCVID& MMCVIDI = paraEEMMCVIDSet.back()[cI - startCI];
+                    double eps_x, e;
+                    if (MMCVIDI[3] >= 0) {
+                        // EE
+                        compute_eps_x(data, MMCVIDI[0], MMCVIDI[1], MMCVIDI[2], MMCVIDI[3], eps_x);
+                        compute_e(data.V.row(MMCVIDI[0]), data.V.row(MMCVIDI[1]), data.V.row(MMCVIDI[2]), data.V.row(MMCVIDI[3]), eps_x, e);
+                    }
+                    else {
+                        // PP or PE
+                        const std::pair<int, int>& eIeJ = paraEEeIeJSet.back()[cI - startCI];
+                        const std::pair<int, int>& eI = data.SFEdges[eIeJ.first];
+                        const std::pair<int, int>& eJ = data.SFEdges[eIeJ.second];
+                        compute_eps_x(data, eI.first, eI.second, eJ.first, eJ.second, eps_x);
+                        compute_e(data.V.row(eI.first), data.V.row(eI.second), data.V.row(eJ.first), data.V.row(eJ.second), eps_x, e);
+                    }
+                    compute_b(constraintVals[cI], dHat, bVals[cI]);
+                    bVals[cI] *= e;
+                }
+            }
+        }
+        energyVal += mu_IP * bVals.sum();
+        // std::cout << ", E_c=" << mu_IP * bVals.sum();
+        // energies[1] = mu_IP * bVals.sum();
+
+        for (int coI = 0; coI < animConfig.collisionObjects.size(); ++coI) {
+            // friction
+            if (activeSet_lastH[coI].size() && fricDHat > 0.0 && animConfig.collisionObjects[coI]->friction > 0.0) {
+                double Ef;
+                animConfig.collisionObjects[coI]->computeFrictionEnergy(data.V, result.V_prev, activeSet_lastH[coI],
+                    lambda_lastH[coI], Ef, fricDHat, 1.0);
+                energyVal += Ef;
+                // std::cout << ", E_f" << coI << "=" << Ef;
+                // energies[2] = Ef;
+            }
+        }
+        if (animConfig.isSelfCollision) {
+            if (MMActiveSet_lastH.back().size() && fricDHat > 0.0 && animConfig.selfFric > 0.0) {
+                double Ef;
+                SelfCollisionHandler<dim>::computeFrictionEnergy(data.V, result.V_prev, MMActiveSet_lastH.back(),
+                    MMLambda_lastH.back(), MMDistCoord.back(), MMTanBasis.back(), Ef, fricDHat, animConfig.selfFric);
+                energyVal += Ef;
+                // std::cout << ", E_fs=" << Ef;
+                // energies[3] = Ef;
+            }
+        }
+    }
+    // std::cout << std::endl;
+
+    if (animConfig.dampingStiff > 0.0) {
+        Eigen::VectorXd displacement(data.V.rows() * dim), Adx;
+#ifdef USE_TBB
+        tbb::parallel_for(0, (int)data.V.rows(), 1, [&](int vI)
+#else
+        for (int vI = 0; vI < data.V.rows(); vI++)
+#endif
             {
-                energyVals[vI] = ((data.V.row(vI) - xTilta.row(vI)).squaredNorm() * data.massMatrix.coeff(vI, vI) / 2.0);
+                displacement.segment<dim>(vI * dim) = (data.V.row(vI) - result.V_prev.row(vI)).transpose();
             }
 #ifdef USE_TBB
         );
 #endif
-        energyVal += energyVals.sum();
-
-        if (animScripter.isNBCActive()) {
-            for (const auto& NMI : data.NeumannBC) {
-                if (!data.isFixedVert[NMI.first]) {
-                    energyVal -= dtSq * data.massMatrix.coeff(NMI.first, NMI.first) * data.V.row(NMI.first).dot(NMI.second);
-                }
-            }
+        for (const auto& fixedVI : data.fixedVert) {
+            displacement.segment<dim>(fixedVI * dim).setZero();
         }
 
-        if (solveIP) {
-            Eigen::VectorXd constraintVals, bVals;
-            for (int coI = 0; coI < animConfig.collisionObjects.size(); ++coI) {
-                int startCI = constraintVals.size();
-                animConfig.collisionObjects[coI]->evaluateConstraints(data, activeSet[coI], constraintVals);
-                bVals.conservativeResize(constraintVals.size());
-                for (int cI = startCI; cI < constraintVals.size(); ++cI) {
-                    if (constraintVals[cI] <= 0.0) {
-                        spdlog::error("constraintVal = {:g} when evaluating constraints", constraintVals[cI]);
-                        exit(0);
-                    }
-                    else {
-                        compute_b(constraintVals[cI], dHat, bVals[cI]);
-                    }
-                }
-            }
-            for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
-                int startCI = constraintVals.size();
-                animConfig.meshCollisionObjects[coI]->evaluateConstraints(data, MMActiveSet[coI], constraintVals);
-                bVals.conservativeResize(constraintVals.size());
-                for (int cI = startCI; cI < constraintVals.size(); ++cI) {
-                    if (constraintVals[cI] <= 0.0) {
-                        spdlog::error("constraintVal = {:g} when evaluating constraints", constraintVals[cI]);
-                        exit(0);
-                    }
-                    else {
-                        compute_b(constraintVals[cI], dHat, bVals[cI]);
-                        int duplication = MMActiveSet[coI][cI - startCI][3];
-                        if (duplication < -1) {
-                            // PP or PE or EP, handle duplication
-                            bVals[cI] *= -duplication;
-                        }
-                    }
-                }
+        dampingMtr->multiply(displacement, Adx);
+        energyVal += 0.5 * displacement.dot(Adx);
+    }
 
-                animConfig.meshCollisionObjects[coI]->augmentParaEEEnergy(data, paraEEMMCVIDSet[coI], paraEEeIeJSet[coI],
-                    constraintVals, bVals, dHat, 1.0);
-            }
-            if (animConfig.isSelfCollision) {
-                int startCI = constraintVals.size();
-                SelfCollisionHandler<dim>::evaluateConstraints(data, MMActiveSet.back(), constraintVals);
-                bVals.conservativeResize(constraintVals.size());
-                //TODO: parallelize
-                for (int cI = startCI; cI < constraintVals.size(); ++cI) {
-                    if (constraintVals[cI] <= 0.0) {
-                        spdlog::error("constraintVal = {:g} when evaluating constraints {:d} {:d} {:d} {:d}",
-                            constraintVals[cI], MMActiveSet.back()[cI][0], MMActiveSet.back()[cI][1],
-                            MMActiveSet.back()[cI][2], MMActiveSet.back()[cI][3]);
-                        std::cout << data.V.row(MMActiveSet.back()[cI][0] >= 0 ? MMActiveSet.back()[cI][0] : (-MMActiveSet.back()[cI][0] - 1)) << std::endl;
-                        std::cout << data.V.row(MMActiveSet.back()[cI][1] >= 0 ? MMActiveSet.back()[cI][1] : (-MMActiveSet.back()[cI][1] - 1)) << std::endl;
-                        std::cout << data.V.row(MMActiveSet.back()[cI][2] >= 0 ? MMActiveSet.back()[cI][2] : (-MMActiveSet.back()[cI][2] - 1)) << std::endl;
-                        std::cout << data.V.row(MMActiveSet.back()[cI][3] >= 0 ? MMActiveSet.back()[cI][3] : (-MMActiveSet.back()[cI][3] - 1)) << std::endl;
-                        data.saveSurfaceMesh("debug.obj");
-                        exit(0);
-                    }
-                    else {
-                        compute_b(constraintVals[cI], dHat, bVals[cI]);
-                        int duplication = MMActiveSet.back()[cI - startCI][3];
-                        if (duplication < -1) {
-                            // PP or PE, handle duplication
-                            bVals[cI] *= -duplication;
-                        }
-                    }
-                }
+    if (rho_DBC) {
+        animScripter.augmentMDBCEnergy(data, energyVal, rho_DBC);
+    }
 
-                startCI = constraintVals.size();
-                SelfCollisionHandler<dim>::evaluateConstraints(data, paraEEMMCVIDSet.back(), constraintVals);
-                bVals.conservativeResize(constraintVals.size());
-                for (int cI = startCI; cI < constraintVals.size(); ++cI) {
-                    if (constraintVals[cI] <= 0.0) {
-                        spdlog::error("constraintVal = {:g} when evaluating constraints {:d} {:d} {:d} {:d}",
-                            constraintVals[cI], MMActiveSet.back()[cI][0], MMActiveSet.back()[cI][1],
-                            MMActiveSet.back()[cI][2], MMActiveSet.back()[cI][3]);
-                        std::cout << data.V.row(MMActiveSet.back()[cI][0] >= 0 ? MMActiveSet.back()[cI][0] : (-MMActiveSet.back()[cI][0] - 1)) << std::endl;
-                        std::cout << data.V.row(MMActiveSet.back()[cI][1] >= 0 ? MMActiveSet.back()[cI][1] : (-MMActiveSet.back()[cI][1] - 1)) << std::endl;
-                        std::cout << data.V.row(MMActiveSet.back()[cI][2] >= 0 ? MMActiveSet.back()[cI][2] : (-MMActiveSet.back()[cI][2] - 1)) << std::endl;
-                        std::cout << data.V.row(MMActiveSet.back()[cI][3] >= 0 ? MMActiveSet.back()[cI][3] : (-MMActiveSet.back()[cI][3] - 1)) << std::endl;
-                        data.saveSurfaceMesh("debug.obj");
-                        exit(0);
-                    }
-                    else {
-                        const MMCVID& MMCVIDI = paraEEMMCVIDSet.back()[cI - startCI];
-                        double eps_x, e;
-                        if (MMCVIDI[3] >= 0) {
-                            // EE
-                            compute_eps_x(data, MMCVIDI[0], MMCVIDI[1], MMCVIDI[2], MMCVIDI[3], eps_x);
-                            compute_e(data.V.row(MMCVIDI[0]), data.V.row(MMCVIDI[1]), data.V.row(MMCVIDI[2]), data.V.row(MMCVIDI[3]), eps_x, e);
-                        }
-                        else {
-                            // PP or PE
-                            const std::pair<int, int>& eIeJ = paraEEeIeJSet.back()[cI - startCI];
-                            const std::pair<int, int>& eI = data.SFEdges[eIeJ.first];
-                            const std::pair<int, int>& eJ = data.SFEdges[eIeJ.second];
-                            compute_eps_x(data, eI.first, eI.second, eJ.first, eJ.second, eps_x);
-                            compute_e(data.V.row(eI.first), data.V.row(eI.second), data.V.row(eJ.first), data.V.row(eJ.second), eps_x, e);
-                        }
-                        compute_b(constraintVals[cI], dHat, bVals[cI]);
-                        bVals[cI] *= e;
-                    }
-                }
-            }
-            energyVal += mu_IP * bVals.sum();
-            // std::cout << ", E_c=" << mu_IP * bVals.sum();
-            // energies[1] = mu_IP * bVals.sum();
+    //        if(!mute) { timer_step.stop(); }
+}
+template <int dim>
+void Optimizer<dim>::computeGradient(const Mesh<dim>& data,
+    bool redoSVD, Eigen::VectorXd& gradient, bool projectDBC)
+{
+    //        if(!mute) { timer_step.start(0); }
 
-            for (int coI = 0; coI < animConfig.collisionObjects.size(); ++coI) {
-                // friction
-                if (activeSet_lastH[coI].size() && fricDHat > 0.0 && animConfig.collisionObjects[coI]->friction > 0.0) {
-                    double Ef;
-                    animConfig.collisionObjects[coI]->computeFrictionEnergy(data.V, result.V_prev, activeSet_lastH[coI],
-                        lambda_lastH[coI], Ef, fricDHat, 1.0);
-                    energyVal += Ef;
-                    // std::cout << ", E_f" << coI << "=" << Ef;
-                    // energies[2] = Ef;
-                }
-            }
-            if (animConfig.isSelfCollision) {
-                if (MMActiveSet_lastH.back().size() && fricDHat > 0.0 && animConfig.selfFric > 0.0) {
-                    double Ef;
-                    SelfCollisionHandler<dim>::computeFrictionEnergy(data.V, result.V_prev, MMActiveSet_lastH.back(),
-                        MMLambda_lastH.back(), MMDistCoord.back(), MMTanBasis.back(), Ef, fricDHat, animConfig.selfFric);
-                    energyVal += Ef;
-                    // std::cout << ", E_fs=" << Ef;
-                    // energies[3] = Ef;
-                }
-            }
+    switch (animConfig.timeIntegrationType) {
+    case TIT_BE: {
+        energyTerms[0]->computeGradient(data, redoSVD, svd, F,
+            dtSq * energyParams[0], gradient_ET[0], projectDBC);
+        gradient = gradient_ET[0];
+        for (int eI = 1; eI < energyTerms.size(); eI++) {
+            energyTerms[eI]->computeGradient(data, redoSVD, svd, F,
+                dtSq * energyParams[eI], gradient_ET[eI], projectDBC);
+            gradient += gradient_ET[eI];
         }
-        // std::cout << std::endl;
+        break;
+    }
 
-        if (animConfig.dampingStiff > 0.0) {
-            Eigen::VectorXd displacement(data.V.rows() * dim), Adx;
+    case TIT_NM: {
+        energyTerms[0]->computeGradient(data, redoSVD, svd, F, dtSq * beta_NM * energyParams[0], gradient_ET[0], projectDBC);
+        gradient = gradient_ET[0];
+        for (int eI = 1; eI < energyTerms.size(); eI++) {
+            energyTerms[eI]->computeGradient(data, redoSVD, svd, F, dtSq * beta_NM * energyParams[eI], gradient_ET[eI], projectDBC);
+            gradient += gradient_ET[eI];
+        }
+        break;
+    }
+    }
+
 #ifdef USE_TBB
-            tbb::parallel_for(0, (int)data.V.rows(), 1, [&](int vI)
+    tbb::parallel_for(0, (int)data.V.rows(), 1, [&](int vI)
+#else
+    for (int vI = 0; vI < data.V.rows(); vI++)
+#endif
+        {
+            if (!data.isFixedVert[vI] || !projectDBC) {
+                gradient.segment<dim>(vI * dim) += (data.massMatrix.coeff(vI, vI) * (data.V.row(vI) - xTilta.row(vI)).transpose());
+            }
+        }
+#ifdef USE_TBB
+    );
+#endif
+
+    if (animScripter.isNBCActive()) {
+        for (const auto& NMI : data.NeumannBC) {
+            if (!data.isFixedVert[NMI.first]) {
+                gradient.template segment<dim>(NMI.first * dim) -= dtSq * data.massMatrix.coeff(NMI.first, NMI.first) * NMI.second.transpose();
+            }
+        }
+    }
+
+    if (solveIP) {
+        Eigen::VectorXd constraintVal;
+        for (int coI = 0; coI < animConfig.collisionObjects.size(); ++coI) {
+            int startCI = constraintVal.size();
+            animConfig.collisionObjects[coI]->evaluateConstraints(data, activeSet[coI], constraintVal);
+            for (int cI = startCI; cI < constraintVal.size(); ++cI) {
+                compute_g_b(constraintVal[cI], dHat, constraintVal[cI]);
+            }
+            animConfig.collisionObjects[coI]->leftMultiplyConstraintJacobianT(data, activeSet[coI],
+                constraintVal.segment(startCI, activeSet[coI].size()), gradient, mu_IP);
+
+            // friction
+            if (activeSet_lastH[coI].size() && fricDHat > 0.0 && animConfig.collisionObjects[coI]->friction > 0.0) {
+                animConfig.collisionObjects[coI]->augmentFrictionGradient(data.V, result.V_prev, activeSet_lastH[coI],
+                    lambda_lastH[coI], gradient, fricDHat, 1.0);
+            }
+        }
+        for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
+            int startCI = constraintVal.size();
+            animConfig.meshCollisionObjects[coI]->evaluateConstraints(data, MMActiveSet[coI], constraintVal);
+            for (int cI = startCI; cI < constraintVal.size(); ++cI) {
+                compute_g_b(constraintVal[cI], dHat, constraintVal[cI]);
+            }
+            animConfig.meshCollisionObjects[coI]->leftMultiplyConstraintJacobianT(data, MMActiveSet[coI],
+                constraintVal.segment(startCI, MMActiveSet[coI].size()), gradient, mu_IP);
+
+            animConfig.meshCollisionObjects[coI]->augmentParaEEGradient(data,
+                paraEEMMCVIDSet[coI], paraEEeIeJSet[coI], gradient, dHat, mu_IP);
+        }
+        if (animConfig.isSelfCollision) {
+            int startCI = constraintVal.size();
+            SelfCollisionHandler<dim>::evaluateConstraints(data, MMActiveSet.back(), constraintVal);
+            for (int cI = startCI; cI < constraintVal.size(); ++cI) {
+                compute_g_b(constraintVal[cI], dHat, constraintVal[cI]);
+            }
+            SelfCollisionHandler<dim>::leftMultiplyConstraintJacobianT(data, MMActiveSet.back(),
+                constraintVal.segment(startCI, MMActiveSet.back().size()), gradient, mu_IP);
+
+            SelfCollisionHandler<dim>::augmentParaEEGradient(data,
+                paraEEMMCVIDSet.back(), paraEEeIeJSet.back(), gradient, dHat, mu_IP);
+
+            if (MMActiveSet_lastH.back().size() && fricDHat > 0.0 && animConfig.selfFric > 0.0) {
+                SelfCollisionHandler<dim>::augmentFrictionGradient(data.V, result.V_prev, MMActiveSet_lastH.back(),
+                    MMLambda_lastH.back(), MMDistCoord.back(), MMTanBasis.back(), gradient, fricDHat, animConfig.selfFric);
+            }
+        }
+        if (projectDBC) {
+            for (const auto& fixedVI : data.fixedVert) {
+                gradient.segment<dim>(fixedVI * dim).setZero();
+            }
+        }
+    }
+
+    if (animConfig.dampingStiff > 0.0) {
+        Eigen::VectorXd displacement(data.V.rows() * dim), Adx;
+#ifdef USE_TBB
+        tbb::parallel_for(0, (int)data.V.rows(), 1, [&](int vI)
 #else
         for (int vI = 0; vI < data.V.rows(); vI++)
 #endif
-                {
-                    displacement.segment<dim>(vI * dim) = (data.V.row(vI) - result.V_prev.row(vI)).transpose();
-                }
+            {
+                displacement.segment<dim>(vI * dim) = (data.V.row(vI) - result.V_prev.row(vI)).transpose();
+            }
 #ifdef USE_TBB
-            );
+        );
 #endif
+        if (projectDBC) {
             for (const auto& fixedVI : data.fixedVert) {
                 displacement.segment<dim>(fixedVI * dim).setZero();
             }
-
-            dampingMtr->multiply(displacement, Adx);
-            energyVal += 0.5 * displacement.dot(Adx);
         }
 
-        if (rho_DBC) {
-            animScripter.augmentMDBCEnergy(data, energyVal, rho_DBC);
-        }
-
-        //        if(!mute) { timer_step.stop(); }
+        dampingMtr->multiply(displacement, Adx);
+        gradient += Adx;
     }
-    template <int dim>
-    void Optimizer<dim>::computeGradient(const Mesh<dim>& data,
-        bool redoSVD, Eigen::VectorXd& gradient, bool projectDBC)
-    {
-        //        if(!mute) { timer_step.start(0); }
 
-        switch (animConfig.timeIntegrationType) {
-        case TIT_BE: {
-            energyTerms[0]->computeGradient(data, redoSVD, svd, F,
-                dtSq * energyParams[0], gradient_ET[0], projectDBC);
-            gradient = gradient_ET[0];
-            for (int eI = 1; eI < energyTerms.size(); eI++) {
-                energyTerms[eI]->computeGradient(data, redoSVD, svd, F,
-                    dtSq * energyParams[eI], gradient_ET[eI], projectDBC);
-                gradient += gradient_ET[eI];
-            }
-            break;
-        }
-
-        case TIT_NM: {
-            energyTerms[0]->computeGradient(data, redoSVD, svd, F, dtSq * beta_NM * energyParams[0], gradient_ET[0], projectDBC);
-            gradient = gradient_ET[0];
-            for (int eI = 1; eI < energyTerms.size(); eI++) {
-                energyTerms[eI]->computeGradient(data, redoSVD, svd, F, dtSq * beta_NM * energyParams[eI], gradient_ET[eI], projectDBC);
-                gradient += gradient_ET[eI];
-            }
-            break;
-        }
-        }
-
-#ifdef USE_TBB
-        tbb::parallel_for(0, (int)data.V.rows(), 1, [&](int vI)
-#else
-    for (int vI = 0; vI < data.V.rows(); vI++)
-#endif
-            {
-                if (!data.isFixedVert[vI] || !projectDBC) {
-                    gradient.segment<dim>(vI * dim) += (data.massMatrix.coeff(vI, vI) * (data.V.row(vI) - xTilta.row(vI)).transpose());
-                }
-            }
-#ifdef USE_TBB
-        );
-#endif
-
-        if (animScripter.isNBCActive()) {
-            for (const auto& NMI : data.NeumannBC) {
-                if (!data.isFixedVert[NMI.first]) {
-                    gradient.template segment<dim>(NMI.first * dim) -= dtSq * data.massMatrix.coeff(NMI.first, NMI.first) * NMI.second.transpose();
-                }
-            }
-        }
-
-        if (solveIP) {
-            Eigen::VectorXd constraintVal;
-            for (int coI = 0; coI < animConfig.collisionObjects.size(); ++coI) {
-                int startCI = constraintVal.size();
-                animConfig.collisionObjects[coI]->evaluateConstraints(data, activeSet[coI], constraintVal);
-                for (int cI = startCI; cI < constraintVal.size(); ++cI) {
-                    compute_g_b(constraintVal[cI], dHat, constraintVal[cI]);
-                }
-                animConfig.collisionObjects[coI]->leftMultiplyConstraintJacobianT(data, activeSet[coI],
-                    constraintVal.segment(startCI, activeSet[coI].size()), gradient, mu_IP);
-
-                // friction
-                if (activeSet_lastH[coI].size() && fricDHat > 0.0 && animConfig.collisionObjects[coI]->friction > 0.0) {
-                    animConfig.collisionObjects[coI]->augmentFrictionGradient(data.V, result.V_prev, activeSet_lastH[coI],
-                        lambda_lastH[coI], gradient, fricDHat, 1.0);
-                }
-            }
-            for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
-                int startCI = constraintVal.size();
-                animConfig.meshCollisionObjects[coI]->evaluateConstraints(data, MMActiveSet[coI], constraintVal);
-                for (int cI = startCI; cI < constraintVal.size(); ++cI) {
-                    compute_g_b(constraintVal[cI], dHat, constraintVal[cI]);
-                }
-                animConfig.meshCollisionObjects[coI]->leftMultiplyConstraintJacobianT(data, MMActiveSet[coI],
-                    constraintVal.segment(startCI, MMActiveSet[coI].size()), gradient, mu_IP);
-
-                animConfig.meshCollisionObjects[coI]->augmentParaEEGradient(data,
-                    paraEEMMCVIDSet[coI], paraEEeIeJSet[coI], gradient, dHat, mu_IP);
-            }
-            if (animConfig.isSelfCollision) {
-                int startCI = constraintVal.size();
-                SelfCollisionHandler<dim>::evaluateConstraints(data, MMActiveSet.back(), constraintVal);
-                for (int cI = startCI; cI < constraintVal.size(); ++cI) {
-                    compute_g_b(constraintVal[cI], dHat, constraintVal[cI]);
-                }
-                SelfCollisionHandler<dim>::leftMultiplyConstraintJacobianT(data, MMActiveSet.back(),
-                    constraintVal.segment(startCI, MMActiveSet.back().size()), gradient, mu_IP);
-
-                SelfCollisionHandler<dim>::augmentParaEEGradient(data,
-                    paraEEMMCVIDSet.back(), paraEEeIeJSet.back(), gradient, dHat, mu_IP);
-
-                if (MMActiveSet_lastH.back().size() && fricDHat > 0.0 && animConfig.selfFric > 0.0) {
-                    SelfCollisionHandler<dim>::augmentFrictionGradient(data.V, result.V_prev, MMActiveSet_lastH.back(),
-                        MMLambda_lastH.back(), MMDistCoord.back(), MMTanBasis.back(), gradient, fricDHat, animConfig.selfFric);
-                }
-            }
-            if (projectDBC) {
-                for (const auto& fixedVI : data.fixedVert) {
-                    gradient.segment<dim>(fixedVI * dim).setZero();
-                }
-            }
-        }
-
-        if (animConfig.dampingStiff > 0.0) {
-            Eigen::VectorXd displacement(data.V.rows() * dim), Adx;
-#ifdef USE_TBB
-            tbb::parallel_for(0, (int)data.V.rows(), 1, [&](int vI)
-#else
-        for (int vI = 0; vI < data.V.rows(); vI++)
-#endif
-                {
-                    displacement.segment<dim>(vI * dim) = (data.V.row(vI) - result.V_prev.row(vI)).transpose();
-                }
-#ifdef USE_TBB
-            );
-#endif
-            if (projectDBC) {
-                for (const auto& fixedVI : data.fixedVert) {
-                    displacement.segment<dim>(fixedVI * dim).setZero();
-                }
-            }
-
-            dampingMtr->multiply(displacement, Adx);
-            gradient += Adx;
-        }
-
-        if (!projectDBC && rho_DBC) {
-            animScripter.augmentMDBCGradient(data, gradient, rho_DBC);
-        }
-
-        //        if(!mute) { timer_step.stop(); }
+    if (!projectDBC && rho_DBC) {
+        animScripter.augmentMDBCGradient(data, gradient, rho_DBC);
     }
-    template <int dim>
-    void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
-        bool redoSVD,
-        LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* p_linSysSolver,
-        bool updateDamping, bool projectDBC)
-    {
-        if (!mute) { timer_step.start(0); }
 
-        if (solveIP) {
-            // figure out vNeighbor_IP in this iteration
-            timer_step.start(1);
-            if (animConfig.isSelfCollision && (MMActiveSet.back().size() + paraEEeIeJSet.back().size() + MMActiveSet_lastH.back().size())) {
-                // there is extra connectivity from self-contact
-                timer_mt.start(8);
-                std::vector<std::set<int>> vNeighbor_IP_new = data.vNeighbor;
-                SelfCollisionHandler<dim>::augmentConnectivity(data, MMActiveSet.back(), vNeighbor_IP_new);
-                SelfCollisionHandler<dim>::augmentConnectivity(data, paraEEMMCVIDSet.back(), paraEEeIeJSet.back(), vNeighbor_IP_new);
-                if (MMActiveSet_lastH.back().size() && fricDHat > 0.0 && animConfig.selfFric > 0.0) {
-                    SelfCollisionHandler<dim>::augmentConnectivity(data, MMActiveSet_lastH.back(), vNeighbor_IP_new);
-                }
-                timer_mt.stop();
+    //        if(!mute) { timer_step.stop(); }
+}
+template <int dim>
+void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
+    bool redoSVD,
+    LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* p_linSysSolver,
+    bool updateDamping, bool projectDBC)
+{
+    if (!mute) { timer_step.start(0); }
 
-                if (vNeighbor_IP_new != vNeighbor_IP) {
-                    timer_mt.start(8);
-                    vNeighbor_IP = vNeighbor_IP_new;
-                    timer_mt.start(9);
-                    p_linSysSolver->set_pattern(vNeighbor_IP, data.fixedVert);
-                    timer_mt.stop();
-
-                    timer_step.start(2);
-                    p_linSysSolver->analyze_pattern();
-                    timer_step.start(1);
-                }
+    if (solveIP) {
+        // figure out vNeighbor_IP in this iteration
+        timer_step.start(1);
+        if (animConfig.isSelfCollision && (MMActiveSet.back().size() + paraEEeIeJSet.back().size() + MMActiveSet_lastH.back().size())) {
+            // there is extra connectivity from self-contact
+            timer_mt.start(8);
+            std::vector<std::set<int>> vNeighbor_IP_new = data.vNeighbor;
+            SelfCollisionHandler<dim>::augmentConnectivity(data, MMActiveSet.back(), vNeighbor_IP_new);
+            SelfCollisionHandler<dim>::augmentConnectivity(data, paraEEMMCVIDSet.back(), paraEEeIeJSet.back(), vNeighbor_IP_new);
+            if (MMActiveSet_lastH.back().size() && fricDHat > 0.0 && animConfig.selfFric > 0.0) {
+                SelfCollisionHandler<dim>::augmentConnectivity(data, MMActiveSet_lastH.back(), vNeighbor_IP_new);
             }
-            else if (vNeighbor_IP != data.vNeighbor) {
-                // no extra connectivity in this iteration but there is in the last iteration
+            timer_mt.stop();
+
+            if (vNeighbor_IP_new != vNeighbor_IP) {
                 timer_mt.start(8);
-                vNeighbor_IP = data.vNeighbor;
+                vNeighbor_IP = vNeighbor_IP_new;
                 timer_mt.start(9);
                 p_linSysSolver->set_pattern(vNeighbor_IP, data.fixedVert);
                 timer_mt.stop();
@@ -3349,305 +3359,318 @@ bool Optimizer<dim>::solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
                 p_linSysSolver->analyze_pattern();
                 timer_step.start(1);
             }
-            timer_step.start(0);
+        }
+        else if (vNeighbor_IP != data.vNeighbor) {
+            // no extra connectivity in this iteration but there is in the last iteration
+            timer_mt.start(8);
+            vNeighbor_IP = data.vNeighbor;
+            timer_mt.start(9);
+            p_linSysSolver->set_pattern(vNeighbor_IP, data.fixedVert);
+            timer_mt.stop();
+
+            timer_step.start(2);
+            p_linSysSolver->analyze_pattern();
+            timer_step.start(1);
+        }
+        timer_step.start(0);
+    }
+
+    timer_mt.start(10);
+    if (updateDamping && animConfig.dampingStiff) {
+        computeDampingMtr(data, redoSVD, dampingMtr, projectDBC);
+
+        switch (animConfig.timeIntegrationType) {
+        case TIT_BE: {
+            p_linSysSolver->setCoeff(dampingMtr,
+                1.0 + dtSq * dt / animConfig.dampingStiff);
+            break;
         }
 
-        timer_mt.start(10);
-        if (updateDamping && animConfig.dampingStiff) {
-            computeDampingMtr(data, redoSVD, dampingMtr, projectDBC);
-
-            switch (animConfig.timeIntegrationType) {
-            case TIT_BE: {
-                p_linSysSolver->setCoeff(dampingMtr,
-                    1.0 + dtSq * dt / animConfig.dampingStiff);
-                break;
-            }
-
-            case TIT_NM: {
-                p_linSysSolver->setCoeff(dampingMtr,
-                    1.0 + dtSq * beta_NM * dt / animConfig.dampingStiff);
-                break;
-            }
-            }
+        case TIT_NM: {
+            p_linSysSolver->setCoeff(dampingMtr,
+                1.0 + dtSq * beta_NM * dt / animConfig.dampingStiff);
+            break;
         }
-        else {
-            p_linSysSolver->setZero();
-            switch (animConfig.timeIntegrationType) {
-            case TIT_BE: {
-                for (int eI = 0; eI < energyTerms.size(); eI++) {
-                    energyTerms[eI]->computeHessian(data, redoSVD, svd, F,
-                        energyParams[eI] * dtSq,
-                        p_linSysSolver, true, projectDBC);
-                }
-                break;
+        }
+    }
+    else {
+        p_linSysSolver->setZero();
+        switch (animConfig.timeIntegrationType) {
+        case TIT_BE: {
+            for (int eI = 0; eI < energyTerms.size(); eI++) {
+                energyTerms[eI]->computeHessian(data, redoSVD, svd, F,
+                    energyParams[eI] * dtSq,
+                    p_linSysSolver, true, projectDBC);
             }
-
-            case TIT_NM: {
-                for (int eI = 0; eI < energyTerms.size(); eI++) {
-                    energyTerms[eI]->computeHessian(data, redoSVD, svd, F, energyParams[eI] * dtSq * beta_NM, p_linSysSolver, true, projectDBC);
-                }
-                break;
-            }
-            }
+            break;
         }
 
-        timer_mt.start(11);
+        case TIT_NM: {
+            for (int eI = 0; eI < energyTerms.size(); eI++) {
+                energyTerms[eI]->computeHessian(data, redoSVD, svd, F, energyParams[eI] * dtSq * beta_NM, p_linSysSolver, true, projectDBC);
+            }
+            break;
+        }
+        }
+    }
+
+    timer_mt.start(11);
 #ifdef USE_TBB
-        tbb::parallel_for(0, (int)data.V.rows(), 1, [&](int vI)
+    tbb::parallel_for(0, (int)data.V.rows(), 1, [&](int vI)
 #else
     for (int vI = 0; vI < data.V.rows(); vI++)
 #endif
-            {
-                if (!data.isFixedVert[vI] || !projectDBC) {
-                    double massI = data.massMatrix.coeff(vI, vI);
-                    int ind0 = vI * dim;
-                    int ind1 = ind0 + 1;
-                    p_linSysSolver->addCoeff(ind0, ind0, massI);
-                    p_linSysSolver->addCoeff(ind1, ind1, massI);
-                    if constexpr (dim == 3) {
-                        int ind2 = ind0 + 2;
-                        p_linSysSolver->addCoeff(ind2, ind2, massI);
-                    }
-                }
-                else {
-                    // for Dirichlet boundary condition
-                    int ind0 = vI * dim;
-                    int ind1 = ind0 + 1;
-                    p_linSysSolver->setCoeff(ind0, ind0, 1.0);
-                    p_linSysSolver->setCoeff(ind1, ind1, 1.0);
-                    if constexpr (dim == 3) {
-                        int ind2 = ind0 + 2;
-                        p_linSysSolver->setCoeff(ind2, ind2, 1.0);
-                    }
+        {
+            if (!data.isFixedVert[vI] || !projectDBC) {
+                double massI = data.massMatrix.coeff(vI, vI);
+                int ind0 = vI * dim;
+                int ind1 = ind0 + 1;
+                p_linSysSolver->addCoeff(ind0, ind0, massI);
+                p_linSysSolver->addCoeff(ind1, ind1, massI);
+                if constexpr (dim == 3) {
+                    int ind2 = ind0 + 2;
+                    p_linSysSolver->addCoeff(ind2, ind2, massI);
                 }
             }
+            else {
+                // for Dirichlet boundary condition
+                int ind0 = vI * dim;
+                int ind1 = ind0 + 1;
+                p_linSysSolver->setCoeff(ind0, ind0, 1.0);
+                p_linSysSolver->setCoeff(ind1, ind1, 1.0);
+                if constexpr (dim == 3) {
+                    int ind2 = ind0 + 2;
+                    p_linSysSolver->setCoeff(ind2, ind2, 1.0);
+                }
+            }
+        }
 #ifdef USE_TBB
-        );
+    );
 #endif
+    timer_mt.stop();
+
+    if (solveIP) {
+        timer_mt.start(12);
+        for (int coI = 0; coI < animConfig.collisionObjects.size(); ++coI) {
+            animConfig.collisionObjects[coI]->augmentIPHessian(data,
+                activeSet[coI], p_linSysSolver, dHat, mu_IP, projectDBC);
+
+            // friction
+            if (activeSet_lastH[coI].size() && fricDHat > 0.0 && animConfig.collisionObjects[coI]->friction > 0.0) {
+                animConfig.collisionObjects[coI]->augmentFrictionHessian(data,
+                    result.V_prev, activeSet_lastH[coI], lambda_lastH[coI],
+                    p_linSysSolver, fricDHat, 1.0, projectDBC);
+            }
+        }
+        timer_mt.start(13);
+        for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
+            animConfig.meshCollisionObjects[coI]->augmentIPHessian(data, MMActiveSet[coI], p_linSysSolver, dHat, mu_IP, projectDBC);
+
+            animConfig.meshCollisionObjects[coI]->augmentParaEEHessian(data, paraEEMMCVIDSet[coI], paraEEeIeJSet[coI],
+                p_linSysSolver, dHat, mu_IP, projectDBC);
+        }
+        timer_mt.start(14);
+        if (animConfig.isSelfCollision) {
+            SelfCollisionHandler<dim>::augmentIPHessian(data, MMActiveSet.back(), p_linSysSolver, dHat, mu_IP, projectDBC);
+
+            SelfCollisionHandler<dim>::augmentParaEEHessian(data, paraEEMMCVIDSet.back(), paraEEeIeJSet.back(),
+                p_linSysSolver, dHat, mu_IP, projectDBC);
+
+            if (MMActiveSet_lastH.back().size() && fricDHat > 0.0 && animConfig.selfFric > 0.0) {
+                SelfCollisionHandler<dim>::augmentFrictionHessian(data, result.V_prev, MMActiveSet_lastH.back(),
+                    MMLambda_lastH.back(), MMDistCoord.back(), MMTanBasis.back(),
+                    p_linSysSolver, fricDHat, animConfig.selfFric, projectDBC);
+            }
+        }
         timer_mt.stop();
-
-        if (solveIP) {
-            timer_mt.start(12);
-            for (int coI = 0; coI < animConfig.collisionObjects.size(); ++coI) {
-                animConfig.collisionObjects[coI]->augmentIPHessian(data,
-                    activeSet[coI], p_linSysSolver, dHat, mu_IP, projectDBC);
-
-                // friction
-                if (activeSet_lastH[coI].size() && fricDHat > 0.0 && animConfig.collisionObjects[coI]->friction > 0.0) {
-                    animConfig.collisionObjects[coI]->augmentFrictionHessian(data,
-                        result.V_prev, activeSet_lastH[coI], lambda_lastH[coI],
-                        p_linSysSolver, fricDHat, 1.0, projectDBC);
-                }
-            }
-            timer_mt.start(13);
-            for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
-                animConfig.meshCollisionObjects[coI]->augmentIPHessian(data, MMActiveSet[coI], p_linSysSolver, dHat, mu_IP, projectDBC);
-
-                animConfig.meshCollisionObjects[coI]->augmentParaEEHessian(data, paraEEMMCVIDSet[coI], paraEEeIeJSet[coI],
-                    p_linSysSolver, dHat, mu_IP, projectDBC);
-            }
-            timer_mt.start(14);
-            if (animConfig.isSelfCollision) {
-                SelfCollisionHandler<dim>::augmentIPHessian(data, MMActiveSet.back(), p_linSysSolver, dHat, mu_IP, projectDBC);
-
-                SelfCollisionHandler<dim>::augmentParaEEHessian(data, paraEEMMCVIDSet.back(), paraEEeIeJSet.back(),
-                    p_linSysSolver, dHat, mu_IP, projectDBC);
-
-                if (MMActiveSet_lastH.back().size() && fricDHat > 0.0 && animConfig.selfFric > 0.0) {
-                    SelfCollisionHandler<dim>::augmentFrictionHessian(data, result.V_prev, MMActiveSet_lastH.back(),
-                        MMLambda_lastH.back(), MMDistCoord.back(), MMTanBasis.back(),
-                        p_linSysSolver, fricDHat, animConfig.selfFric, projectDBC);
-                }
-            }
-            timer_mt.stop();
-        }
-
-        if (animConfig.dampingStiff && (!updateDamping)) {
-            p_linSysSolver->addCoeff(dampingMtr, 1.0);
-        }
-
-        if (!projectDBC && rho_DBC) {
-            animScripter.augmentMDBCHessian(data, p_linSysSolver, rho_DBC);
-        }
-
-        if (!mute) { timer_step.stop(); }
-        // output matrix and exit
-        //        IglUtils::writeSparseMatrixToFile("/Users/mincli/Desktop/IPC/output/A", p_linSysSolver, true);
-        //        std::cout << "matrix written" << std::endl;
-        //        exit(0);
     }
 
-    template <int dim>
-    void Optimizer<dim>::computeDampingMtr(const Mesh<dim>& data,
-        bool redoSVD,
-        LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* p_dampingMtr,
-        bool projectDBC)
-    {
-        p_dampingMtr->setZero();
-        for (int eI = 0; eI < energyTerms.size(); eI++) {
-            energyTerms[eI]->computeHessian(data, redoSVD, svd, F,
-                energyParams[eI] * animConfig.dampingStiff / dt,
-                p_dampingMtr, true, projectDBC);
+    if (animConfig.dampingStiff && (!updateDamping)) {
+        p_linSysSolver->addCoeff(dampingMtr, 1.0);
+    }
+
+    if (!projectDBC && rho_DBC) {
+        animScripter.augmentMDBCHessian(data, p_linSysSolver, rho_DBC);
+    }
+
+    if (!mute) { timer_step.stop(); }
+    // output matrix and exit
+    //        IglUtils::writeSparseMatrixToFile("/Users/mincli/Desktop/IPC/output/A", p_linSysSolver, true);
+    //        std::cout << "matrix written" << std::endl;
+    //        exit(0);
+}
+
+template <int dim>
+void Optimizer<dim>::computeDampingMtr(const Mesh<dim>& data,
+    bool redoSVD,
+    LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* p_dampingMtr,
+    bool projectDBC)
+{
+    p_dampingMtr->setZero();
+    for (int eI = 0; eI < energyTerms.size(); eI++) {
+        energyTerms[eI]->computeHessian(data, redoSVD, svd, F,
+            energyParams[eI] * animConfig.dampingStiff / dt,
+            p_dampingMtr, true, projectDBC);
+    }
+}
+
+template <int dim>
+void Optimizer<dim>::setupDampingMtr(const Mesh<dim>& data,
+    bool redoSVD,
+    LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* p_dampingMtr)
+{
+    dampingMtr->set_pattern(data.vNeighbor, data.fixedVert);
+    computeDampingMtr(data, redoSVD, p_dampingMtr);
+}
+
+template <int dim>
+void Optimizer<dim>::computeSystemEnergy(std::vector<double>& sysE,
+    std::vector<Eigen::Matrix<double, 1, dim>>& sysM,
+    std::vector<Eigen::Matrix<double, 1, dim>>& sysL)
+{
+    Eigen::VectorXd energyValPerElem;
+    energyTerms[0]->getEnergyValPerElemBySVD(result, true, svd, F, energyValPerElem, false);
+
+    sysE.resize(compVAccSize.size());
+    sysM.resize(compVAccSize.size());
+    sysL.resize(compVAccSize.size());
+    for (int compI = 0; compI < compVAccSize.size(); ++compI) {
+        sysE[compI] = 0.0;
+        sysM[compI].setZero();
+        sysL[compI].setZero();
+
+        for (int fI = (compI ? compFAccSize[compI - 1] : 0); fI < compFAccSize[compI]; ++fI) {
+            sysE[compI] += energyValPerElem[fI];
         }
-    }
+        for (int vI = (compI ? compVAccSize[compI - 1] : 0); vI < compVAccSize[compI]; ++vI) {
+            sysE[compI] += result.massMatrix.coeff(vI, vI) * ((result.V.row(vI) - result.V_prev.row(vI)).squaredNorm() / dtSq / 2.0 - gravity.dot(result.V.row(vI).transpose()));
 
-    template <int dim>
-    void Optimizer<dim>::setupDampingMtr(const Mesh<dim>& data,
-        bool redoSVD,
-        LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* p_dampingMtr)
-    {
-        dampingMtr->set_pattern(data.vNeighbor, data.fixedVert);
-        computeDampingMtr(data, redoSVD, p_dampingMtr);
-    }
+            Eigen::Matrix<double, 1, dim> p = result.massMatrix.coeff(vI, vI) / dt * (result.V.row(vI) - result.V_prev.row(vI));
+            sysM[compI] += p;
 
-    template <int dim>
-    void Optimizer<dim>::computeSystemEnergy(std::vector<double> & sysE,
-        std::vector<Eigen::Matrix<double, 1, dim>> & sysM,
-        std::vector<Eigen::Matrix<double, 1, dim>> & sysL)
-    {
-        Eigen::VectorXd energyValPerElem;
-        energyTerms[0]->getEnergyValPerElemBySVD(result, true, svd, F, energyValPerElem, false);
-
-        sysE.resize(compVAccSize.size());
-        sysM.resize(compVAccSize.size());
-        sysL.resize(compVAccSize.size());
-        for (int compI = 0; compI < compVAccSize.size(); ++compI) {
-            sysE[compI] = 0.0;
-            sysM[compI].setZero();
-            sysL[compI].setZero();
-
-            for (int fI = (compI ? compFAccSize[compI - 1] : 0); fI < compFAccSize[compI]; ++fI) {
-                sysE[compI] += energyValPerElem[fI];
+            if constexpr (dim == 3) {
+                sysL[compI] += Eigen::Matrix<double, 1, dim>(result.V.row(vI)).cross(p);
             }
-            for (int vI = (compI ? compVAccSize[compI - 1] : 0); vI < compVAccSize[compI]; ++vI) {
-                sysE[compI] += result.massMatrix.coeff(vI, vI) * ((result.V.row(vI) - result.V_prev.row(vI)).squaredNorm() / dtSq / 2.0 - gravity.dot(result.V.row(vI).transpose()));
-
-                Eigen::Matrix<double, 1, dim> p = result.massMatrix.coeff(vI, vI) / dt * (result.V.row(vI) - result.V_prev.row(vI));
-                sysM[compI] += p;
-
-                if constexpr (dim == 3) {
-                    sysL[compI] += Eigen::Matrix<double, 1, dim>(result.V.row(vI)).cross(p);
-                }
-                else {
-                    sysL[compI][0] += result.V(vI, 0) * p[1] - result.V(vI, 1) * p[0];
-                }
+            else {
+                sysL[compI][0] += result.V(vI, 0) * p[1] - result.V(vI, 1) * p[0];
             }
         }
     }
+}
 
-    template <int dim>
-    void Optimizer<dim>::checkGradient(void)
-    {
-        spdlog::info("checking energy gradient computation...");
+template <int dim>
+void Optimizer<dim>::checkGradient(void)
+{
+    spdlog::info("checking energy gradient computation...");
 
-        double energyVal0;
-        computeConstraintSets(result);
-        computeEnergyVal(result, true, energyVal0);
+    double energyVal0;
+    computeConstraintSets(result);
+    computeEnergyVal(result, true, energyVal0);
 
-        const double h = 1.0e-6 * igl::avg_edge_length(result.V, result.F);
-        Mesh<dim> perturbed = result;
-        Eigen::VectorXd gradient_finiteDiff;
-        gradient_finiteDiff.resize(result.V.rows() * dim);
-        for (int vI = 0; vI < result.V.rows(); vI++) {
-            for (int dimI = 0; dimI < dim; dimI++) {
-                perturbed.V = result.V;
-                perturbed.V(vI, dimI) += h;
-                double energyVal_perturbed;
-                computeConstraintSets(perturbed);
-                computeEnergyVal(perturbed, true, energyVal_perturbed);
-                gradient_finiteDiff[vI * dim + dimI] = (energyVal_perturbed - energyVal0) / h;
-            }
-
-            if (((vI + 1) % 100) == 0) {
-                spdlog::info("{:d}/{:d} vertices computed", vI + 1, result.V.rows());
-            }
-        }
-        for (const auto fixedVI : result.fixedVert) {
-            gradient_finiteDiff.segment<dim>(dim * fixedVI).setZero();
+    const double h = 1.0e-6 * igl::avg_edge_length(result.V, result.F);
+    Mesh<dim> perturbed = result;
+    Eigen::VectorXd gradient_finiteDiff;
+    gradient_finiteDiff.resize(result.V.rows() * dim);
+    for (int vI = 0; vI < result.V.rows(); vI++) {
+        for (int dimI = 0; dimI < dim; dimI++) {
+            perturbed.V = result.V;
+            perturbed.V(vI, dimI) += h;
+            double energyVal_perturbed;
+            computeConstraintSets(perturbed);
+            computeEnergyVal(perturbed, true, energyVal_perturbed);
+            gradient_finiteDiff[vI * dim + dimI] = (energyVal_perturbed - energyVal0) / h;
         }
 
-        Eigen::VectorXd gradient_symbolic;
-        computeConstraintSets(result);
-        computeGradient(result, true, gradient_symbolic);
-
-        Eigen::VectorXd difVec = gradient_symbolic - gradient_finiteDiff;
-        const double dif_L2 = difVec.norm();
-        const double relErr = dif_L2 / gradient_finiteDiff.norm();
-
-        spdlog::info("L2 dist = {:g}, relErr = {:g}", dif_L2, relErr);
-
-        logFile << "check gradient:" << std::endl;
-        logFile << "g_symbolic =\n"
-                << gradient_symbolic << std::endl;
-        logFile << "g_finiteDiff = \n"
-                << gradient_finiteDiff << std::endl;
+        if (((vI + 1) % 100) == 0) {
+            spdlog::info("{:d}/{:d} vertices computed", vI + 1, result.V.rows());
+        }
+    }
+    for (const auto fixedVI : result.fixedVert) {
+        gradient_finiteDiff.segment<dim>(dim * fixedVI).setZero();
     }
 
-    template <int dim>
-    void Optimizer<dim>::checkHessian(void)
-    {
-        //TODO: needs to turn off SPD projection
-        spdlog::info("checking hessian computation...");
+    Eigen::VectorXd gradient_symbolic;
+    computeConstraintSets(result);
+    computeGradient(result, true, gradient_symbolic);
 
-        Eigen::VectorXd gradient0;
-        computeConstraintSets(result);
-        computeGradient(result, true, gradient0);
-        const double h = 1.0e-6 * igl::avg_edge_length(result.V, result.F);
-        Mesh<dim> perturbed = result;
-        Eigen::SparseMatrix<double> hessian_finiteDiff;
-        hessian_finiteDiff.resize(result.V.rows() * dim, result.V.rows() * dim);
-        for (int vI = 0; vI < result.V.rows(); vI++) {
-            if (result.fixedVert.find(vI) != result.fixedVert.end()) {
-                hessian_finiteDiff.insert(vI * dim, vI * dim) = 1.0;
-                hessian_finiteDiff.insert(vI * dim + 1, vI * dim + 1) = 1.0;
-                if constexpr (dim == 3) {
-                    hessian_finiteDiff.insert(vI * dim + 2, vI * dim + 2) = 1.0;
-                }
-                continue;
+    Eigen::VectorXd difVec = gradient_symbolic - gradient_finiteDiff;
+    const double dif_L2 = difVec.norm();
+    const double relErr = dif_L2 / gradient_finiteDiff.norm();
+
+    spdlog::info("L2 dist = {:g}, relErr = {:g}", dif_L2, relErr);
+
+    logFile << "check gradient:" << std::endl;
+    logFile << "g_symbolic =\n"
+            << gradient_symbolic << std::endl;
+    logFile << "g_finiteDiff = \n"
+            << gradient_finiteDiff << std::endl;
+}
+
+template <int dim>
+void Optimizer<dim>::checkHessian(void)
+{
+    //TODO: needs to turn off SPD projection
+    spdlog::info("checking hessian computation...");
+
+    Eigen::VectorXd gradient0;
+    computeConstraintSets(result);
+    computeGradient(result, true, gradient0);
+    const double h = 1.0e-6 * igl::avg_edge_length(result.V, result.F);
+    Mesh<dim> perturbed = result;
+    Eigen::SparseMatrix<double> hessian_finiteDiff;
+    hessian_finiteDiff.resize(result.V.rows() * dim, result.V.rows() * dim);
+    for (int vI = 0; vI < result.V.rows(); vI++) {
+        if (result.fixedVert.find(vI) != result.fixedVert.end()) {
+            hessian_finiteDiff.insert(vI * dim, vI * dim) = 1.0;
+            hessian_finiteDiff.insert(vI * dim + 1, vI * dim + 1) = 1.0;
+            if constexpr (dim == 3) {
+                hessian_finiteDiff.insert(vI * dim + 2, vI * dim + 2) = 1.0;
             }
+            continue;
+        }
 
-            for (int dimI = 0; dimI < dim; dimI++) {
-                perturbed.V = result.V;
-                perturbed.V(vI, dimI) += h;
-                Eigen::VectorXd gradient_perturbed;
-                // computeConstraintSets(perturbed); // the transition is only C1 continuous
-                computeGradient(perturbed, true, gradient_perturbed);
-                Eigen::VectorXd hessian_colI = (gradient_perturbed - gradient0) / h;
-                int colI = vI * dim + dimI;
-                for (int rowI = 0; rowI < result.V.rows() * dim; rowI++) {
-                    if ((result.fixedVert.find(rowI / dim) == result.fixedVert.end()) && (hessian_colI[rowI] != 0.0)) {
-                        hessian_finiteDiff.insert(rowI, colI) = hessian_colI[rowI];
-                    }
+        for (int dimI = 0; dimI < dim; dimI++) {
+            perturbed.V = result.V;
+            perturbed.V(vI, dimI) += h;
+            Eigen::VectorXd gradient_perturbed;
+            // computeConstraintSets(perturbed); // the transition is only C1 continuous
+            computeGradient(perturbed, true, gradient_perturbed);
+            Eigen::VectorXd hessian_colI = (gradient_perturbed - gradient0) / h;
+            int colI = vI * dim + dimI;
+            for (int rowI = 0; rowI < result.V.rows() * dim; rowI++) {
+                if ((result.fixedVert.find(rowI / dim) == result.fixedVert.end()) && (hessian_colI[rowI] != 0.0)) {
+                    hessian_finiteDiff.insert(rowI, colI) = hessian_colI[rowI];
                 }
-            }
-
-            if (((vI + 1) % 100) == 0) {
-                spdlog::info("{:d}/{:d} vertices computed", vI + 1, result.V.rows());
             }
         }
 
-        Eigen::SparseMatrix<double> hessian_symbolicPK;
-        LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* linSysSolver;
+        if (((vI + 1) % 100) == 0) {
+            spdlog::info("{:d}/{:d} vertices computed", vI + 1, result.V.rows());
+        }
+    }
+
+    Eigen::SparseMatrix<double> hessian_symbolicPK;
+    LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* linSysSolver;
 #ifdef LINSYSSOLVER_USE_CHOLMOD
-        linSysSolver = new CHOLMODSolver<Eigen::VectorXi, Eigen::VectorXd>();
+    linSysSolver = new CHOLMODSolver<Eigen::VectorXi, Eigen::VectorXd>();
 #elif defined(LINSYSSOLVER_USE_AMGCL)
     linSysSolver = new AMGCLSolver<Eigen::VectorXi, Eigen::VectorXd>();
 #else
     linSysSolver = new EigenLibSolver<Eigen::VectorXi, Eigen::VectorXd>();
 #endif
-        linSysSolver->set_pattern(result.vNeighbor, result.fixedVert);
-        computeConstraintSets(result);
-        computePrecondMtr(result, true, linSysSolver);
-        linSysSolver->getCoeffMtr(hessian_symbolicPK);
+    linSysSolver->set_pattern(result.vNeighbor, result.fixedVert);
+    computeConstraintSets(result);
+    computePrecondMtr(result, true, linSysSolver);
+    linSysSolver->getCoeffMtr(hessian_symbolicPK);
 
-        Eigen::SparseMatrix<double> difMtrPK = hessian_symbolicPK - hessian_finiteDiff;
-        const double difPK_L2 = difMtrPK.norm();
-        const double relErrPK = difPK_L2 / hessian_finiteDiff.norm();
-        spdlog::info("PK L2 dist = {:g}, relErr = {:g}", difPK_L2, relErrPK);
-        IglUtils::writeSparseMatrixToFile(outputFolderPath + "H_symbolicPK", hessian_symbolicPK, true);
+    Eigen::SparseMatrix<double> difMtrPK = hessian_symbolicPK - hessian_finiteDiff;
+    const double difPK_L2 = difMtrPK.norm();
+    const double relErrPK = difPK_L2 / hessian_finiteDiff.norm();
+    spdlog::info("PK L2 dist = {:g}, relErr = {:g}", difPK_L2, relErrPK);
+    IglUtils::writeSparseMatrixToFile(outputFolderPath + "H_symbolicPK", hessian_symbolicPK, true);
 
-        IglUtils::writeSparseMatrixToFile(outputFolderPath + "H_finiteDiff", hessian_finiteDiff, true);
-    }
+    IglUtils::writeSparseMatrixToFile(outputFolderPath + "H_finiteDiff", hessian_finiteDiff, true);
+}
 
-    template class Optimizer<DIM>;
+template class Optimizer<DIM>;
 } // namespace IPC
