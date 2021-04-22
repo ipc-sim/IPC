@@ -2840,11 +2840,11 @@ void Optimizer<dim>::saveStatus(const std::string& appendStr)
     spdlog::info("Results writting for Step {}", globalIterNum);
     Eigen::MatrixXd disp = result.V - data0.V;
     const Eigen::VectorXd m(Eigen::Map<Eigen::VectorXd>(disp.data(), disp.size()));
-    const std::size_t size = static_cast<std::size_t>(m.size());
+    const uint64_t size = static_cast<uint64_t>(m.size());
     {
         std::ofstream ost(path);
         assert((path + " is not open", ost.is_open()));
-        ost.write(reinterpret_cast<const char*>(&size), sizeof(std::size_t));
+        ost.write(reinterpret_cast<const char*>(&size), sizeof(uint64_t));
         ost.write(reinterpret_cast<const char*>(m.data()), size * sizeof(double));
     }
     const std::string summary_path = outputFolderPath + "status_summary.txt";
