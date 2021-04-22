@@ -1120,6 +1120,7 @@ int main(int argc, char* argv[])
     // create output folder
     if (args.outputDir != "") {
         outputFolderPath = args.outputDir;
+        if (outputFolderPath.back() != '/') outputFolderPath.push_back('/');
     }
     else {
         if ((suffix == ".txt") || (suffix == ".primitive")) {

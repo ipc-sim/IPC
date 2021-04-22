@@ -2834,6 +2834,27 @@ void Optimizer<dim>::initStepSize(const Mesh<dim>& data, double& stepSize)
 template <int dim>
 void Optimizer<dim>::saveStatus(const std::string& appendStr)
 {
+#ifdef SERIALIZED_OUTPUT
+    // We only output displacement data in serialized form
+    const std::string path = outputFolderPath + "displacement" + std::to_string(globalIterNum) + appendStr + ".txt";
+    spdlog::info("Results writting for Step {}", globalIterNum);
+    Eigen::MatrixXd disp = result.V - data0.V;
+    const Eigen::VectorXd m(Eigen::Map<Eigen::VectorXd>(disp.data(), disp.size()));
+    const std::size_t size = static_cast<std::size_t>(m.size());
+    {
+        std::ofstream ost(path);
+        assert((path + " is not open", ost.is_open()));
+        ost.write(reinterpret_cast<const char*>(&size), sizeof(std::size_t));
+        ost.write(reinterpret_cast<const char*>(m.data()), size * sizeof(double));
+    }
+    const std::string summary_path = outputFolderPath + "status_summary.txt";
+    {
+        std::ofstream ost(summary_path);
+        assert((summary_path + " is not open", ost.is_open()));
+        ost << globalIterNum;
+    }
+    spdlog::info("Results written for Step {}", globalIterNum);
+#else
     FILE* out = fopen((outputFolderPath + "status" + std::to_string(globalIterNum) + appendStr).c_str(), "w");
     assert(out);
 
@@ -2918,6 +2939,7 @@ void Optimizer<dim>::saveStatus(const std::string& appendStr)
         }
         fclose(out);
     }
+#endif
 }
 
 template <int dim>

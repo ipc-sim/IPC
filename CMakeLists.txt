@@ -57,6 +57,7 @@ option(IPC_WITH_AMGCL                  "Build with AMGCL"              OFF)
 option(IPC_WITH_TBB                    "Build with TBB"                OFF)
 option(IPC_WITH_PREBUILT_EXT "For externals, use prebuilt version" OFF)
 option(IPC_WITH_RATIONAL_CCD "With rational CCD if turned on when not using prebuilt externals" OFF)
+option(IPC_WITH_SERIALIZED_OUTPUT "With serialized output in IPC" ON)
 
 if(NOT IPC_WITH_OPENGL)
   set(LIBIGL_WITH_VIEWER OFF CACHE BOOL "" FORCE)
@@ -102,6 +103,11 @@ if(IPC_WITH_MAIN)
   # Link against the library
   target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME}_dev)
 endif(IPC_WITH_MAIN)
+
+if(IPC_WITH_SERIALIZED_OUTPUT)
+  message(STATUS "Output result in serialized way")
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC SERIALIZED_OUTPUT)
+endif(IPC_WITH_SERIALIZED_OUTPUT)
 
 target_include_directories(${PROJECT_NAME}_dev PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 #target_include_directories(${PROJECT_NAME}_dev PUBLIC
