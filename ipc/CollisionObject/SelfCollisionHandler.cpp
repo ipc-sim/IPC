@@ -1439,9 +1439,9 @@ bool SelfCollisionHandler<dim>::updateActiveSet_QP(
     for (const auto& mmcvid : activeSet) {
         prevActiveSet.insert(mmcvid);
 //#if __cplusplus >= 201703L
-//        mmcvid_to_toi.insert_or_assign(mmcvid, std::numeric_limits<double>::infinity());
+        mmcvid_to_toi.insert_or_assign(mmcvid, std::numeric_limits<double>::infinity());
 //#else
-        mmcvid_to_toi[mmcvid] = std::numeric_limits<double>::infinity();
+//        mmcvid_to_toi[mmcvid] = std::numeric_limits<double>::infinity();
 //#endif
     }
     // Verschoor does not clear the previous active set every iteration.
@@ -1497,10 +1497,10 @@ bool SelfCollisionHandler<dim>::updateActiveSet_QP(
                 -vI - 1, // mesh point
                 sfVInd[0], sfVInd[2], sfVInd[1]); // mesh triangle
 //#if __cplusplus >= 201703L
-//            mmcvid_to_toi.insert_or_assign(mmcvid,
-//                intersects ? toi : std::numeric_limits<double>::infinity());
+            mmcvid_to_toi.insert_or_assign(mmcvid,
+                intersects ? toi : std::numeric_limits<double>::infinity());
 //#else
-            mmcvid_to_toi[mmcvid] = intersects ? toi : std::numeric_limits<double>::infinity();
+//            mmcvid_to_toi[mmcvid] = intersects ? toi : std::numeric_limits<double>::infinity();
 //#endif
             bool isNewConstraint = prevActiveSet.find(mmcvid) == prevActiveSet.end();
             if (intersects && (wasActiveSetCleared || isNewConstraint)) {
@@ -1585,10 +1585,10 @@ bool SelfCollisionHandler<dim>::updateActiveSet_QP(
                     edge2.first, edge2.second);
             }
 //#if __cplusplus >= 201703L
-//            mmcvid_to_toi.insert_or_assign(mmcvid,
-//                intersects ? toi : std::numeric_limits<double>::infinity());
+            mmcvid_to_toi.insert_or_assign(mmcvid,
+                intersects ? toi : std::numeric_limits<double>::infinity());
 //#else
-            mmcvid_to_toi[mmcvid] = intersects ? toi : std::numeric_limits<double>::infinity();
+//            mmcvid_to_toi[mmcvid] = intersects ? toi : std::numeric_limits<double>::infinity();
 //#endif
             bool isNewConstraint = prevActiveSet.find(mmcvid) == prevActiveSet.end();
             if (intersects && (wasActiveSetCleared || isNewConstraint)) {

@@ -3,7 +3,7 @@ cmake_policy(SET CMP0025 NEW)
 # use clang for compilation
 set(CMAKE_C_COMPILER "/usr/bin/clang")
 set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
-set(CMAKE_CXX_FLAGS "-std=c++14 -fopenmp")# -D_GLIBCXX_USE_CXX11_ABI=0")
+set(CMAKE_CXX_FLAGS "-std=c++17 -fopenmp")# -D_GLIBCXX_USE_CXX11_ABI=0")
 
 # the following 2 are for fixing undefined symbol caused by CMake unable to find
 # correct ABI implementation. See the source of this fix:
