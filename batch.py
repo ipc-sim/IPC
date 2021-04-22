@@ -44,6 +44,8 @@ for numOfThreads in ['1', '8', '16']:
         runCommand += NTSetStr0 + numOfThreads + '\n'
         runCommand += NTSetStr1 + numOfThreads + '\n'
         runCommand += NTSetStr2 + numOfThreads + '\n'
+        #this one output more things with -a flag
+        #runCommand += "{} {} {} t{} -o {} -a".format(
         runCommand += "{} {} {} t{} -o {}".format(
             progPath, '100' if args.offline else '10',
             inputFolderPath + inputModelNameI, numOfThreads, outdir)
