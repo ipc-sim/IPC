@@ -114,6 +114,8 @@ double secPast = 0.0;
 time_t lastStart_world;
 Timer timer, timer_step, timer_temp3, timer_mt;
 
+bool detailed_timing = false;
+
 void saveInfo(bool writePNG = true, bool writeGIF = true, int writeMesh = 1, double save_dt = 1e-2);
 void saveScreenshot(const std::string& filePath, double scale = 1.0, bool writeGIF = false, bool writePNG = true);
 void saveInfoForPresent(const std::string fileName = "info.txt", double save_dt = 1e-2);
@@ -153,7 +155,9 @@ void proceedOptimization(int proceedNum = 1)
         }
         iterNum = optimizer->getIterNum();
 
-        saveInfoForPresent("info" + std::to_string(iterNum) + ".txt");
+        if (detailed_timing) {
+            saveInfoForPresent("info" + std::to_string(iterNum) + ".txt");
+        }
 
 #ifdef FIRST_TIME_STEP
         converged = true;
@@ -643,6 +647,7 @@ struct CLIArgs {
     std::string folderTail = "";
     std::string outputDir = "";
     int logLevel = 0; // trace (all logs)
+    bool detailed_timing = false;
 };
 
 void init_cli_app(CLI::App& app, CLIArgs& args)
@@ -663,6 +668,7 @@ void init_cli_app(CLI::App& app, CLIArgs& args)
         "set log level (0=trace, 1=debug, 2=info, 3=warn, 4=error, 5=critical,"
         " 6=off)",
         true);
+    app.add_flag("-d,--detailed_timing", args.detailed_timing, "Output detailed timing if flag specified");
 }
 
 int main(int argc, char* argv[])
@@ -682,6 +688,7 @@ int main(int argc, char* argv[])
     catch (const CLI::ParseError& e) {
         return app.exit(e);
     }
+    detailed_timing = args.detailed_timing;
 
     spdlog::set_level(static_cast<spdlog::level::level_enum>(args.logLevel));
     if (args.logLevel == 6) {
