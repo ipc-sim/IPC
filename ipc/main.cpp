@@ -377,9 +377,10 @@ void saveInfo(bool writePNG, bool writeGIF, int writeMesh, double save_dt)
     // Limit the number of files to 1 / save_dt per simulation second
     static int previousSaveIter = std::numeric_limits<int>::min() / 2;
     int itersBetweenSaves = round(save_dt / config.dt);
-    if (iterNum != previousSaveIter && iterNum - previousSaveIter < itersBetweenSaves && !converged) {
-        return;
-    }
+    // Note: we output every single iteration
+    // if (iterNum != previousSaveIter && iterNum - previousSaveIter < itersBetweenSaves && !converged) {
+    //     return;
+    // }
     previousSaveIter = iterNum;
 
     switch (writeMesh) {
