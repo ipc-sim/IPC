@@ -1,0 +1,30 @@
+script fall
+
+time 10.0 1e-4
+
+constraintSolver SQP
+warmStart 0
+selfCollisionOn
+
+CCDMethod FloatingPointRootFinder
+#CCDMethod TightInclusion
+#CCDTolerance 1e-3
+#CCDTolerance 3.162277e-5
+#CCDTolerance 1e-6
+#CCDMethod FloatingPointRootParity
+
+shapes input 1
+input/tetMeshes/sphere1K.msh  0 0 0  0 0 0  1 1 1
+
+meshCO input/triMeshes/plane.obj 0 0 0  20  50  1.0 rotate 0 0 0
+
+view orthographic
+# zoom 0.3
+
+section SQP QP
+warmStart 1
+constraintType Verschoor
+constraintOffset 0
+tol 1
+1e-8
+section end

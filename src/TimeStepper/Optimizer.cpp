@@ -41,7 +41,7 @@
 
 #include <sys/stat.h> // for mkdir
 
-#define SAVE_EXTREME_LINESEARCH_CCD
+// #define SAVE_EXTREME_LINESEARCH_CCD
 
 extern const std::string outputFolderPath;
 
@@ -1957,11 +1957,10 @@ bool Optimizer<dim>::solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
 #ifdef SAVE_EXTREME_LINESEARCH_CCD
         if (alpha_feasible < 0.25) {
             static int count = 0;
-            fmt::print("count={:d} alpha_feasible={:g}\n", count, alpha_feasible);
             Eigen::MatrixXd V0 = result.V;
             result.saveSurfaceMesh(fmt::format("{}lineSearch-{:05d}-t0.obj", outputFolderPath, count));
             stepForward(V0, result, alpha_feasible);
-            result.saveSurfaceMesh(fmt::format("{}lineSearch-{:05d}-tα.obj", outputFolderPath, count));
+            result.saveSurfaceMesh(fmt::format("{}lineSearch-{:05d}-tα={:g}.obj", outputFolderPath, count, alpha_feasible));
             stepForward(V0, result, 1);
             result.saveSurfaceMesh(fmt::format("{}lineSearch-{:05d}-t1.obj", outputFolderPath, count));
             result.V = V0;
