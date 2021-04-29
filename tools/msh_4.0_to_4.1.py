@@ -6,6 +6,7 @@ from collections import OrderedDict
 def read_msh40(msh_path):
     V = OrderedDict()  # vertices
     T = OrderedDict()  # tets
+    F = []
 
     with open(msh_path, mode='r') as f:
         lines = f.read().split("\n")
@@ -43,8 +44,9 @@ def read_msh40(msh_path):
                 T[id] = tet
             i += num_tets + 1
         elif lines[i] == "$Surface":
-            print("Skipping $Surface section")
             num_tris = int(lines[i + 1])
+            for j in range(num_tris):
+                F.append(lines[i + j + 2].split())
             i += num_tris + 3
         elif lines[i] != "":
             print(f"Unkown line: {lines[i]}")
@@ -52,10 +54,10 @@ def read_msh40(msh_path):
         else:
             i += 1
 
-    return V, T
+    return V, T, F
 
 
-def write_msh41(outpath, V, T):
+def write_msh41(outpath, V, T, F=None):
     with open(outpath, mode='w') as f:
         f.write("$MeshFormat\n4.1 0 8\n$EndMeshFormat\n")
 
@@ -80,6 +82,13 @@ def write_msh41(outpath, V, T):
             f.write("{} {} {} {} {}\n".format(id, *elm))
         f.write("$EndElements\n")
 
+        if F:
+            f.write("$Surface\n")
+            f.write(f"{len(F):d}\n")
+            for face in F:
+                f.write("{} {} {}\n".format(*face))
+            f.write("$EndSurface\n")
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -92,6 +101,9 @@ def parse_args():
         "-o", "--output", metavar="path/to/output/", type=pathlib.Path,
         dest="output", default=pathlib.Path("output"),
         help="path to output directory")
+    parser.add_argument(
+        "--keep-surface", action="store_true", default=False,
+        help="keep the $Surface section")
     return parser.parse_args()
 
 
@@ -114,7 +126,8 @@ def main():
 
         print(f"Converting {input} to {output}")
         try:
-            write_msh41(output, *read_msh40(input))
+            write_msh41(output,
+                        *(read_msh40(input)[:3 if args.keep_surface else 2]))
         except Exception as err:
             print(err)
 

@@ -271,11 +271,9 @@ scenes, and processing results.
 
 * `convert_to_ipc_msh.py`: this script uses [PyMesh](https://pymesh.readthedocs.io/en/latest/)
 to convert a tetrahedral mesh to the expected `.msh` format of IPC
-    * IPC uses a nonstandard `.msh` format that includes additional surface information
     * If the input mesh is a triangle mesh, then Tetgen will be used to tetrahedralize it
 * `geo_to_msh.py`: this script uses [PyMesh](https://pymesh.readthedocs.io/en/latest/)
 to convert a GEO (format exported by Houdini) format mesh to a standard MSH mesh
-    * The output is the standard MSH format and is not directly usable by IPC
 * `generate_chain_scene.py`: generate a IPC script for a variable length chain
 * `run-comparison-benchmark-sqp.sh`: run the comparison SQP benchmark with default settings
 * `run-comparison-benchmark-hpc.sh`: run the comparison full sweep of the SQP benchmark

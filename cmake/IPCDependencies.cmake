@@ -102,3 +102,9 @@ endif()
 # Rational CCD
 download_rational_ccd()
 add_subdirectory(${IPC_EXTERNAL}/rational_ccd)
+
+# MshIO
+if(NOT TARGET mshio::mshio)
+  download_mshio()
+  add_subdirectory(${IPC_EXTERNAL}/MshIO)
+endif()

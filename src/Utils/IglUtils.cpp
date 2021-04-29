@@ -17,6 +17,16 @@
 #include <set>
 #include <spdlog/spdlog.h>
 
+#include <mshio/mshio.h>
+
+#if __has_include(<filesystem>)
+#include <filesystem>
+namespace fs = std::filesystem;
+#else
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+#endif
+
 extern Timer timer_temp, timer_temp2;
 
 namespace IPC {
@@ -269,8 +279,95 @@ void IglUtils::buildSTri2Tet(const Eigen::MatrixXi& F, const Eigen::MatrixXi& SF
     );
 #endif
 }
-
 void IglUtils::saveTetMesh(const std::string& filePath,
+    const Eigen::MatrixXd& TV, const Eigen::MatrixXi& TT,
+    const Eigen::MatrixXi& p_F, bool findSurface)
+{
+    // saveTetMesh_msh4(filePath, TV, TT, p_F, findSurface);
+
+    assert(TV.rows() > 0);
+    assert(TV.cols() == 3);
+    assert(TT.rows() > 0);
+    assert(TT.cols() == 4);
+
+    mshio::MshSpec spec;
+    auto& format = spec.mesh_format;
+    format.version = "4.1"; // Only version "2.2" and "4.1" are supported.
+    format.file_type = 0; // 0: ASCII, 1: binary.
+    format.data_size = sizeof(size_t); // Size of data, defined as sizeof(size_t) = 8.
+
+    // Store the nodes
+    auto& nodes = spec.nodes;
+    nodes.num_entity_blocks = 1; // Number of node blocks.
+    nodes.num_nodes = TV.rows(); // Total number of nodes.
+    nodes.min_node_tag = 1;
+    nodes.max_node_tag = TV.rows();
+    nodes.entity_blocks.resize(1); // A std::vector of node blocks.
+
+    auto& node_block = nodes.entity_blocks.front();
+    node_block.entity_dim = 3; // The dimension of the entity.
+    node_block.entity_tag = 0; // The entity these nodes belongs to.
+    node_block.parametric = 0; // 0: non-parametric, 1: parametric.
+    node_block.num_nodes_in_block = TV.rows(); // The number of nodes in block.
+    node_block.tags.resize(TV.rows()); // A std::vector of unique, positive node tags.
+    node_block.data.resize(TV.size()); // A std::vector of coordinates (x,y,z,<u>,<v>,<w>,...)
+    for (size_t i = 0; i < TV.rows(); i++) {
+        node_block.tags[i] = i + 1;
+        for (size_t j = 0; j < TV.cols(); j++) {
+            node_block.data[TV.cols() * i + j] = TV(i, j);
+        }
+    }
+
+    // Store the elements
+    auto& elements = spec.elements;
+    elements.num_entity_blocks = 1; // Number of element blocks.
+    elements.num_elements = TT.rows(); // Total number of elements.
+    elements.min_element_tag = 1;
+    elements.max_element_tag = TT.rows();
+    elements.entity_blocks.resize(1); // A std::vector of element blocks.
+
+    auto& elm_block = elements.entity_blocks.front();
+    elm_block.entity_dim = 3; // The dimension of the elements.
+    elm_block.entity_tag = 0; // The entity these elements belongs to.
+    elm_block.element_type = 4; // Linear tet.
+    elm_block.num_elements_in_block = TT.rows(); // The number of elements in this block.
+    elm_block.data.resize(TT.size() + TT.rows(), 0);
+    size_t data_index = 0;
+    for (size_t i = 0; i < TT.rows(); i++) {
+        elm_block.data[data_index++] = i + 1;
+        for (size_t j = 0; j < TT.cols(); j++) {
+            elm_block.data[data_index++] = TT(i, j) + 1;
+        }
+    }
+
+    Eigen::MatrixXi F_found;
+    if (p_F.rows() > 0) {
+        assert(p_F.cols() == 3);
+    }
+    else if (findSurface) {
+        findSurfaceTris(TT, F_found);
+    }
+    const Eigen::MatrixXi& F = ((p_F.rows() > 0) ? p_F : F_found);
+
+    std::ofstream out(filePath, std::ios::out);
+    if (out.is_open()) {
+        // Save the msh file
+        mshio::save_msh(out, spec);
+        // Append the file with the surface
+        out << "$Surface\n";
+        out << F.rows() << "\n";
+        for (int triI = 0; triI < F.rows(); triI++) {
+            const Eigen::RowVector3i& triVInd = F.row(triI);
+            out << (triVInd[0] + 1) << " " << (triVInd[1] + 1) << " " << (triVInd[2] + 1) << "\n";
+        }
+        out << "$EndSurface\n";
+        out.close();
+    }
+    else {
+        spdlog::error("Unable to save mesh to {}", filePath);
+    }
+}
+void IglUtils::saveTetMesh_msh4(const std::string& filePath,
     const Eigen::MatrixXd& TV, const Eigen::MatrixXi& TT,
     const Eigen::MatrixXi& p_F, bool findSurface)
 {
@@ -360,6 +457,65 @@ void IglUtils::saveTetMesh_vtk(const std::string& filePath,
     os.close();
 }
 bool IglUtils::readTetMesh(const std::string& filePath,
+    Eigen::MatrixXd& TV, Eigen::MatrixXi& TT,
+    Eigen::MatrixXi& F, bool findSurface)
+{
+    if (!fs::exists(filePath)) {
+        return false;
+    }
+
+    mshio::MshSpec spec;
+    try {
+        spec = mshio::load_msh(filePath);
+    }
+    catch (...) {
+        // MshIO only supports MSH 2.2 and 4.1 not 4.0
+        return readTetMesh_msh4(filePath, TV, TT, F, findSurface);
+    }
+
+    const auto& nodes = spec.nodes;
+    const auto& els = spec.elements;
+    const int vAmt = nodes.num_nodes;
+    int elemAmt = 0;
+    for (const auto& e : els.entity_blocks) {
+        assert(e.entity_dim == 3);
+        assert(e.element_type == 4); // linear tet
+        elemAmt += e.num_elements_in_block;
+    }
+
+    TV.resize(vAmt, 3);
+    int index = 0;
+    for (const auto& n : nodes.entity_blocks) {
+        for (int i = 0; i < n.num_nodes_in_block * 3; i += 3) {
+            TV.row(index) << n.data[i], n.data[i + 1], n.data[i + 2];
+            ++index;
+        }
+    }
+
+    TT.resize(elemAmt, 4);
+    int elm_index = 0;
+    for (const auto& e : els.entity_blocks) {
+        for (int i = 0; i < e.data.size(); i += 5) {
+            index = 0;
+            for (int j = i + 1; j <= i + 4; ++j) {
+                TT(elm_index, index++) = e.data[j] - 1;
+            }
+            ++elm_index;
+        }
+    }
+
+    if (!findSurface) {
+        spdlog::warn("readTetMesh is finding the surface because $Surface is not supported by MshIO");
+    }
+    findSurfaceTris(TT, F);
+
+    spdlog::info(
+        "tet mesh loaded with {:d} nodes, {:d} tets, and {:d} surface triangles.",
+        TV.rows(), TT.rows(), F.rows());
+
+    return true;
+}
+bool IglUtils::readTetMesh_msh4(const std::string& filePath,
     Eigen::MatrixXd& TV, Eigen::MatrixXi& TT,
     Eigen::MatrixXi& F, bool findSurface)
 {

@@ -104,12 +104,18 @@ function(download_eigen_gurobi)
   )
 endfunction()
 
-
-
 # Rational CCD
 function(download_rational_ccd)
   custom_download_project(rational_ccd
     GIT_REPOSITORY https://github.com/teseoch/Exact-CDD.git
     GIT_TAG        63fdb92b917c8d7349c9403656f1497df6fa6ce5
+  )
+endfunction()
+
+# MshIO
+function(download_mshio)
+  custom_download_project(MshIO
+    GIT_REPOSITORY https://github.com/qnzhou/MshIO.git
+    GIT_TAG        201eeba436e38043b7e716be82ec5e218cbae74d
   )
 endfunction()
