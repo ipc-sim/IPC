@@ -10,7 +10,8 @@
 
 namespace IPC {
 
-std::array<double, 3> tight_inclusion_vf_err, tight_inclusion_ee_err;
+std::array<double, 3> tight_inclusion_vf_err = { -1, -1, -1 };
+std::array<double, 3> tight_inclusion_ee_err = { -1, -1, -1 };
 Eigen::Vector3d invShift = Eigen::Vector3d::Zero();
 
 template <int dim>

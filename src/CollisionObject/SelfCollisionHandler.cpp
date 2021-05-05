@@ -11,7 +11,6 @@
 // Etienne Vouga's CCD using a root finder in floating points
 #include <CTCD.h>
 #include <tight_inclusion/inclusion_ccd.hpp>
-#include <tight_inclusion/interval_root_finder.hpp>
 #include "CCDUtils.hpp"
 
 #include "get_feasible_steps.hpp"
