@@ -9,9 +9,28 @@
 #include <CollisionObject/CollisionObject.h>
 #include <Mesh.hpp>
 
+#define TIGHT_INCLUSION_MAX_ITER 1e6
+#define TIGHT_INCLUSION_CCD_TYPE 1
+#define TIGHT_INCLUSION_DIST_P 0.2
+#define TIGHT_INCLUSION_MIN_DIST tolerance
+
 namespace IPC {
 
+extern std::array<double, 3> tight_inclusion_vf_err, tight_inclusion_ee_err;
+
 extern Eigen::Vector3d invShift;
+
+template <int dim>
+void computeTightInclusionError(
+    Mesh<dim>& mesh,
+    std::vector<CollisionObject<dim>*>& meshCollisionObjects);
+
+template <int dim>
+void computeTightInclusionError(
+    Mesh<dim>& mesh,
+    std::vector<CollisionObject<dim>*>& meshCollisionObjects,
+    const Eigen::Vector3d& world_min,
+    const Eigen::Vector3d& world_max);
 
 template <int dim>
 Eigen::Vector3d shiftVertices(

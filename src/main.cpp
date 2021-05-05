@@ -1061,7 +1061,11 @@ int main(int argc, char* argv[])
     }
     triSoup.emplace_back(temp);
 
-    if (config.ccdMethod == ccd::CCDMethod::FLOATING_POINT_ROOT_PARITY) {
+    if (config.ccdMethod == ccd::CCDMethod::TIGHT_INCLUSION) {
+        // Compute a conservative error for the tight inclusion CCD
+        computeTightInclusionError(*temp, config.meshCollisionObjects);
+    }
+    else if (config.ccdMethod == ccd::CCDMethod::FLOATING_POINT_ROOT_PARITY) {
 #ifdef USE_FPRP_CCD
         // shift entire mesh so the CCD will be exact in doubles
         IPC::invShift = shiftVertices(*temp, config.meshCollisionObjects);

@@ -4,22 +4,26 @@
 #include <doubleCCD/doubleccd.hpp>
 #endif
 
+#include <tight_inclusion/interval_root_finder.hpp>
+
 #include <spdlog/spdlog.h>
 
 namespace IPC {
 
+std::array<double, 3> tight_inclusion_vf_err, tight_inclusion_ee_err;
 Eigen::Vector3d invShift = Eigen::Vector3d::Zero();
 
 template <int dim>
-Eigen::Vector3d shiftVertices(
-    Mesh<dim>& mesh,
-    std::vector<CollisionObject<dim>*>& meshCollisionObjects)
+void computeConservativeWorldBBox(Mesh<dim>& mesh,
+    std::vector<CollisionObject<dim>*>& meshCollisionObjects,
+    Eigen::Vector3d& world_min,
+    Eigen::Vector3d& world_max)
 {
     assert(dim == 3);
 
     // compute a bounding box for the entire scene
-    Eigen::Vector3d world_min = mesh.V.colwise().minCoeff().transpose();
-    Eigen::Vector3d world_max = mesh.V.colwise().maxCoeff().transpose();
+    world_min = mesh.V.colwise().minCoeff().transpose();
+    world_max = mesh.V.colwise().maxCoeff().transpose();
     for (CollisionObject<dim>* meshCO : meshCollisionObjects) {
         world_min = world_min.cwiseMin(meshCO->V.colwise().minCoeff().transpose());
         world_max = world_max.cwiseMax(meshCO->V.colwise().maxCoeff().transpose());
@@ -40,7 +44,50 @@ Eigen::Vector3d shiftVertices(
         "using a world bbox of [{:g}, {:g}, {:g}]×[{:g}, {:g}, {:g}]",
         world_min.x(), world_min.y(), world_min.z(),
         world_max.x(), world_max.y(), world_max.z());
+}
 
+template <int dim>
+void computeTightInclusionError(
+    Mesh<dim>& mesh,
+    std::vector<CollisionObject<dim>*>& meshCollisionObjects)
+{
+    assert(dim == 3);
+    Eigen::Vector3d world_min, world_max;
+    computeConservativeWorldBBox(mesh, meshCollisionObjects, world_min, world_max);
+    return computeTightInclusionError(mesh, meshCollisionObjects, world_min, world_max);
+}
+
+template <int dim>
+void computeTightInclusionError(
+    Mesh<dim>& mesh,
+    std::vector<CollisionObject<dim>*>& meshCollisionObjects,
+    const Eigen::Vector3d& world_min,
+    const Eigen::Vector3d& world_max)
+{
+    std::vector<Eigen::Vector3d> bbox_vertices = { {
+        Eigen::Vector3d(world_min.x(), world_min.y(), world_min.z()),
+        Eigen::Vector3d(world_min.x(), world_min.y(), world_max.z()),
+        Eigen::Vector3d(world_min.x(), world_max.y(), world_min.z()),
+        Eigen::Vector3d(world_min.x(), world_max.y(), world_max.z()),
+        Eigen::Vector3d(world_max.x(), world_min.y(), world_min.z()),
+        Eigen::Vector3d(world_max.x(), world_min.y(), world_max.z()),
+        Eigen::Vector3d(world_max.x(), world_max.y(), world_min.z()),
+        Eigen::Vector3d(world_max.x(), world_max.y(), world_max.z()),
+    } };
+    tight_inclusion_vf_err = inclusion_ccd::get_numerical_error(
+        bbox_vertices, /*check_vf=*/true, /*using_minimum_separation=*/true);
+    tight_inclusion_ee_err = inclusion_ccd::get_numerical_error(
+        bbox_vertices, /*check_vf=*/false, /*using_minimum_separation=*/true);
+}
+
+template <int dim>
+Eigen::Vector3d shiftVertices(
+    Mesh<dim>& mesh,
+    std::vector<CollisionObject<dim>*>& meshCollisionObjects)
+{
+    assert(dim == 3);
+    Eigen::Vector3d world_min, world_max;
+    computeConservativeWorldBBox(mesh, meshCollisionObjects, world_min, world_max);
     return shiftVertices(mesh, meshCollisionObjects, world_min, world_max);
 }
 
@@ -194,6 +241,31 @@ bool edgeEdgeToIBisection(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+template void computeTightInclusionError(
+    Mesh<2>& mesh,
+    std::vector<CollisionObject<2>*>& meshCollisionObjects);
+template void computeTightInclusionError(
+    Mesh<2>& mesh,
+    std::vector<CollisionObject<2>*>& meshCollisionObjects,
+    const Eigen::Vector3d& world_min,
+    const Eigen::Vector3d& world_max);
+template Eigen::Vector3d shiftVertices(
+    Mesh<2>& mesh,
+    std::vector<CollisionObject<2>*>& meshCollisionObjects);
+template Eigen::Vector3d shiftVertices(
+    Mesh<2>& mesh,
+    std::vector<CollisionObject<2>*>& meshCollisionObjects,
+    const Eigen::Vector3d& world_min,
+    const Eigen::Vector3d& world_max);
+
+template void computeTightInclusionError(
+    Mesh<3>& mesh,
+    std::vector<CollisionObject<3>*>& meshCollisionObjects);
+template void computeTightInclusionError(
+    Mesh<3>& mesh,
+    std::vector<CollisionObject<3>*>& meshCollisionObjects,
+    const Eigen::Vector3d& world_min,
+    const Eigen::Vector3d& world_max);
 template Eigen::Vector3d shiftVertices(
     Mesh<3>& mesh,
     std::vector<CollisionObject<3>*>& meshCollisionObjects);

@@ -10,12 +10,7 @@
 // Etienne Vouga's CCD using a root finder in floating points
 #include <CTCD.h>
 #include <tight_inclusion/inclusion_ccd.hpp>
-#include <tight_inclusion/interval_root_finder.hpp>
 #include "CCDUtils.hpp"
-#define CCD_MAX_ITER 1e6
-#define TIGHT_INTERVAL_CCD_TYPE 1
-#define DIST_P 0.2
-#define CCD_MIN_DIST tolerance
 
 #include "get_feasible_steps.hpp"
 #include "IglUtils.hpp"
@@ -742,21 +737,6 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
     const std::vector<std::pair<int, int>>& constraintSet,
     double& stepSize)
 {
-    std::vector<Eigen::Vector3d> bbox_vertices = { {
-        Eigen::Vector3d(+20, +20, +20),
-        Eigen::Vector3d(+20, +20, -20),
-        Eigen::Vector3d(+20, -20, +20),
-        Eigen::Vector3d(+20, -20, -20),
-        Eigen::Vector3d(-20, +20, +20),
-        Eigen::Vector3d(-20, +20, -20),
-        Eigen::Vector3d(-20, -20, +20),
-        Eigen::Vector3d(-20, -20, -20),
-    } };
-    std::array<double, 3> vf_err = inclusion_ccd::get_numerical_error(
-        bbox_vertices, /*check_vf=*/true, /*using_minimum_separation=*/true);
-    std::array<double, 3> ee_err = inclusion_ccd::get_numerical_error(
-        bbox_vertices, /*check_vf=*/false, /*using_minimum_separation=*/true);
-
 #if (CFL_FOR_CCD != 0)
     for (int cI = 0; cI < constraintSet.size(); ++cI) {
         if (constraintSet[cI].first < 0) {
@@ -780,14 +760,14 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
                     mesh.V.row(sfVInd[0]).transpose() + searchDir.segment<dim>(sfVInd[0] * dim),
                     mesh.V.row(sfVInd[1]).transpose() + searchDir.segment<dim>(sfVInd[1] * dim),
                     mesh.V.row(sfVInd[2]).transpose() + searchDir.segment<dim>(sfVInd[2] * dim),
-                    /*err=*/vf_err,
-                    /*ms=*/std::min(DIST_P * d_sqrt, CCD_MIN_DIST),
+                    /*err=*/tight_inclusion_vf_err,
+                    /*ms=*/std::min(TIGHT_INCLUSION_DIST_P * d_sqrt, TIGHT_INCLUSION_MIN_DIST),
                     toi,
                     tolerance,
                     stepSize,
-                    /* max_itr=*/CCD_MAX_ITER,
+                    /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INTERVAL_CCD_TYPE);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
 
                 if (has_collision && toi < 1e-6) {
                     has_collision = inclusion_ccd::vertexFaceCCD_double(
@@ -799,14 +779,14 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
                         mesh.V.row(sfVInd[0]).transpose() + searchDir.segment<dim>(sfVInd[0] * dim),
                         mesh.V.row(sfVInd[1]).transpose() + searchDir.segment<dim>(sfVInd[1] * dim),
                         mesh.V.row(sfVInd[2]).transpose() + searchDir.segment<dim>(sfVInd[2] * dim),
-                        /*err=*/vf_err,
+                        /*err=*/tight_inclusion_vf_err,
                         /*ms=*/0,
                         toi,
                         tolerance,
                         /*max_t=*/stepSize,
                         /* max_itr=*/-1,
                         output_tolerance,
-                        /*CCD_TYPE=*/TIGHT_INTERVAL_CCD_TYPE);
+                        /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
                     if (has_collision) {
                         toi *= 0.8;
                     }
@@ -836,14 +816,14 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
                     Base::V.row(sfVInd[0]).transpose(),
                     Base::V.row(sfVInd[1]).transpose(),
                     Base::V.row(sfVInd[2]).transpose(),
-                    /*err=*/vf_err,
-                    /*ms=*/std::min(DIST_P * d_sqrt, CCD_MIN_DIST),
+                    /*err=*/tight_inclusion_vf_err,
+                    /*ms=*/std::min(TIGHT_INCLUSION_DIST_P * d_sqrt, TIGHT_INCLUSION_MIN_DIST),
                     toi,
                     tolerance,
                     /*max_t=*/stepSize,
-                    /* max_itr=*/CCD_MAX_ITER,
+                    /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INTERVAL_CCD_TYPE);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
 
                 if (has_collision && toi < 1e-6) {
                     has_collision = inclusion_ccd::vertexFaceCCD_double(
@@ -855,14 +835,14 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
                         Base::V.row(sfVInd[0]).transpose(),
                         Base::V.row(sfVInd[1]).transpose(),
                         Base::V.row(sfVInd[2]).transpose(),
-                        /*err=*/vf_err,
+                        /*err=*/tight_inclusion_vf_err,
                         /*ms=*/0,
                         toi,
                         tolerance,
                         /*max_t=*/stepSize,
                         /* max_itr=*/-1,
                         output_tolerance,
-                        /*CCD_TYPE=*/TIGHT_INTERVAL_CCD_TYPE);
+                        /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
                     if (has_collision) {
                         toi *= 0.8;
                     }
@@ -893,14 +873,14 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
                 mesh.V.row(meshEI.second).transpose() + searchDir.segment<dim>(meshEI.second * dim),
                 Base::V.row(meshEJ.first).transpose(),
                 Base::V.row(meshEJ.second).transpose(),
-                /*err=*/ee_err,
-                /*ms=*/std::min(DIST_P * d_sqrt, CCD_MIN_DIST),
+                /*err=*/tight_inclusion_ee_err,
+                /*ms=*/std::min(TIGHT_INCLUSION_DIST_P * d_sqrt, TIGHT_INCLUSION_MIN_DIST),
                 toi,
                 tolerance,
                 /*max_t=*/stepSize,
-                /* max_itr=*/CCD_MAX_ITER,
+                /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                 output_tolerance,
-                /*CCD_TYPE=*/TIGHT_INTERVAL_CCD_TYPE);
+                /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
 
             if (has_collision && toi < 1e-6) {
                 double output_tolerance;
@@ -913,14 +893,14 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
                     mesh.V.row(meshEI.second).transpose() + searchDir.segment<dim>(meshEI.second * dim),
                     Base::V.row(meshEJ.first).transpose(),
                     Base::V.row(meshEJ.second).transpose(),
-                    /*err=*/ee_err,
+                    /*err=*/tight_inclusion_ee_err,
                     /*ms=*/0,
                     toi,
                     tolerance,
                     /*max_t=*/stepSize,
                     /* max_itr=*/-1,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INTERVAL_CCD_TYPE);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
 
                 if (has_collision) {
                     toi *= 0.8;
@@ -1344,21 +1324,6 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
     const Eigen::VectorXd& searchDir,
     double tolerance, double& stepSize)
 {
-    std::vector<Eigen::Vector3d> bbox_vertices = { {
-        Eigen::Vector3d(+20, +20, +20),
-        Eigen::Vector3d(+20, +20, -20),
-        Eigen::Vector3d(+20, -20, +20),
-        Eigen::Vector3d(+20, -20, -20),
-        Eigen::Vector3d(-20, +20, +20),
-        Eigen::Vector3d(-20, +20, -20),
-        Eigen::Vector3d(-20, -20, +20),
-        Eigen::Vector3d(-20, -20, -20),
-    } };
-    std::array<double, 3> vf_err = inclusion_ccd::get_numerical_error(
-        bbox_vertices, /*check_vf=*/true, /*using_minimum_separation=*/true);
-    std::array<double, 3> ee_err = inclusion_ccd::get_numerical_error(
-        bbox_vertices, /*check_vf=*/false, /*using_minimum_separation=*/true);
-
     // point-triangle
     for (int sfI = 0; sfI < Base::F.rows(); ++sfI) {
         const RowVector3i& sfVInd = Base::F.row(sfI);
@@ -1387,14 +1352,14 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                 Base::V.row(sfVInd[0]).transpose(),
                 Base::V.row(sfVInd[1]).transpose(),
                 Base::V.row(sfVInd[2]).transpose(),
-                /*err=*/vf_err,
-                /*ms=*/std::min(DIST_P * d_sqrt, CCD_MIN_DIST),
+                /*err=*/tight_inclusion_vf_err,
+                /*ms=*/std::min(TIGHT_INCLUSION_DIST_P * d_sqrt, TIGHT_INCLUSION_MIN_DIST),
                 toi,
                 tolerance,
                 /*max_t=*/stepSize,
-                /* max_itr=*/CCD_MAX_ITER,
+                /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                 output_tolerance,
-                /*CCD_TYPE=*/TIGHT_INTERVAL_CCD_TYPE);
+                /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
 
             if (has_collision && toi < 1e-6) {
                 has_collision = inclusion_ccd::vertexFaceCCD_double(
@@ -1406,14 +1371,14 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                     Base::V.row(sfVInd[0]).transpose(),
                     Base::V.row(sfVInd[1]).transpose(),
                     Base::V.row(sfVInd[2]).transpose(),
-                    /*err=*/vf_err,
+                    /*err=*/tight_inclusion_vf_err,
                     /*ms=*/0,
                     toi,
                     tolerance,
                     /*max_t=*/stepSize,
                     /* max_itr=*/-1,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INTERVAL_CCD_TYPE);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
                 if (has_collision) {
                     toi *= 0.8;
                 }
@@ -1458,14 +1423,14 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                 mesh.V.row(sfVInd[0]).transpose() + searchDir.template segment<dim>(sfVInd[0] * dim),
                 mesh.V.row(sfVInd[1]).transpose() + searchDir.template segment<dim>(sfVInd[1] * dim),
                 mesh.V.row(sfVInd[2]).transpose() + searchDir.template segment<dim>(sfVInd[2] * dim),
-                /*err=*/vf_err,
-                /*ms=*/std::min(DIST_P * d_sqrt, CCD_MIN_DIST),
+                /*err=*/tight_inclusion_vf_err,
+                /*ms=*/std::min(TIGHT_INCLUSION_DIST_P * d_sqrt, TIGHT_INCLUSION_MIN_DIST),
                 toi,
                 tolerance,
                 /*max_t=*/stepSize,
-                /* max_itr=*/CCD_MAX_ITER,
+                /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                 output_tolerance,
-                /*CCD_TYPE=*/TIGHT_INTERVAL_CCD_TYPE);
+                /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
 
             if (has_collision && toi < 1e-6) {
                 has_collision = inclusion_ccd::vertexFaceCCD_double(
@@ -1477,14 +1442,14 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                     mesh.V.row(sfVInd[0]).transpose() + searchDir.template segment<dim>(sfVInd[0] * dim),
                     mesh.V.row(sfVInd[1]).transpose() + searchDir.template segment<dim>(sfVInd[1] * dim),
                     mesh.V.row(sfVInd[2]).transpose() + searchDir.template segment<dim>(sfVInd[2] * dim),
-                    /*err=*/vf_err,
+                    /*err=*/tight_inclusion_vf_err,
                     /*ms=*/0,
                     toi,
                     tolerance,
                     /*max_t=*/stepSize,
                     /* max_itr=*/-1,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INTERVAL_CCD_TYPE);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
                 if (has_collision) {
                     toi *= 0.8;
                 }
@@ -1526,14 +1491,14 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                 mesh.V.row(meshEI.second).transpose() + searchDir.template segment<dim>(meshEI.second * dim),
                 Base::V.row(meshEJ.first).transpose(),
                 Base::V.row(meshEJ.second).transpose(),
-                /*err=*/ee_err,
-                /*ms=*/std::min(DIST_P * d_sqrt, CCD_MIN_DIST),
+                /*err=*/tight_inclusion_ee_err,
+                /*ms=*/std::min(TIGHT_INCLUSION_DIST_P * d_sqrt, TIGHT_INCLUSION_MIN_DIST),
                 toi,
                 tolerance,
                 /*max_t=*/stepSize,
-                /* max_itr=*/CCD_MAX_ITER,
+                /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                 output_tolerance,
-                /*CCD_TYPE=*/TIGHT_INTERVAL_CCD_TYPE);
+                /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
 
             if (has_collision && toi < 1e-6) {
                 has_collision = inclusion_ccd::vertexFaceCCD_double(
@@ -1545,14 +1510,14 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                     mesh.V.row(meshEI.second).transpose() + searchDir.template segment<dim>(meshEI.second * dim),
                     Base::V.row(meshEJ.first).transpose(),
                     Base::V.row(meshEJ.second).transpose(),
-                    /*err=*/ee_err,
+                    /*err=*/tight_inclusion_ee_err,
                     /*ms=*/0,
                     toi,
                     tolerance,
                     /*max_t=*/stepSize,
                     /* max_itr=*/-1,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INTERVAL_CCD_TYPE);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
                 if (has_collision) {
                     toi *= 0.8;
                 }
@@ -2712,21 +2677,6 @@ bool MeshCO<dim>::updateActiveSet_QP(
     const double eta, // Surface thickness
     const double ccd_tol)
 {
-    std::vector<Eigen::Vector3d> bbox_vertices = { {
-        Eigen::Vector3d(+20, +20, +20),
-        Eigen::Vector3d(+20, +20, -20),
-        Eigen::Vector3d(+20, -20, +20),
-        Eigen::Vector3d(+20, -20, -20),
-        Eigen::Vector3d(-20, +20, +20),
-        Eigen::Vector3d(-20, +20, -20),
-        Eigen::Vector3d(-20, -20, +20),
-        Eigen::Vector3d(-20, -20, -20),
-    } };
-    std::array<double, 3> vf_err = inclusion_ccd::get_numerical_error(
-        bbox_vertices, /*check_vf=*/true, /*using_minimum_separation=*/true);
-    std::array<double, 3> ee_err = inclusion_ccd::get_numerical_error(
-        bbox_vertices, /*check_vf=*/false, /*using_minimum_separation=*/true);
-
     bool newConstraintsAdded = false;
     mmcvid_to_toi.clear();
     std::unordered_set<MMCVID, MMCVIDHash> prevActiveSet;
@@ -2801,14 +2751,14 @@ bool MeshCO<dim>::updateActiveSet_QP(
                     Base::V.row(MCTriVInd[0]).transpose(),
                     Base::V.row(MCTriVInd[1]).transpose(),
                     Base::V.row(MCTriVInd[2]).transpose(),
-                    vf_err,
+                    tight_inclusion_vf_err,
                     eta,
                     toi,
                     /*tolerance=*/ccd_tol,
                     /*max_t=*/1,
-                    /* max_itr=*/CCD_MAX_ITER,
+                    /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INTERVAL_CCD_TYPE);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
                 break;
             }
             default:
@@ -2882,14 +2832,14 @@ bool MeshCO<dim>::updateActiveSet_QP(
                     mesh.V.row(sfVInd[0]).transpose() + searchDir.segment<dim>(sfVInd[0] * dim),
                     mesh.V.row(sfVInd[1]).transpose() + searchDir.segment<dim>(sfVInd[1] * dim),
                     mesh.V.row(sfVInd[2]).transpose() + searchDir.segment<dim>(sfVInd[2] * dim),
-                    vf_err,
+                    tight_inclusion_vf_err,
                     eta,
                     toi,
                     /*tolerance=*/ccd_tol,
                     /*max_t=*/1,
-                    /* max_itr=*/CCD_MAX_ITER,
+                    /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INTERVAL_CCD_TYPE);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
                 break;
             }
             default:
@@ -2998,14 +2948,14 @@ bool MeshCO<dim>::updateActiveSet_QP(
                     mesh.V.row(mesh_edge.second).transpose() + searchDir.segment<dim>(mesh_edge.second * dim),
                     Base::V.row(co_edge.first).transpose(),
                     Base::V.row(co_edge.second).transpose(),
-                    ee_err,
+                    tight_inclusion_ee_err,
                     eta,
                     toi,
                     /*tolerance=*/ccd_tol,
                     /*max_t=*/1,
-                    /* max_itr=*/CCD_MAX_ITER,
+                    /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INTERVAL_CCD_TYPE);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
                 break;
             }
             default:
