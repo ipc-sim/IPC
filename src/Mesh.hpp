@@ -112,7 +112,7 @@ public: // API
     void saveAsMesh(const std::string& filePath, bool scaleUV = false,
         const Eigen::MatrixXi& SF = Eigen::MatrixXi()) const;
 
-    void saveSurfaceMesh(const std::string& filePath, bool use_V_prev = false) const;
+    void saveSurfaceMesh(const std::string& filePath, bool use_V_prev = false, bool useInvShift = true) const;
 
     void saveBCNodes(const std::string& filePath) const;
 

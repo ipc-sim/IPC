@@ -261,8 +261,7 @@ of QP and SQP methods.
 The `tests` directory contains a very limited number of unit-tests. These tests
 use [Catch2](https://github.com/catchorg/Catch2) which is downloaded through
 CMake unless the option `-DIPC_WITH_TESTS=OFF` is provided. Currently, these
-test contain test for the CCD (both exact and inexact) and the collision
-constraints used by the SQP solver.
+test contain test the collision constraints used by the SQP solver.
 
 ## Tools
 
@@ -271,11 +270,9 @@ scenes, and processing results.
 
 * `convert_to_ipc_msh.py`: this script uses [PyMesh](https://pymesh.readthedocs.io/en/latest/)
 to convert a tetrahedral mesh to the expected `.msh` format of IPC
-    * IPC uses a nonstandard `.msh` format that includes additional surface information
     * If the input mesh is a triangle mesh, then Tetgen will be used to tetrahedralize it
 * `geo_to_msh.py`: this script uses [PyMesh](https://pymesh.readthedocs.io/en/latest/)
 to convert a GEO (format exported by Houdini) format mesh to a standard MSH mesh
-    * The output is the standard MSH format and is not directly usable by IPC
 * `generate_chain_scene.py`: generate a IPC script for a variable length chain
 * `run-comparison-benchmark-sqp.sh`: run the comparison SQP benchmark with default settings
 * `run-comparison-benchmark-hpc.sh`: run the comparison full sweep of the SQP benchmark

@@ -48,26 +48,11 @@ function(download_tbb)
   )
 endfunction()
 
-# exact-ccd
-function(download_exact_ccd)
-  custom_download_project(exact-ccd
-    GIT_REPOSITORY https://github.com/jiangzhongshi/exact-ccd.git
-    GIT_TAG        305bb6f0e57d399b283161dc3669c260f90fb7f5
-  )
-endfunction()
-
 # Logger
 function(download_spdlog)
     custom_download_project(spdlog
        GIT_REPOSITORY https://github.com/gabime/spdlog.git
-       GIT_TAG        v1.8.1
-    )
-endfunction()
-
-function(download_fmt)
-    custom_download_project(fmt
-       GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-       GIT_TAG        7.0.3
+       GIT_TAG        v1.8.5
     )
 endfunction()
 
@@ -111,12 +96,18 @@ function(download_eigen_gurobi)
   )
 endfunction()
 
+# CCD Wrapper (includes Rational CCD)
+function(download_ccd_wrapper)
+  custom_download_project(ccd-wrapper
+    GIT_REPOSITORY https://github.com/Continuous-Collision-Detection/CCD-Wrapper.git
+    GIT_TAG        d27e1f16577180c4546e2792f6380b6bde14e07b
+  )
+endfunction()
 
-
-# Rational CCD
-function(download_rational_ccd)
-  custom_download_project(rational_ccd
-    GIT_REPOSITORY https://github.com/teseoch/Exact-CDD.git
-    GIT_TAG        63fdb92b917c8d7349c9403656f1497df6fa6ce5
+# MshIO
+function(download_mshio)
+  custom_download_project(MshIO
+    GIT_REPOSITORY https://github.com/qnzhou/MshIO.git
+    GIT_TAG        201eeba436e38043b7e716be82ec5e218cbae74d
   )
 endfunction()

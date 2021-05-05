@@ -4,7 +4,7 @@ project(IPC)
 ################################################################################
 
 # libigl
-option(LIBIGL_USE_STATIC_LIBRARY     "Use libigl as static library" OFF)
+option(LIBIGL_USE_STATIC_LIBRARY     "Use libigl as static library" OFF) # LIBIGL_USE_STATIC_LIBRARY=ON does not work with C++ 17
 option(LIBIGL_WITH_ANTTWEAKBAR       "Use AntTweakBar"              OFF)
 option(LIBIGL_WITH_CGAL              "Use CGAL"                     OFF)
 option(LIBIGL_WITH_COMISO            "Use CoMiso"                   OFF)
@@ -27,6 +27,8 @@ option(LIBIGL_WITH_PREDICATES        "Use exact predicates"         ON)
 
 # project-options
 option(IPC_WITH_EXACT_CCD "Use exact CCD as a verification"                     ON)
+option(IPC_WITH_FPRP      "Use exact floating-point CCD as a verification"     OFF)
+mark_as_advanced(IPC_WITH_FPRP)
 option(IPC_WITH_TESTS     "Build unit tests using Catch2"                       ON)
 option(IPC_WITH_GUROBI    "Enable Gurobi QP solver for SQP method"             OFF)
 option(IPC_WITH_OSQP_MKL  "Use MKL Pardiso linear solver in OSQP if available"  ON)
@@ -114,22 +116,8 @@ target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME}_dev)
 target_link_libraries(${PROJECT_NAME}_bin PUBLIC CLI11::CLI11)
 
 ################################################################################
-# Etienne Vouga's CTCD Library
-################################################################################
-
-add_library(EVCTCD "src/CCD/EVCTCD/CTCD.cpp")
-target_include_directories(EVCTCD PUBLIC "src/CCD/EVCTCD/")
-# Link against Eigen in libigl
-target_link_libraries(EVCTCD PUBLIC igl::core)
-# Turn of floating point contraction for CCD robustness
-target_compile_options(EVCTCD PUBLIC "-ffp-contract=off")
-
-################################################################################
 # Required Libraries
 ################################################################################
-
-# EVCTCD
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC EVCTCD)
 
 # SuiteSparse
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC ${SUITESPARSE_LIBRARIES})
@@ -145,22 +133,23 @@ if(IPC_WITH_OPENGL)
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_OPENGL)
 endif()
 
-
 if(LIBIGL_WITH_PREDICATES)
   target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::predicates)
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_PREDICATES)
 endif()
 
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC RationalCCD)
+# CCD
+target_link_libraries(${PROJECT_NAME}_dev PUBLIC CCDWrapper)
+if(IPC_WITH_EXACT_CCD)
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_EXACT_CCD)
+endif()
+if(IPC_WITH_FPRP)
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_FPRP_CCD)
+endif()
 
 # tbb
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC TBB::tbb)
 
-# exact-ccd
-if(IPC_WITH_EXACT_CCD)
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC exact-ccd::exact-ccd)
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_EXACT_CCD)
-endif()
 
 # Logger
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC spdlog::spdlog)
@@ -199,6 +188,8 @@ endif()
 
 # Extra warnings
 # target_link_libraries(${PROJECT_NAME}_dev PRIVATE warnings::all)
+
+target_link_libraries(${PROJECT_NAME}_dev PUBLIC mshio::mshio)
 
 ################################################################################
 # Sub-Projects

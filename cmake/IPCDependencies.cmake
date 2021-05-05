@@ -50,26 +50,12 @@ if(NOT TARGET TBB::tbb)
   add_library(TBB::tbb ALIAS tbb_static)
 endif()
 
-# exact-ccd
-if(IPC_WITH_EXACT_CCD AND NOT TARGET exact-ccd::exact-ccd)
-  download_exact_ccd()
-  add_subdirectory(${IPC_EXTERNAL}/exact-ccd EXCLUDE_FROM_ALL)
-  add_library(exact-ccd::exact-ccd ALIAS exact-ccd)
-endif()
-
-if(NOT TARGET fmt::fmt)
-    download_fmt()
-    add_subdirectory(${IPC_EXTERNAL}/fmt)
-endif()
-
 # spdlog
 if(NOT TARGET spdlog::spdlog)
     download_spdlog()
     add_library(spdlog INTERFACE)
     add_library(spdlog::spdlog ALIAS spdlog)
     target_include_directories(spdlog SYSTEM INTERFACE ${IPC_EXTERNAL}/spdlog/include)
-    target_compile_definitions(spdlog INTERFACE -DSPDLOG_FMT_EXTERNAL)
-    target_link_libraries(spdlog INTERFACE fmt::fmt)
 endif()
 
 # AMGCL
@@ -106,6 +92,32 @@ if(IPC_WITH_GUROBI AND NOT TARGET EigenGurobi::EigenGurobi)
   add_library(EigenGurobi::EigenGurobi ALIAS EigenGurobi)
 endif()
 
-# Rational CCD
-download_rational_ccd()
-add_subdirectory(${IPC_EXTERNAL}/rational_ccd)
+# CCD Wrapper
+if(NOT TARGET CCDWrapper)
+  download_ccd_wrapper()
+  option(CCD_WRAPPER_WITH_FPRF "Enable floating-point root finder method"       ON)
+  option(CCD_WRAPPER_WITH_MSRF "Enable minimum separation root-finding method" OFF)
+  if(IPC_WITH_EXACT_CCD)
+    set(CCD_WRAPPER_WITH_RP   ON CACHE BOOL "Enable root parity method"                   FORCE)
+    set(CCD_WRAPPER_WITH_BSC  ON CACHE BOOL "Enable Bernstein sign classification method" FORCE)
+  else()
+    set(CCD_WRAPPER_WITH_RP  OFF CACHE BOOL "Enable root parity method"                   FORCE)
+    set(CCD_WRAPPER_WITH_BSC OFF CACHE BOOL "Enable Bernstein sign classification method" FORCE)
+  endif()
+  option(CCD_WRAPPER_WITH_RRP        "Enable rational root parity method"  ON)
+  option(CCD_WRAPPER_WITH_TIGHT_CCD  "Enable TightCCD method"             OFF)
+  option(CCD_WRAPPER_WITH_INTERVAL   "Enable interval-based methods"      OFF)
+  option(CCD_WRAPPER_WITH_TIGHT_INCLUSION "Enable Tight Inclusion method"  ON)
+  if(IPC_WITH_FPRP)
+    set(CCD_WRAPPER_WITH_FPRP  ON CACHE BOOL "Enable floating-point root parity method" FORCE)
+  else()
+    set(CCD_WRAPPER_WITH_FPRP OFF CACHE BOOL "Enable floating-point root parity method" FORCE)
+  endif()
+  add_subdirectory(${IPC_EXTERNAL}/ccd-wrapper)
+endif()
+
+# MshIO
+if(NOT TARGET mshio::mshio)
+  download_mshio()
+  add_subdirectory(${IPC_EXTERNAL}/MshIO)
+endif()

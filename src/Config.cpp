@@ -35,9 +35,6 @@ const std::vector<std::string> Config::timeIntegrationTypeStrs = {
 const std::vector<std::string> Config::constraintSolverTypeStrs = {
     "QP", "SQP", "interiorPoint"
 };
-const std::vector<std::string> Config::exactCCDTypeStrs = {
-    "none", "rootParity", "BSC", "rationalRootParity"
-};
 const std::vector<std::string> Config::constraintTypeStrs = {
     "volume", "graphics", "nonsmoothNewmark", "gapFunction", "CMR", "Verschoor", "STIV"
 };
@@ -152,6 +149,7 @@ int Config::loadFromFile(const std::string& p_filePath)
                 animScriptType = AnimScripter<DIM>::getAnimScriptTypeByStr(type);
                 if (animScriptType == AST_MESHSEQ_FROMFILE) {
                     ss >> meshSeqFolderPath;
+                    meshSeqFolderPath = resolvePath(meshSeqFolderPath, p_filePath);
                 }
 
                 int params = 0;
@@ -250,6 +248,7 @@ int Config::loadFromFile(const std::string& p_filePath)
                         else if (extra == "meshSeq") {
                             std::string meshSeqFolderPath;
                             ss_shapes >> meshSeqFolderPath;
+                            meshSeqFolderPath = resolvePath(meshSeqFolderPath, p_filePath);
                             inputShapeMeshSeqFolderPath.emplace_back(shapeI, meshSeqFolderPath);
                         }
                     }
@@ -282,6 +281,7 @@ int Config::loadFromFile(const std::string& p_filePath)
 
                 std::string path;
                 ss_shapes >> path;
+                path = resolvePath(path, p_filePath);
 
                 double x, y, z;
                 ss_shapes >> x >> y >> z;
@@ -307,7 +307,6 @@ int Config::loadFromFile(const std::string& p_filePath)
                 for (int xi = 0; xi < count[0]; ++xi) {
                     for (int yi = 0; yi < count[1]; ++yi) {
                         for (int zi = 0; zi < count[2]; ++zi) {
-                            path = resolvePath(path, p_filePath);
                             inputShapePaths.emplace_back(path);
                             inputShapeTranslates.emplace_back(Eigen::Vector3d(posX + translationStep[0] * xi,
                                 posY + translationStep[1] * yi, posZ + translationStep[2] * zi));
@@ -391,6 +390,7 @@ int Config::loadFromFile(const std::string& p_filePath)
             else if (token == "meshCO") {
                 std::string meshCOFilePath;
                 ss >> meshCOFilePath;
+                meshCOFilePath = resolvePath(meshCOFilePath, p_filePath);
 
                 Eigen::Matrix<double, DIM, 1> origin;
                 ss >> origin[0] >> origin[1];
@@ -412,8 +412,6 @@ int Config::loadFromFile(const std::string& p_filePath)
                         * Eigen::AngleAxisd(z / 180.0 * M_PI, Eigen::Vector3d::UnitZ()))
                                  .toRotationMatrix();
                 }
-
-                meshCOFilePath = resolvePath(meshCOFilePath, p_filePath);
 
                 meshCollisionObjects.emplace_back(new MeshCO<DIM>(meshCOFilePath.c_str(), origin, rotMat, scale, friction));
             }
@@ -457,6 +455,7 @@ int Config::loadFromFile(const std::string& p_filePath)
             else if (token == "restart") {
                 restart = true;
                 ss >> statusPath;
+                statusPath = resolvePath(statusPath, p_filePath);
             }
 
             else if (token == "disableCout") {
@@ -493,15 +492,21 @@ int Config::loadFromFile(const std::string& p_filePath)
             else if (token == "fricIterAmt") {
                 ss >> fricIterAmt;
             }
+            else if (token == "useAbsParameters") {
+                useAbsParameters = true;
+            }
 
             else if (token == "constraintOffset") {
                 ss >> constraintOffset;
                 spdlog::info("Using collision constraint offset: {:g}", constraintOffset);
             }
-            else if (token == "exactCCD") {
+            else if (token == "CCDMethod" || token == "ccdMethod") {
                 std::string type;
                 ss >> type;
-                this->exactCCDMethod = this->getExactCCDTypeByStr(type);
+                this->ccdMethod = this->getCCDMethodTypeByStr(type);
+            }
+            else if (token == "CCDTolerance" || token == "ccdTolerance") {
+                ss >> this->ccdTolerance;
             }
             else if (token == "section") {
                 std::string section;
@@ -554,7 +559,8 @@ int Config::loadFromFile(const std::string& p_filePath)
         spdlog::error("Unable to open input file: {:s}", p_filePath);
         return -1;
     }
-} // namespace IPC
+}
+
 void Config::backUpConfig(const std::string& p_filePath)
 {
     std::ifstream src(filePath, std::ios::binary);
@@ -635,16 +641,17 @@ std::string Config::getStrByConstraintSolverType(ConstraintSolverType constraint
     assert(constraintSolverType < constraintSolverTypeStrs.size());
     return constraintSolverTypeStrs[constraintSolverType];
 }
-ExactCCD::Method Config::getExactCCDTypeByStr(const std::string& str)
+ccd::CCDMethod Config::getCCDMethodTypeByStr(const std::string& str)
 {
-    for (int i = 0; i < exactCCDTypeStrs.size(); i++) {
-        if (str == exactCCDTypeStrs[i]) {
-            return ExactCCD::Method(i);
+    for (int i = 0; i < ccd::CCDMethod::NUM_CCD_METHODS; i++) {
+        if (str == ccd::method_names[i]) {
+            return ccd::CCDMethod(i);
         }
     }
-    spdlog::error("Uknown exact CCD method: {:s}", str);
-    spdlog::info("Using default exact CCD method: none");
-    return ExactCCD::Method::NONE;
+    spdlog::error("Uknown CCD method: {}", str);
+    spdlog::info("Using default CCD method: {}",
+        ccd::method_names[ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER]);
+    return ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER;
 }
 CollisionConstraintType Config::getConstraintTypeByStr(const std::string& str)
 {

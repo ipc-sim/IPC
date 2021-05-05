@@ -122,19 +122,32 @@ public:
         double slackness,
         const std::vector<std::pair<int, int>>& constraintSet,
         double& stepSize) override;
+    void largestFeasibleStepSize_TightInclusion(
+        const Mesh<dim>& mesh,
+        const SpatialHash<dim>& sh,
+        const Eigen::VectorXd& searchDir,
+        double tolerance,
+        const std::vector<std::pair<int, int>>& constraintSet,
+        double& stepSize) override;
     void largestFeasibleStepSize_exact(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh,
         const Eigen::VectorXd& searchDir,
-        const ExactCCD::Method method,
+        const ccd::CCDMethod method,
         const std::vector<std::pair<int, int>>& constraintSet,
         double& stepSize) override;
 
     void largestFeasibleStepSize_CCD(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh, const Eigen::VectorXd& searchDir,
         double slackness, double& stepSize) override;
+    void largestFeasibleStepSize_CCD_TightInclusion(
+        const Mesh<dim>& mesh,
+        const SpatialHash<dim>& sh,
+        const Eigen::VectorXd& searchDir,
+        double tolerance,
+        double& stepSize) override;
     void largestFeasibleStepSize_CCD_exact(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh, const Eigen::VectorXd& searchDir,
-        const ExactCCD::Method method, double& stepSize) override;
+        const ccd::CCDMethod method, double& stepSize) override;
 
     void computeConstraintSet(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh, double dHat,
@@ -185,7 +198,9 @@ public:
         const Eigen::VectorXd& searchDir,
         const CollisionConstraintType constraintType,
         std::vector<MMCVID>& activeSet,
-        const double eta = 0) override;
+        const ccd::CCDMethod ccdMethod,
+        const double eta = 0,
+        const double ccd_tol = 1e-6) override;
 
     virtual void filterSearchDir_QP(
         const Mesh<dim>& mesh, Eigen::VectorXd& searchDir,
@@ -206,7 +221,7 @@ public:
     virtual bool isIntersected(
         const Mesh<dim>& mesh,
         const Eigen::MatrixXd& V0,
-        ExactCCD::Method method) const override;
+        ccd::CCDMethod method) const override;
 
     virtual void move(const Eigen::Matrix<double, dim, 1>& deltaX,
         const Mesh<dim>& mesh, const SpatialHash<dim>& sh,

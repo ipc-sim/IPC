@@ -318,9 +318,16 @@ public:
         const Eigen::MatrixXd& TV, const Eigen::MatrixXi& TT,
         const Eigen::MatrixXi& F = Eigen::MatrixXi(),
         bool findSurface = true);
+    static void saveTetMesh_msh4(const std::string& filePath,
+        const Eigen::MatrixXd& TV, const Eigen::MatrixXi& TT,
+        const Eigen::MatrixXi& F = Eigen::MatrixXi(),
+        bool findSurface = true);
     static void saveTetMesh_vtk(const std::string& filePath,
         const Eigen::MatrixXd& TV, const Eigen::MatrixXi& TT);
     static bool readTetMesh(const std::string& filePath,
+        Eigen::MatrixXd& TV, Eigen::MatrixXi& TT,
+        Eigen::MatrixXi& F, bool findSurface = true);
+    static bool readTetMesh_msh4(const std::string& filePath,
         Eigen::MatrixXd& TV, Eigen::MatrixXi& TT,
         Eigen::MatrixXi& F, bool findSurface = true);
     static void readNodeEle(const std::string& filePath,
