@@ -28,6 +28,7 @@ option(LIBIGL_WITH_PREDICATES        "Use exact predicates"         ON)
 # project-options
 option(IPC_WITH_EXACT_CCD "Use exact CCD as a verification"                     ON)
 option(IPC_WITH_FPRP      "Use exact floating-point CCD as a verification"     OFF)
+mark_as_advanced(IPC_WITH_FPRP)
 option(IPC_WITH_TESTS     "Build unit tests using Catch2"                       ON)
 option(IPC_WITH_GUROBI    "Enable Gurobi QP solver for SQP method"             OFF)
 option(IPC_WITH_OSQP_MKL  "Use MKL Pardiso linear solver in OSQP if available"  ON)
