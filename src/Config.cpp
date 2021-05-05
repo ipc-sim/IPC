@@ -492,7 +492,7 @@ int Config::loadFromFile(const std::string& p_filePath)
             else if (token == "fricIterAmt") {
                 ss >> fricIterAmt;
             }
-            else if (token == "useAbsParams") {
+            else if (token == "useAbsParams" || token == "useAbsParameters") {
                 useAbsParams = true;
             }
 
