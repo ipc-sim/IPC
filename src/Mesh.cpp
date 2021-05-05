@@ -9,6 +9,7 @@
 #include "IglUtils.hpp"
 #include "Optimizer.hpp"
 #include "Timer.hpp"
+#include "CCDUtils.hpp"
 
 #include <igl/triangle/triangulate.h>
 #include <igl/cotmatrix.h>
@@ -811,7 +812,7 @@ void Mesh<dim>::saveAsMesh(const std::string& filePath, bool scaleUV,
 }
 
 template <int dim>
-void Mesh<dim>::saveSurfaceMesh(const std::string& filePath) const
+void Mesh<dim>::saveSurfaceMesh(const std::string& filePath, bool useInvShift) const
 {
     if constexpr (dim == 3) {
         Eigen::MatrixXd V_surf(SVI.size(), 3);
@@ -828,6 +829,9 @@ void Mesh<dim>::saveSurfaceMesh(const std::string& filePath) const
             F_surf(sfI, 2) = vI2SVI[SF(sfI, 2)];
         }
 
+        if (useInvShift) {
+            V_surf.rowwise() += invShift.transpose();
+        }
         igl::writeOBJ(filePath, V_surf, F_surf);
     }
     else {

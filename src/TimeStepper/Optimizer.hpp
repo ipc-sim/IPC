@@ -139,6 +139,7 @@ public: // API
     virtual void getFaceFieldForVis(Eigen::VectorXd& field);
     virtual Mesh<dim>& getResult(void);
     virtual int getIterNum(void) const;
+    virtual int getFrameAmt(void) const;
     virtual int getInnerIterAmt(void) const;
     virtual void setRelGL2Tol(double p_relTol = 1.0e-2);
     virtual double getDt(void) const;

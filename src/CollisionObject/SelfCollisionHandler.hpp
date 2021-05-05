@@ -13,7 +13,7 @@
 #include "SpatialHash.hpp"
 #include "LinSysSolver.hpp"
 #include "Mesh.hpp"
-#include "ExactCCD.hpp"
+#include <ccd.hpp>
 
 namespace IPC {
 
@@ -109,10 +109,18 @@ public:
         const std::vector<std::pair<int, int>>& constraintSet,
         std::vector<std::pair<int, int>>& candidates,
         double& stepSize);
+    static void largestFeasibleStepSize_TightInclusion(
+        const Mesh<dim>& mesh,
+        const SpatialHash<dim>& sh,
+        const Eigen::VectorXd& searchDir,
+        double tolerance,
+        const std::vector<std::pair<int, int>>& constraintSet,
+        std::vector<std::pair<int, int>>& candidates,
+        double& stepSize);
     static void largestFeasibleStepSize_exact(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh,
         const Eigen::VectorXd& searchDir,
-        const ExactCCD::Method method,
+        const ccd::CCDMethod method,
         const std::vector<std::pair<int, int>>& constraintSet,
         double& stepSize);
     // CCD based
@@ -120,9 +128,16 @@ public:
         const SpatialHash<dim>& sh, const Eigen::VectorXd& searchDir,
         double slackness, std::vector<std::pair<int, int>>& candidates,
         double& stepSize);
+    static void largestFeasibleStepSize_CCD_TightInclusion(
+        const Mesh<dim>& mesh,
+        const SpatialHash<dim>& sh,
+        const Eigen::VectorXd& searchDir,
+        double tolerance,
+        std::vector<std::pair<int, int>>& candidates,
+        double& stepSize);
     static void largestFeasibleStepSize_CCD_exact(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh, const Eigen::VectorXd& searchDir,
-        const ExactCCD::Method method, double& stepSize);
+        const ccd::CCDMethod method, double& stepSize);
 
     static void updateConstraints_QP(const Mesh<dim>& mesh,
         const std::vector<MMCVID>& activeSet,
@@ -149,7 +164,9 @@ public:
         const CollisionConstraintType constraintType,
         std::vector<MMCVID>& activeSet,
         std::unordered_map<MMCVID, double, MMCVIDHash>& mmcvid_to_toi,
-        const double eta = 0);
+        const ccd::CCDMethod ccdMethod,
+        const double eta = 0,
+        const double ccd_tol = 1e-6);
 
     static void computeConstraintSet(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh,
@@ -217,7 +234,7 @@ public:
     static bool isIntersected(
         const Mesh<dim>& mesh,
         const Eigen::MatrixXd& V0,
-        const ExactCCD::Method method);
+        const ccd::CCDMethod method);
 };
 
 } // namespace IPC

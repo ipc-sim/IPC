@@ -442,10 +442,10 @@ public:
                 p3 << 1.53219607460276839930e-03, -2.16017817697321734202e-03, 3.07026181598997471855e-03;
 
                 double stepSize = 1;
-                while (ExactCCD::edgeEdgeCCD(
+                while (ccd::edgeEdgeCCD(
                     v0, v1, v2, v3,
                     v0 + stepSize * p0, v1 + stepSize * p1, v2 + stepSize * p2, v3 + stepSize * p3,
-                    ExactCCD::Method::ROOT_PARITY)) {
+                    ccd::CCDMethod::ROOT_PARITY)) {
                     stepSize /= 2.0;
                 }
 

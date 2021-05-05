@@ -14,7 +14,8 @@
 #include "MeshCollisionUtils.hpp"
 #include "CollisionConstraints.hpp"
 #include "SpatialHash.hpp"
-#include "ExactCCD.hpp"
+
+#include <ccd.hpp>
 
 #include <igl/writeOBJ.h>
 
@@ -152,7 +153,9 @@ public:
         const Eigen::VectorXd& searchDir,
         const CollisionConstraintType constraintType,
         std::vector<MMCVID>& activeSet,
-        const double eta = 0) { return false; };
+        const ccd::CCDMethod ccdMethod,
+        const double eta = 0,
+        const double ccd_tol = 1e-6) { return false; };
 
     virtual void filterSearchDir_QP(const Mesh<dim>& mesh,
         Eigen::VectorXd& searchDir,
@@ -268,19 +271,32 @@ public:
         double slackness,
         const std::vector<std::pair<int, int>>& constraintSet,
         double& stepSize) {}
+    virtual void largestFeasibleStepSize_TightInclusion(
+        const Mesh<dim>& mesh,
+        const SpatialHash<dim>& sh,
+        const Eigen::VectorXd& searchDir,
+        double tolerance,
+        const std::vector<std::pair<int, int>>& constraintSet,
+        double& stepSize) {}
     virtual void largestFeasibleStepSize_exact(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh,
         const Eigen::VectorXd& searchDir,
-        ExactCCD::Method method,
+        ccd::CCDMethod method,
         const std::vector<std::pair<int, int>>& constraintSet,
         double& stepSize) {}
 
     virtual void largestFeasibleStepSize_CCD(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh, const Eigen::VectorXd& searchDir,
         double slackness, double& stepSize) {}
+    virtual void largestFeasibleStepSize_CCD_TightInclusion(
+        const Mesh<dim>& mesh,
+        const SpatialHash<dim>& sh,
+        const Eigen::VectorXd& searchDir,
+        double tolerance,
+        double& stepSize) {}
     virtual void largestFeasibleStepSize_CCD_exact(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh, const Eigen::VectorXd& searchDir,
-        ExactCCD::Method method, double& stepSize) {}
+        ccd::CCDMethod method, double& stepSize) {}
 
     // for meshCO when SQP is used
     virtual void updateConstraints_QP(
@@ -307,7 +323,7 @@ public:
             {
                 int vI = mesh.SVI[svI];
                 if (!mesh.isFixedVert[vI] && mesh.vICoDim(vI) == 3) {
-                    double d=0;
+                    double d = 0;
                     evaluateConstraint(mesh, vI, d);
                     if (d < dHat) {
                         isActive[svI] = 1;
@@ -361,7 +377,7 @@ public:
     virtual bool isIntersected(
         const Mesh<dim>& mesh,
         const Eigen::MatrixXd& V0,
-        const ExactCCD::Method method = ExactCCD::Method::NONE) const
+        const ccd::CCDMethod method = ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER) const
     {
         Eigen::VectorXd constraint_vals;
         this->evaluateConstraints_all(mesh, constraint_vals, 1.0);
@@ -435,9 +451,9 @@ public:
         color.bottomRows(F.rows()).setConstant(0.9);
     }
 
-    virtual void saveMesh(const std::string& filePath) const
+    virtual void saveMesh(const std::string& filePath, const Eigen::Vector3d& shift = Eigen::Vector3d::Zero()) const
     {
-        igl::writeOBJ(filePath, V, F);
+        igl::writeOBJ(filePath, V.rowwise() + shift.transpose(), F);
     }
 };
 

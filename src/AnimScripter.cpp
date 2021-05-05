@@ -1370,7 +1370,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
     const SpatialHash<dim>& sh,
     std::vector<CollisionObject<dim>*>& ACO,
     std::vector<CollisionObject<dim>*>& MCO,
-    const ExactCCD::Method method,
+    const ccd::CCDMethod method,
     double dt, double dHat, const std::vector<Energy<dim>*>& energyTerms,
     bool isSelfCollision, bool forceIntersectionLineSearch)
 {
@@ -2138,7 +2138,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
         sh_CCD.build(mesh, searchDir, stepSize, mesh.avgEdgeLen / 3.0);
         timer_temp3.stop();
 #endif
-        if (method == ExactCCD::Method::NONE) {
+        if (method == ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER) {
             std::vector<std::pair<int, int>> newCandidates;
             SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD(mesh, sh_CCD, searchDir, 0.5, newCandidates, stepSize);
         }
@@ -2149,7 +2149,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
 
 #ifdef OUTPUT_CCD_FAIL
     bool output = false;
-    if (isSelfCollision && !searchDir.isZero() && method != ExactCCD::Method::NONE) {
+    if (isSelfCollision && !searchDir.isZero() && method != ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER) {
         mesh.saveSurfaceMesh(outputFolderPath + "before" + std::to_string(numOfCCDFail) + ".obj");
         output = true;
     }
@@ -2231,7 +2231,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
     mesh.V = V0;
     sh_CCD.build(mesh, searchDir, stepSize, mesh.avgEdgeLen / 3.0);
     double stepSize_rational = stepSize;
-    SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(mesh, sh_CCD, searchDir, ExactCCD::Method::RATIONAL_ROOT_PARITY, stepSize_rational);
+    SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(mesh, sh_CCD, searchDir, ccd::CCDMethod::RATIONAL_ROOT_PARITY, stepSize_rational);
     if (stepSize_rational != stepSize) {
         std::cout << "rational CCD detects interpenetration but inexact didn't" << std::endl;
     }

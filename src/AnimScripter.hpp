@@ -143,7 +143,7 @@ public:
         const SpatialHash<dim>& sh,
         std::vector<CollisionObject<dim>*>& ACO,
         std::vector<CollisionObject<dim>*>& MCO,
-        const ExactCCD::Method method,
+        const ccd::CCDMethod method,
         double dt, double dHat, const std::vector<Energy<dim>*>& energyTerms,
         bool isSelfCollision, bool forceIntersectionLineSearch);
     double getCompletedStepSize(void) const;

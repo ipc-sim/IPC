@@ -1,0 +1,28 @@
+script fall
+
+time 10 2e-2
+
+constraintSolver SQP
+warmStart 0
+selfCollisionOn
+
+#CCDMethod FloatingPointRootFinder
+CCDMethod TightInclusion
+CCDTolerance 1e-6
+
+shapes input 1
+input/tetMeshes/torus.msh  0 0 0  0 0 0  1 1 1
+rotateModel 1 0 0 -90
+
+meshCO input/triMeshes/cone-simple.obj 0 -0.5 0.6  2  50  1.0 rotate 0 0 0
+
+view orthographic
+zoom 0.3
+
+section SQP QP
+warmStart 1
+constraintType Verschoor
+constraintOffset 1e-3
+tol 1
+1e-1
+section end
