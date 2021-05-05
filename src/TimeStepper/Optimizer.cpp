@@ -2811,41 +2811,44 @@ void Optimizer<dim>::initStepSize(const Mesh<dim>& data, double& stepSize)
 template <int dim>
 void Optimizer<dim>::saveStatus(const std::string& appendStr)
 {
-    FILE* out = fopen((outputFolderPath + "status" + std::to_string(globalIterNum) + appendStr).c_str(), "w");
-    assert(out);
+    std::string status_fname = fmt::format("{}status{:d}{}", outputFolderPath, globalIterNum, appendStr);
+    std::ofstream status(status_fname, std::ios::out);
+    if (status.is_open()) {
+        // status << std::hexfloat;
+        status << std::setprecision(std::numeric_limits<int>::max());
 
-    fprintf(out, "timestep %d\n", globalIterNum);
+        status << "timestep " << globalIterNum << "\n\n";
 
-    fprintf(out, "\nposition %ld %ld\n", result.V.rows(), result.V.cols());
-    for (int vI = 0; vI < result.V.rows(); ++vI) {
-        fprintf(out, "%le %le", result.V(vI, 0),
-            result.V(vI, 1));
-        if constexpr (dim == 3) {
-            fprintf(out, " %le\n", result.V(vI, 2));
+        status << "position " << result.V.rows() << " " << result.V.cols() << "\n";
+        for (int vI = 0; vI < result.V.rows(); ++vI) {
+            status << result.V(vI, 0) << " " << result.V(vI, 1);
+            if constexpr (dim == 3) {
+                status << " " << result.V(vI, 2);
+            }
+            status << "\n";
         }
-        else {
-            fprintf(out, "\n");
+        status << "\n";
+
+        status << "velocity " << velocity.size() << "\n";
+        for (int velI = 0; velI < velocity.size(); ++velI) {
+            status << velocity[velI] << "\n";
         }
+        status << "\n";
+
+        status << "dx_Elastic " << dx_Elastic.rows() << " " << dim << "\n";
+        for (int velI = 0; velI < dx_Elastic.rows(); ++velI) {
+            status << dx_Elastic(velI, 0) << " " << dx_Elastic(velI, 1);
+            if constexpr (dim == 3) {
+                status << " " << dx_Elastic(velI, 2);
+            }
+            status << "\n";
+        }
+
+        status.close();
     }
-
-    fprintf(out, "\nvelocity %ld\n", velocity.size());
-    for (int velI = 0; velI < velocity.size(); ++velI) {
-        fprintf(out, "%le\n", velocity[velI]);
+    else {
+        spdlog::error("Unable to create status file ({})!", status_fname);
     }
-
-    fprintf(out, "\ndx_Elastic %ld %d\n", dx_Elastic.rows(), dim);
-    for (int velI = 0; velI < dx_Elastic.rows(); ++velI) {
-        fprintf(out, "%le %le", dx_Elastic(velI, 0),
-            dx_Elastic(velI, 1));
-        if constexpr (dim == 3) {
-            fprintf(out, " %le\n", dx_Elastic(velI, 2));
-        }
-        else {
-            fprintf(out, "\n");
-        }
-    }
-
-    fclose(out);
 
     // surface mesh, including codimensional surface CO
 #ifdef USE_TBB

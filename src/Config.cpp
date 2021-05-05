@@ -152,6 +152,7 @@ int Config::loadFromFile(const std::string& p_filePath)
                 animScriptType = AnimScripter<DIM>::getAnimScriptTypeByStr(type);
                 if (animScriptType == AST_MESHSEQ_FROMFILE) {
                     ss >> meshSeqFolderPath;
+                    meshSeqFolderPath = resolvePath(meshSeqFolderPath, p_filePath);
                 }
 
                 int params = 0;
@@ -250,6 +251,7 @@ int Config::loadFromFile(const std::string& p_filePath)
                         else if (extra == "meshSeq") {
                             std::string meshSeqFolderPath;
                             ss_shapes >> meshSeqFolderPath;
+                            meshSeqFolderPath = resolvePath(meshSeqFolderPath, p_filePath);
                             inputShapeMeshSeqFolderPath.emplace_back(shapeI, meshSeqFolderPath);
                         }
                     }
@@ -282,6 +284,7 @@ int Config::loadFromFile(const std::string& p_filePath)
 
                 std::string path;
                 ss_shapes >> path;
+                path = resolvePath(path, p_filePath);
 
                 double x, y, z;
                 ss_shapes >> x >> y >> z;
@@ -307,7 +310,6 @@ int Config::loadFromFile(const std::string& p_filePath)
                 for (int xi = 0; xi < count[0]; ++xi) {
                     for (int yi = 0; yi < count[1]; ++yi) {
                         for (int zi = 0; zi < count[2]; ++zi) {
-                            path = resolvePath(path, p_filePath);
                             inputShapePaths.emplace_back(path);
                             inputShapeTranslates.emplace_back(Eigen::Vector3d(posX + translationStep[0] * xi,
                                 posY + translationStep[1] * yi, posZ + translationStep[2] * zi));
@@ -391,6 +393,7 @@ int Config::loadFromFile(const std::string& p_filePath)
             else if (token == "meshCO") {
                 std::string meshCOFilePath;
                 ss >> meshCOFilePath;
+                meshCOFilePath = resolvePath(meshCOFilePath, p_filePath);
 
                 Eigen::Matrix<double, DIM, 1> origin;
                 ss >> origin[0] >> origin[1];
@@ -412,8 +415,6 @@ int Config::loadFromFile(const std::string& p_filePath)
                         * Eigen::AngleAxisd(z / 180.0 * M_PI, Eigen::Vector3d::UnitZ()))
                                  .toRotationMatrix();
                 }
-
-                meshCOFilePath = resolvePath(meshCOFilePath, p_filePath);
 
                 meshCollisionObjects.emplace_back(new MeshCO<DIM>(meshCOFilePath.c_str(), origin, rotMat, scale, friction));
             }
@@ -457,6 +458,7 @@ int Config::loadFromFile(const std::string& p_filePath)
             else if (token == "restart") {
                 restart = true;
                 ss >> statusPath;
+                statusPath = resolvePath(statusPath, p_filePath);
             }
 
             else if (token == "disableCout") {
