@@ -17,9 +17,7 @@
 #include "EigenLibSolver.hpp"
 #endif
 
-#include <fmt/format.h>
 #include <igl/writeDMAT.h>
-#include "EigenLibSolver.hpp"
 
 #include "IglUtils.hpp"
 #include "BarrierFunctions.hpp"
