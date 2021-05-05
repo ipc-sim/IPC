@@ -69,6 +69,8 @@ public:
     bool isConstrained = true, isSelfCollision = true;
     double selfFric = 0.0;
 
+    bool useAbsParams = false;
+
     std::vector<double> tol;
     int warmStart = 0;
     ConstraintSolverType constraintSolverType = CST_IP;

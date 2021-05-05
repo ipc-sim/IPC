@@ -106,7 +106,10 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
     if (animConfig.tuning.size() > 3) {
         dTolRel = animConfig.tuning[3];
     }
-    dTol = bboxDiagSize2 * dTolRel * dTolRel;
+    dTol = dTolRel * dTolRel;
+    if (!animConfig.useAbsParams) {
+        dTol *= bboxDiagSize2;
+    }
     rho_DBC = 0.0;
 
     gravity.setZero();
@@ -266,21 +269,31 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
     if (animConfig.tuning.size() > 1) {
         dHatEps = animConfig.tuning[1];
     }
-    dHat = bboxDiagSize2 * dHatEps * dHatEps;
+    dHat = dHatEps * dHatEps;
+    if (!animConfig.useAbsParams) {
+        dHat *= bboxDiagSize2;
+    }
 
-    dHatTarget = bboxDiagSize2 * 1.0e-6;
+    dHatTarget = 1.0e-6;
     if (animConfig.tuning.size() > 2) {
-        dHatTarget = animConfig.tuning[2] * animConfig.tuning[2] * bboxDiagSize2;
+        dHatTarget = animConfig.tuning[2] * animConfig.tuning[2];
+    }
+    if (!animConfig.useAbsParams) {
+        dHatTarget *= bboxDiagSize2;
     }
 
     fricDHatThres = dHat; // enable friction only when collision dHat is smaller than fricDHatThres if it's not enabled initially
-    fricDHat0 = bboxDiagSize2 * 1.0e-6 * dtSq; // initial value of fricDHat
+    fricDHat0 = 1.0e-6 * dtSq; // initial value of fricDHat
     if (animConfig.tuning.size() > 4) {
-        fricDHat0 = bboxDiagSize2 * animConfig.tuning[4] * animConfig.tuning[4] * dtSq;
+        fricDHat0 = animConfig.tuning[4] * animConfig.tuning[4] * dtSq;
     }
-    fricDHatTarget = bboxDiagSize2 * 1.0e-6 * dtSq;
+    fricDHatTarget = 1.0e-6 * dtSq;
     if (animConfig.tuning.size() > 5) {
-        fricDHatTarget = bboxDiagSize2 * animConfig.tuning[5] * animConfig.tuning[5] * dtSq;
+        fricDHatTarget = animConfig.tuning[5] * animConfig.tuning[5] * dtSq;
+    }
+    if (!animConfig.useAbsParams) {
+        fricDHat0 *= bboxDiagSize2;
+        fricDHatTarget *= bboxDiagSize2;
     }
     fricDHat = solveFric ? fricDHat0 : -1.0;
 
@@ -1492,7 +1505,10 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
     timer_step.stop();
 
     fricDHat = solveFric ? fricDHat0 : -1.0;
-    dHat = bboxDiagSize2 * dHatEps * dHatEps;
+    dHat = dHatEps * dHatEps;
+    if (!animConfig.useAbsParams) {
+        dHat *= bboxDiagSize2;
+    }
     computeConstraintSets(result);
 
     mu_IP = 0.0;

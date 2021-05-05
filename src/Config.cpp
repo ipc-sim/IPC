@@ -492,6 +492,9 @@ int Config::loadFromFile(const std::string& p_filePath)
             else if (token == "fricIterAmt") {
                 ss >> fricIterAmt;
             }
+            else if (token == "useAbsParams") {
+                useAbsParams = true;
+            }
 
             else if (token == "constraintOffset") {
                 ss >> constraintOffset;
@@ -556,7 +559,8 @@ int Config::loadFromFile(const std::string& p_filePath)
         spdlog::error("Unable to open input file: {:s}", p_filePath);
         return -1;
     }
-} // namespace IPC
+}
+
 void Config::backUpConfig(const std::string& p_filePath)
 {
     std::ifstream src(filePath, std::ios::binary);
