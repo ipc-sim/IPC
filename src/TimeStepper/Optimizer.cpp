@@ -17,6 +17,8 @@
 #include "EigenLibSolver.hpp"
 #endif
 
+#include <igl/writeDMAT.h>
+
 #include "IglUtils.hpp"
 #include "BarrierFunctions.hpp"
 #include "Timer.hpp"
@@ -42,6 +44,7 @@
 #include <sys/stat.h> // for mkdir
 
 // #define SAVE_EXTREME_LINESEARCH_CCD
+// #define EXPORT_FRICTION_DATA
 
 extern const std::string outputFolderPath;
 
@@ -68,6 +71,93 @@ extern std::vector<int> compFAccSize;
 extern int numOfCCDFail;
 
 namespace IPC {
+
+#ifdef EXPORT_FRICTION_DATA
+static bool should_save_friction_data = true;
+
+template <int dim>
+void save_friction_data(
+    const Mesh<dim>& mesh,
+    const std::vector<MMCVID>& mmcvids,
+    const Eigen::VectorXd& lambda,
+    const std::vector<Eigen::Vector2d>& coords,
+    const std::vector<Eigen::Matrix<double, 3, 2>>& tangent_bases,
+    double dHat_squared,
+    double barrier_stiffness,
+    double epsv_times_h_squared,
+    double mu)
+{
+    if (!should_save_friction_data) return;
+    return;
+
+    static int output_counter = 0;
+    std::string out_prefix = fmt::format("cube_cube_{:d}", output_counter++);
+
+    // Save the meshes
+    mesh.saveSurfaceMesh(fmt::format("{}_V0.obj", out_prefix), /*use_V_prev=*/true);
+    mesh.saveSurfaceMesh(fmt::format("{}_V1.obj", out_prefix), /*use_V_prev=*/false);
+
+    // Save the MMCVIDs
+    Eigen::MatrixXi mmcvids_matrix(mmcvids.size(), 4);
+    for (int i = 0; i < mmcvids.size(); i++) {
+        for (int j = 0; j < 4; j++) {
+            mmcvids_matrix(i, j) = mmcvids[i][j];
+        }
+    }
+    igl::writeDMAT(fmt::format("{}_mmcvids.dmat", out_prefix), mmcvids_matrix);
+
+    // Save the parameters
+    Eigen::Vector4d params;
+    params << dHat_squared, barrier_stiffness, epsv_times_h_squared, mu;
+    igl::writeDMAT(fmt::format("{}_params.dmat", out_prefix), params);
+
+    // Save the normal force magnitudes
+    igl::writeDMAT(fmt::format("{}_lambda.dmat", out_prefix), lambda);
+
+    // Save the closes point coordinates
+    Eigen::MatrixXd coords_matrix(coords.size(), 2);
+    for (int i = 0; i < coords_matrix.rows(); i++) {
+        coords_matrix.row(i) = coords[i];
+    }
+    igl::writeDMAT(fmt::format("{}_coords.dmat", out_prefix), coords_matrix);
+
+    // Save the tangent bases
+    Eigen::MatrixXd tangent_bases_matrix(3 * tangent_bases.size(), 2);
+    for (int i = 0; i < tangent_bases.size(); i++) {
+        tangent_bases_matrix.middleRows(3 * i, 3) = tangent_bases[i];
+    }
+    igl::writeDMAT(fmt::format("{}_bases.dmat", out_prefix), tangent_bases_matrix);
+
+    // Compute the potential
+    double Ef;
+    SelfCollisionHandler<dim>::computeFrictionEnergy(
+        mesh.V, mesh.V_prev, mmcvids, lambda, coords, tangent_bases, Ef,
+        epsv_times_h_squared, mu);
+    std::vector<double> energy = { { Ef } };
+    igl::writeDMAT(fmt::format("{}_energy.dmat", out_prefix), energy);
+
+    // Compute the gradient
+    Eigen::VectorXd friction_grad = Eigen::VectorXd::Zero(mesh.V.size());
+    SelfCollisionHandler<dim>::augmentFrictionGradient(
+        mesh.V, mesh.V_prev, mmcvids, lambda, coords, tangent_bases,
+        friction_grad, epsv_times_h_squared, mu);
+    igl::writeDMAT(fmt::format("{}_grad.dmat", out_prefix), friction_grad);
+
+    // Compute the hessian
+    LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* friction_linSysSolver = new EigenLibSolver<Eigen::VectorXi, Eigen::VectorXd>();
+    std::vector<std::set<int>> vNeighbor_IP_new = mesh.vNeighbor;
+    SelfCollisionHandler<dim>::augmentConnectivity(mesh, mmcvids, vNeighbor_IP_new);
+    friction_linSysSolver->set_pattern(vNeighbor_IP_new, mesh.fixedVert);
+    friction_linSysSolver->analyze_pattern();
+    friction_linSysSolver->setZero();
+    SelfCollisionHandler<dim>::augmentFrictionHessian(
+        mesh, mesh.V_prev, mmcvids, lambda, coords, tangent_bases,
+        friction_linSysSolver, epsv_times_h_squared, mu, /*projectDBC=*/true);
+    Eigen::SparseMatrix<double> friction_hessian;
+    friction_linSysSolver->getCoeffMtr(friction_hessian);
+    igl::writeDMAT(fmt::format("{}_hess.dmat", out_prefix), Eigen::MatrixXd(friction_hessian));
+}
+#endif
 
 template <int dim>
 Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
@@ -1684,7 +1774,13 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
                     // compute gradient with updated tangent,
                     // if gradient still below CNTol,
                     // then friction tangent space has converged
+#ifdef EXPORT_FRICTION_DATA
+                    should_save_friction_data = false;
+#endif
                     computeGradient(result, false, gradient, true);
+#ifdef EXPORT_FRICTION_DATA
+                    should_save_friction_data = true;
+#endif
                     computePrecondMtr(result, false, linSysSolver, false, true);
                     if (!linSysSolver->factorize()) {
                         linSysSolver->precondition_diag(gradient, searchDir);
@@ -3306,6 +3402,12 @@ void Optimizer<dim>::computeGradient(const Mesh<dim>& data,
             if (MMActiveSet_lastH.back().size() && fricDHat > 0.0 && animConfig.selfFric > 0.0) {
                 SelfCollisionHandler<dim>::augmentFrictionGradient(data.V, result.V_prev, MMActiveSet_lastH.back(),
                     MMLambda_lastH.back(), MMDistCoord.back(), MMTanBasis.back(), gradient, fricDHat, animConfig.selfFric);
+#ifdef EXPORT_FRICTION_DATA
+                save_friction_data(
+                    data, MMActiveSet_lastH.back(), MMLambda_lastH.back(),
+                    MMDistCoord.back(), MMTanBasis.back(),
+                    dHat, mu_IP, fricDHat, animConfig.selfFric);
+#endif
             }
         }
         if (projectDBC) {
