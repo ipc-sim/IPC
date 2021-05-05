@@ -46,6 +46,7 @@
 #include <sys/stat.h> // for mkdir
 
 // #define SAVE_EXTREME_LINESEARCH_CCD
+// #define EXPORT_FRICTION_DATA
 
 extern const std::string outputFolderPath;
 
@@ -73,6 +74,7 @@ extern int numOfCCDFail;
 
 namespace IPC {
 
+#ifdef EXPORT_FRICTION_DATA
 static bool should_save_friction_data = true;
 
 template <int dim>
@@ -157,6 +159,7 @@ void save_friction_data(
     friction_linSysSolver->getCoeffMtr(friction_hessian);
     igl::writeDMAT(fmt::format("{}_hess.dmat", out_prefix), Eigen::MatrixXd(friction_hessian));
 }
+#endif
 
 template <int dim>
 Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
@@ -1773,9 +1776,13 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
                     // compute gradient with updated tangent,
                     // if gradient still below CNTol,
                     // then friction tangent space has converged
+#ifdef EXPORT_FRICTION_DATA
                     should_save_friction_data = false;
+#endif
                     computeGradient(result, false, gradient, true);
+#ifdef EXPORT_FRICTION_DATA
                     should_save_friction_data = true;
+#endif
                     computePrecondMtr(result, false, linSysSolver, false, true);
                     if (!linSysSolver->factorize()) {
                         linSysSolver->precondition_diag(gradient, searchDir);
@@ -3397,10 +3404,12 @@ void Optimizer<dim>::computeGradient(const Mesh<dim>& data,
             if (MMActiveSet_lastH.back().size() && fricDHat > 0.0 && animConfig.selfFric > 0.0) {
                 SelfCollisionHandler<dim>::augmentFrictionGradient(data.V, result.V_prev, MMActiveSet_lastH.back(),
                     MMLambda_lastH.back(), MMDistCoord.back(), MMTanBasis.back(), gradient, fricDHat, animConfig.selfFric);
+#ifdef EXPORT_FRICTION_DATA
                 save_friction_data(
                     data, MMActiveSet_lastH.back(), MMLambda_lastH.back(),
                     MMDistCoord.back(), MMTanBasis.back(),
                     dHat, mu_IP, fricDHat, animConfig.selfFric);
+#endif
             }
         }
         if (projectDBC) {
