@@ -69,8 +69,6 @@ public:
     bool isConstrained = true, isSelfCollision = true;
     double selfFric = 0.0;
 
-    bool useAbsParams = false;
-
     std::vector<double> tol;
     int warmStart = 0;
     ConstraintSolverType constraintSolverType = CST_IP;
@@ -105,6 +103,7 @@ public:
     std::string appendStr;
 
     std::vector<double> tuning; // the parameter that is currently tuning
+    bool useAbsParameters = false;
     int fricIterAmt = 1;
     std::vector<double> scriptParams; // the parameters for setting script if any,
     // like initial velocity, position, etc

@@ -107,7 +107,7 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
         dTolRel = animConfig.tuning[3];
     }
     dTol = dTolRel * dTolRel;
-    if (!animConfig.useAbsParams) {
+    if (!animConfig.useAbsParameters) {
         dTol *= bboxDiagSize2;
     }
     rho_DBC = 0.0;
@@ -270,7 +270,7 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
         dHatEps = animConfig.tuning[1];
     }
     dHat = dHatEps * dHatEps;
-    if (!animConfig.useAbsParams) {
+    if (!animConfig.useAbsParameters) {
         dHat *= bboxDiagSize2;
     }
 
@@ -278,7 +278,7 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
     if (animConfig.tuning.size() > 2) {
         dHatTarget = animConfig.tuning[2] * animConfig.tuning[2];
     }
-    if (!animConfig.useAbsParams) {
+    if (!animConfig.useAbsParameters) {
         dHatTarget *= bboxDiagSize2;
     }
 
@@ -291,7 +291,7 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
     if (animConfig.tuning.size() > 5) {
         fricDHatTarget = animConfig.tuning[5] * animConfig.tuning[5] * dtSq;
     }
-    if (!animConfig.useAbsParams) {
+    if (!animConfig.useAbsParameters) {
         fricDHat0 *= bboxDiagSize2;
         fricDHatTarget *= bboxDiagSize2;
     }
@@ -1506,7 +1506,7 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
 
     fricDHat = solveFric ? fricDHat0 : -1.0;
     dHat = dHatEps * dHatEps;
-    if (!animConfig.useAbsParams) {
+    if (!animConfig.useAbsParameters) {
         dHat *= bboxDiagSize2;
     }
     computeConstraintSets(result);
