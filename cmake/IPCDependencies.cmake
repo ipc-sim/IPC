@@ -115,3 +115,9 @@ if(NOT TARGET CCDWrapper)
   endif()
   add_subdirectory(${IPC_EXTERNAL}/ccd-wrapper)
 endif()
+
+# MshIO
+if(NOT TARGET mshio::mshio)
+  download_mshio()
+  add_subdirectory(${IPC_EXTERNAL}/MshIO)
+endif()

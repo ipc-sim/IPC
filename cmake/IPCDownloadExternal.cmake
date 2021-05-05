@@ -103,3 +103,11 @@ function(download_ccd_wrapper)
     GIT_TAG        d27e1f16577180c4546e2792f6380b6bde14e07b
   )
 endfunction()
+
+# MshIO
+function(download_mshio)
+  custom_download_project(MshIO
+    GIT_REPOSITORY https://github.com/qnzhou/MshIO.git
+    GIT_TAG        201eeba436e38043b7e716be82ec5e218cbae74d
+  )
+endfunction()

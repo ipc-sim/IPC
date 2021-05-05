@@ -248,3 +248,4 @@ paper
 *.blend[123456789]
 erleben.blend
 *.geo
+input/oldTetMeshes

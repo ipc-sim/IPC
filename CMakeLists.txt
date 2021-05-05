@@ -4,7 +4,7 @@ project(IPC)
 ################################################################################
 
 # libigl
-option(LIBIGL_USE_STATIC_LIBRARY     "Use libigl as static library" OFF)
+option(LIBIGL_USE_STATIC_LIBRARY     "Use libigl as static library" OFF) # LIBIGL_USE_STATIC_LIBRARY=ON does not work with C++ 17
 option(LIBIGL_WITH_ANTTWEAKBAR       "Use AntTweakBar"              OFF)
 option(LIBIGL_WITH_CGAL              "Use CGAL"                     OFF)
 option(LIBIGL_WITH_COMISO            "Use CoMiso"                   OFF)
@@ -132,7 +132,6 @@ if(IPC_WITH_OPENGL)
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_OPENGL)
 endif()
 
-
 if(LIBIGL_WITH_PREDICATES)
   target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::predicates)
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_PREDICATES)
@@ -188,6 +187,8 @@ endif()
 
 # Extra warnings
 # target_link_libraries(${PROJECT_NAME}_dev PRIVATE warnings::all)
+
+target_link_libraries(${PROJECT_NAME}_dev PUBLIC mshio::mshio)
 
 ################################################################################
 # Sub-Projects
