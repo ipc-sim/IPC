@@ -2991,7 +2991,7 @@ void Optimizer<dim>::saveStatus(const std::string& appendStr)
     std::ofstream status(status_fname, std::ios::out);
     if (status.is_open()) {
         // status << std::hexfloat;
-        status << std::setprecision(std::numeric_limits<int>::max());
+        status << std::setprecision(std::numeric_limits<long double>::digits10 + 2);
 
         status << "timestep " << globalIterNum << "\n\n";
 
