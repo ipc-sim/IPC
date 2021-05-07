@@ -163,7 +163,10 @@ void proceedOptimization(int proceedNum = 1)
             logFile << "!!! maxIter reached for timeStep" << iterNum << std::endl;
         }
         iterNum = optimizer->getIterNum();
-        printProgressBar(iterNum, optimizer->getFrameAmt());
+
+        if (!converged && spdlog::get_level() >= spdlog::level::level_enum::warn) {
+            printProgressBar(iterNum, optimizer->getFrameAmt());
+        }
 
         saveInfoForPresent("info" + std::to_string(iterNum) + ".txt");
 
