@@ -1982,6 +1982,7 @@ bool Optimizer<dim>::solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
             case ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER:
                 SelfCollisionHandler<dim>::largestFeasibleStepSize(
                     result, sh, searchDir, slackness_m, MMActiveSet_CCD.back(), newCandidates, alpha);
+                break;
 
             case ccd::CCDMethod::TIGHT_INCLUSION:
                 SelfCollisionHandler<dim>::largestFeasibleStepSize_TightInclusion(
