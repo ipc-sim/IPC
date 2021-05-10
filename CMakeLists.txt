@@ -26,7 +26,7 @@ option(LIBIGL_WITH_XML               "Use XML"                      OFF)
 option(LIBIGL_WITH_PREDICATES        "Use exact predicates"         ON)
 
 # project-options
-option(IPC_WITH_EXACT_CCD "Use exact CCD as a verification"                     ON)
+option(IPC_WITH_EXACT_CCD "Use exact CCD as a verification"                    OFF)
 option(IPC_WITH_FPRP      "Use exact floating-point CCD as a verification"     OFF)
 mark_as_advanced(IPC_WITH_FPRP)
 option(IPC_WITH_TESTS     "Build unit tests using Catch2"                       ON)
@@ -141,6 +141,7 @@ endif()
 # CCD
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC CCDWrapper)
 if(IPC_WITH_EXACT_CCD)
+  message(WARNING "The exact CCD methods RootParity and BSC miss some collisions! Please use TightInclusion instead.")
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_EXACT_CCD)
 endif()
 if(IPC_WITH_FPRP)

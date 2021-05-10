@@ -749,6 +749,11 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
                 computePointTriD(Base::V.row(vI), mesh.V.row(sfVInd[0]),
                     mesh.V.row(sfVInd[1]), mesh.V.row(sfVInd[2]), d_sqrt);
                 d_sqrt = std::sqrt(d_sqrt);
+                if (d_sqrt == 0) {
+                    spdlog::error("Initial CCD distance is zero! Returning 0 stepSize.");
+                    stepSize = 0;
+                    return;
+                }
 
                 double toi, output_tolerance;
                 bool has_collision = inclusion_ccd::vertexFaceCCD_double(
@@ -805,6 +810,11 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
                 computePointTriD(mesh.V.row(vI), Base::V.row(sfVInd[0]),
                     Base::V.row(sfVInd[1]), Base::V.row(sfVInd[2]), d_sqrt);
                 d_sqrt = std::sqrt(d_sqrt);
+                if (d_sqrt == 0) {
+                    spdlog::error("Initial CCD distance is zero! Returning 0 stepSize.");
+                    stepSize = 0;
+                    return;
+                }
 
                 double toi, output_tolerance;
                 bool has_collision = inclusion_ccd::vertexFaceCCD_double(
@@ -862,6 +872,11 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
             computeEdgeEdgeD(mesh.V.row(meshEI.first), mesh.V.row(meshEI.second),
                 Base::V.row(meshEJ.first), Base::V.row(meshEJ.second), d_sqrt);
             d_sqrt = std::sqrt(d_sqrt);
+            if (d_sqrt == 0) {
+                spdlog::error("Initial CCD distance is zero! Returning 0 stepSize.");
+                stepSize = 0;
+                return;
+            }
 
             double toi, output_tolerance;
             bool has_collision = inclusion_ccd::vertexFaceCCD_double(
@@ -1341,6 +1356,11 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
             computePointTriD(mesh.V.row(vI), Base::V.row(sfVInd[0]),
                 Base::V.row(sfVInd[1]), Base::V.row(sfVInd[2]), d_sqrt);
             d_sqrt = std::sqrt(d_sqrt);
+            if (d_sqrt == 0) {
+                spdlog::error("Initial CCD distance is zero! Returning 0 stepSize.");
+                stepSize = 0;
+                return;
+            }
 
             double toi, output_tolerance;
             bool has_collision = inclusion_ccd::vertexFaceCCD_double(
@@ -1412,6 +1432,11 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                 mesh.V.row(sfVInd[2]),
                 d_sqrt);
             d_sqrt = std::sqrt(d_sqrt);
+            if (d_sqrt == 0) {
+                spdlog::error("Initial CCD distance is zero! Returning 0 stepSize.");
+                stepSize = 0;
+                return;
+            }
 
             double toi, output_tolerance;
             bool has_collision = inclusion_ccd::vertexFaceCCD_double(
@@ -1480,6 +1505,11 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
             computeEdgeEdgeD(mesh.V.row(meshEI.first), mesh.V.row(meshEI.second),
                 Base::V.row(meshEJ.first), Base::V.row(meshEJ.second), d_sqrt);
             d_sqrt = std::sqrt(d_sqrt);
+            if (d_sqrt == 0) {
+                spdlog::error("Initial CCD distance is zero! Returning 0 stepSize.");
+                stepSize = 0;
+                return;
+            }
 
             double toi, output_tolerance;
             bool has_collision = inclusion_ccd::vertexFaceCCD_double(
