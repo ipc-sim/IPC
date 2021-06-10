@@ -122,3 +122,10 @@ if(NOT TARGET mshio::mshio)
   download_mshio()
   add_subdirectory(${IPC_EXTERNAL}/MshIO)
 endif()
+
+# GHC Filesystem
+if(NOT TARGET ghc::filesystem)
+    download_filesystem()
+    add_subdirectory(${IPC_EXTERNAL}/filesystem)
+    add_library(ghc::filesystem ALIAS ghc_filesystem)
+endif()

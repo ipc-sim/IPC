@@ -111,3 +111,11 @@ function(download_mshio)
     GIT_TAG        201eeba436e38043b7e716be82ec5e218cbae74d
   )
 endfunction()
+
+# Filesystem library for C++11 and C++14
+function(download_filesystem)
+    custom_download_project(filesystem
+        GIT_REPOSITORY https://github.com/gulrak/filesystem.git
+        GIT_TAG        v1.5.4
+    )
+endfunction()

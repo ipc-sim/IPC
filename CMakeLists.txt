@@ -3,8 +3,35 @@ project(IPC)
 
 ################################################################################
 
+# Detects whether this is a top-level project
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    set(IPC_TOPLEVEL_PROJECT ON)
+else()
+    set(IPC_TOPLEVEL_PROJECT OFF)
+endif()
+
+# Project options
+option(IPC_WITH_OPENGL "Use libgil viewer for preview and output" ON)
+set(IPC_LINSYSSOLVER "CHOLMOD" CACHE STRING "Linear system solver to use (options: CHOLMOD, AMGCL, EIGEN)")
+set_property(CACHE IPC_LINSYSSOLVER PROPERTY STRINGS "CHOLMOD" "AMGCL" "EIGEN")
+## SQP and QP options
+option(IPC_WITH_GUROBI       "Enable Gurobi QP solver for SQP method"             OFF)
+option(IPC_WITH_OSQP_MKL     "Use MKL Pardiso linear solver in OSQP if available"  ON)
+option(IPC_EXIT_UPON_QP_FAIL "Exit if the QP/SQP intersects or blows-up"          OFF)
+## CCD options
+option(IPC_WITH_EXACT_CCD "Use exact CCD as a verification"                OFF)
+option(IPC_WITH_FPRP      "Use exact floating-point CCD as a verification" OFF)
+mark_as_advanced(IPC_WITH_FPRP)
+## Top level options
+if(IPC_TOPLEVEL_PROJECT)
+  option(IPC_WITH_TESTS   "Build unit tests using Catch2"                       ON)
+else()
+  option(IPC_WITH_TESTS   "Build unit tests using Catch2"                       ON)
+endif()
+
 # libigl
-option(LIBIGL_USE_STATIC_LIBRARY     "Use libigl as static library" OFF) # LIBIGL_USE_STATIC_LIBRARY=ON does not work with C++ 17
+# WARNING: LIBIGL_USE_STATIC_LIBRARY=ON does not work with C++ 17
+option(LIBIGL_USE_STATIC_LIBRARY     "Use libigl as static library" OFF)
 option(LIBIGL_WITH_ANTTWEAKBAR       "Use AntTweakBar"              OFF)
 option(LIBIGL_WITH_CGAL              "Use CGAL"                     OFF)
 option(LIBIGL_WITH_COMISO            "Use CoMiso"                   OFF)
@@ -25,19 +52,6 @@ option(LIBIGL_QUIET_VIEWER           "Suppress viewer messages"     ON)
 option(LIBIGL_WITH_XML               "Use XML"                      OFF)
 option(LIBIGL_WITH_PREDICATES        "Use exact predicates"         ON)
 
-# project-options
-option(IPC_WITH_EXACT_CCD "Use exact CCD as a verification"                    OFF)
-option(IPC_WITH_FPRP      "Use exact floating-point CCD as a verification"     OFF)
-mark_as_advanced(IPC_WITH_FPRP)
-option(IPC_WITH_TESTS     "Build unit tests using Catch2"                       ON)
-option(IPC_WITH_GUROBI    "Enable Gurobi QP solver for SQP method"             OFF)
-option(IPC_WITH_OSQP_MKL  "Use MKL Pardiso linear solver in OSQP if available"  ON)
-option(IPC_WITH_OPENGL    "Use libgil viewer for preview and output"            ON)
-set(IPC_LINSYSSOLVER "CHOLMOD" CACHE STRING "Linear system solver to use (options: CHOLMOD, AMGCL, EIGEN)")
-set_property(CACHE IPC_LINSYSSOLVER PROPERTY STRINGS "CHOLMOD" "AMGCL" "EIGEN")
-option(IPC_EXIT_UPON_QP_FAIL  "Exit if the QP/SQP intersects or blows-up" OFF)
-
-
 if(NOT IPC_WITH_OPENGL)
   set(LIBIGL_WITH_VIEWER OFF CACHE BOOL "" FORCE)
   set(LIBIGL_WITH_OPENGL_GLFW_IMGUI OFF CACHE BOOL "" FORCE)
@@ -45,8 +59,6 @@ if(NOT IPC_WITH_OPENGL)
   set(LIBIGL_WITH_OPENGL OFF CACHE BOOL "" FORCE)
   set(LIBIGL_WITH_PNG OFF CACHE BOOL "" FORCE)
 endif()
-
-# debug-options
 
 ################################################################################
 
@@ -100,10 +112,6 @@ target_include_directories(${PROJECT_NAME}_dev PUBLIC
   "src/LinSysSolver"
   "src/TimeStepper"
 )
-
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC stdc++fs)
-endif()
 
 ################################################################################
 # Simulations Executable
@@ -190,7 +198,11 @@ endif()
 # Extra warnings
 # target_link_libraries(${PROJECT_NAME}_dev PRIVATE warnings::all)
 
+# MshIO
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC mshio::mshio)
+
+# Filesystem
+target_link_libraries(${PROJECT_NAME}_dev PUBLIC ghc::filesystem)
 
 ################################################################################
 # Sub-Projects

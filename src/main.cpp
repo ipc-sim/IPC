@@ -20,14 +20,8 @@
 #include <fstream>
 #include <string>
 #include <ctime>
-#if __has_include(<filesystem>)
-#include <filesystem>
-namespace fs = std::filesystem;
-#else
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
-#endif
 
+#include <ghc/fs_std.hpp> // filesystem
 #include <spdlog/spdlog.h>
 #include <CLI/CLI.hpp>
 

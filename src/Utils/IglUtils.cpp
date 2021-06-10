@@ -15,17 +15,10 @@
 #endif
 
 #include <set>
+
+#include <ghc/fs_std.hpp> // filesystem
 #include <spdlog/spdlog.h>
-
 #include <mshio/mshio.h>
-
-#if __has_include(<filesystem>)
-#include <filesystem>
-namespace fs = std::filesystem;
-#else
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
-#endif
 
 extern Timer timer_temp, timer_temp2;
 
