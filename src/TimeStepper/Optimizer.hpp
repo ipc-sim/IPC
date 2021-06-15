@@ -65,7 +65,7 @@ protected: // owned data
     std::vector<Eigen::VectorXd> lambda_lastH;
 
     bool solveIP, solveFric;
-    double mu_IP, dHatEps, dHat;
+    double kappa, dHatEps, dHat;
     double fbNormTol, bboxDiagSize2, dTolRel, dTol, dHatTarget;
     double fricDHat, fricDHatThres, fricDHat0, fricDHatTarget;
     std::vector<std::vector<MMCVID>> MMActiveSet, MMActiveSet_next;
@@ -224,11 +224,11 @@ protected: // helper functions
     virtual bool fullyImplicit(void);
     virtual bool fullyImplicit_IP(void);
 
-    virtual bool solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
+    virtual bool solveSub_IP(double kappa, std::vector<std::vector<int>>& AHat,
         std::vector<std::vector<MMCVID>>& MMAHat);
-    virtual void initMu_IP(double& mu);
-    virtual void upperBoundMu(double& mu);
-    virtual void suggestMu(double& mu);
+    virtual void initKappa(double& kappa);
+    virtual void upperBoundKappa(double& kappa);
+    virtual void suggestKappa(double& kappa);
 
     virtual void initSubProb_IP(void);
     virtual void computeSearchDir(int k, bool projectDBC = true);

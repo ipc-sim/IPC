@@ -148,7 +148,7 @@ int Config::loadFromFile(const std::string& p_filePath)
 
                 int params = 0;
                 ss >> params;
-                if (params == params && params > 0) {
+                if (params > 0) {
                     scriptParams.resize(params);
                     for (int i = 0; i < params; ++i) {
                         ss >> scriptParams[i];

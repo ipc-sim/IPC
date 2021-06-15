@@ -45,6 +45,9 @@ installed at a system level
     * Ubuntu: `sudo apt-get install libsuitesparse-dev libmetis-dev`
         * For program efficiency, we strongly recommend compiling SuiteSparse using [Intel MKL](https://software.intel.com/content/www/us/en/develop/tools/math-kernel-library.html) LAPACK and BLAS (on an Intel machine): `make library BLAS='-lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread -lpthread -lm -lmkl_blas95_lp64 -liomp5' LAPACK='-lmkl_lapack95_lp64' -j 8`
     * IPC also supports using [Eigen](http://eigen.tuxfamily.org/) or [AMGCL](https://github.com/ddemidov/amgcl) as linear solver, which can be set via `IPC_LINSYSSOLVER` in `CMakeLists.txt`. To use custom linear solvers, you can implement a new interface (subclass) to our `LinSysSolver` class.
+* [Boost](https://www.boost.org/): must be installed at a system level (required by AMGCL)
+    * Ubuntu: `sudo apt-get install libboost-all-dev`
+    * macOS: ` brew install boost`
 * [libigl](https://libigl.github.io/), [OSQP](https://osqp.org/), [AMGCL](https://github.com/ddemidov/amgcl), and [TBB](https://software.intel.com/content/www/us/en/develop/tools/threading-building-blocks.html): downloaded and built through CMake
 * [GMP LIB](https://gmplib.org/): `sudo apt install libgmp-dev` on Ubuntu.
 

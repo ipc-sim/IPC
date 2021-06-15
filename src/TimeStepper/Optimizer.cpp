@@ -85,7 +85,7 @@ void save_friction_data(
     double dHat_squared,
     double barrier_stiffness,
     double epsv_times_h_squared,
-    double mu)
+    double kappa)
 {
     if (!should_save_friction_data) return;
     return;
@@ -108,7 +108,7 @@ void save_friction_data(
 
     // Save the parameters
     Eigen::Vector4d params;
-    params << dHat_squared, barrier_stiffness, epsv_times_h_squared, mu;
+    params << dHat_squared, barrier_stiffness, epsv_times_h_squared, kappa;
     igl::writeDMAT(fmt::format("{}_params.dmat", out_prefix), params);
 
     // Save the normal force magnitudes
@@ -132,7 +132,7 @@ void save_friction_data(
     double Ef;
     SelfCollisionHandler<dim>::computeFrictionEnergy(
         mesh.V, mesh.V_prev, mmcvids, lambda, coords, tangent_bases, Ef,
-        epsv_times_h_squared, mu);
+        epsv_times_h_squared, kappa);
     std::vector<double> energy = { { Ef } };
     igl::writeDMAT(fmt::format("{}_energy.dmat", out_prefix), energy);
 
@@ -140,7 +140,7 @@ void save_friction_data(
     Eigen::VectorXd friction_grad = Eigen::VectorXd::Zero(mesh.V.size());
     SelfCollisionHandler<dim>::augmentFrictionGradient(
         mesh.V, mesh.V_prev, mmcvids, lambda, coords, tangent_bases,
-        friction_grad, epsv_times_h_squared, mu);
+        friction_grad, epsv_times_h_squared, kappa);
     igl::writeDMAT(fmt::format("{}_grad.dmat", out_prefix), friction_grad);
 
     // Compute the hessian
@@ -152,7 +152,7 @@ void save_friction_data(
     friction_linSysSolver->setZero();
     SelfCollisionHandler<dim>::augmentFrictionHessian(
         mesh, mesh.V_prev, mmcvids, lambda, coords, tangent_bases,
-        friction_linSysSolver, epsv_times_h_squared, mu, /*projectDBC=*/true);
+        friction_linSysSolver, epsv_times_h_squared, kappa, /*projectDBC=*/true);
     Eigen::SparseMatrix<double> friction_hessian;
     friction_linSysSolver->getCoeffMtr(friction_hessian);
     igl::writeDMAT(fmt::format("{}_hess.dmat", out_prefix), Eigen::MatrixXd(friction_hessian));
@@ -387,13 +387,13 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
     }
     fricDHat = solveFric ? fricDHat0 : -1.0;
 
-    mu_IP = 0.0;
+    kappa = 0.0;
     if (animConfig.tuning.size() > 0) {
-        mu_IP = animConfig.tuning[0];
-        upperBoundMu(mu_IP);
+        kappa = animConfig.tuning[0];
+        upperBoundKappa(kappa);
     }
-    if (mu_IP == 0.0) {
-        suggestMu(mu_IP);
+    if (kappa == 0.0) {
+        suggestKappa(kappa);
     }
 
     // output wire.poly for rendering
@@ -1601,16 +1601,16 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
     }
     computeConstraintSets(result);
 
-    mu_IP = 0.0;
+    kappa = 0.0;
     if (animConfig.tuning.size() > 0) {
-        mu_IP = animConfig.tuning[0];
-        upperBoundMu(mu_IP);
+        kappa = animConfig.tuning[0];
+        upperBoundKappa(kappa);
     }
-    if (mu_IP == 0.0) {
-        suggestMu(mu_IP);
+    if (kappa == 0.0) {
+        suggestKappa(kappa);
     }
-#ifdef ADAPTIVE_MU
-    initMu_IP(mu_IP);
+#ifdef ADAPTIVE_KAPPA
+    initKappa(kappa);
 #endif
 
     timer_step.start(10);
@@ -1626,7 +1626,7 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
             //TODO: parallelize
             for (int i = 0; i < lambda_lastH[coI].size(); ++i) {
                 compute_g_b(constraintVal[startCI + i], dHat, lambda_lastH[coI][i]);
-                lambda_lastH[coI][i] *= -mu_IP * 2.0 * std::sqrt(constraintVal[startCI + i]);
+                lambda_lastH[coI][i] *= -kappa * 2.0 * std::sqrt(constraintVal[startCI + i]);
             }
 
             if (activeSet_lastH[coI] != activeSet[coI]) {
@@ -1648,7 +1648,7 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
             //TODO: parallelize
             for (int i = 0; i < MMLambda_lastH.back().size(); ++i) {
                 compute_g_b(constraintVal[startCI + i], dHat, MMLambda_lastH.back()[i]);
-                MMLambda_lastH.back()[i] *= -mu_IP * 2.0 * std::sqrt(constraintVal[startCI + i]);
+                MMLambda_lastH.back()[i] *= -kappa * 2.0 * std::sqrt(constraintVal[startCI + i]);
                 if (MMActiveSet.back()[i][3] < -1) {
                     // PP or PE duplication
                     MMLambda_lastH.back()[i] *= -MMActiveSet.back()[i][3];
@@ -1673,7 +1673,7 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
     int fricIterI = 0;
     while (true) {
         initSubProb_IP();
-        solveSub_IP(mu_IP, activeSet_next, MMActiveSet_next);
+        solveSub_IP(kappa, activeSet_next, MMActiveSet_next);
         ++fricIterI;
 
         timer_step.start(10);
@@ -1689,7 +1689,7 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
                 //TODO: parallelize
                 for (int i = 0; i < lambda_lastH[coI].size(); ++i) {
                     compute_g_b(constraintVal[startCI + i], dHat, lambda_lastH[coI][i]);
-                    lambda_lastH[coI][i] *= -mu_IP * 2.0 * std::sqrt(constraintVal[startCI + i]);
+                    lambda_lastH[coI][i] *= -kappa * 2.0 * std::sqrt(constraintVal[startCI + i]);
                 }
 
                 if (activeSet_lastH[coI] != activeSet[coI]) {
@@ -1711,7 +1711,7 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
                 //TODO: parallelize
                 for (int i = 0; i < MMLambda_lastH.back().size(); ++i) {
                     compute_g_b(constraintVal[startCI + i], dHat, MMLambda_lastH.back()[i]);
-                    MMLambda_lastH.back()[i] *= -mu_IP * 2.0 * std::sqrt(constraintVal[startCI + i]);
+                    MMLambda_lastH.back()[i] *= -kappa * 2.0 * std::sqrt(constraintVal[startCI + i]);
                     if (MMActiveSet.back()[i][3] < -1) {
                         // PP or PE duplication
                         MMLambda_lastH.back()[i] *= -MMActiveSet.back()[i][3];
@@ -1742,7 +1742,7 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
                 {
                     double dualI;
                     compute_g_b(constraintVal[i], dHat, dualI);
-                    dualI *= -mu_IP;
+                    dualI *= -kappa;
                     const double& constraint = constraintVal[i];
                     fb[i] = (dualI + constraint - std::sqrt(dualI * dualI + constraint * constraint));
                 }
@@ -1819,8 +1819,8 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
         }
 
         if constexpr (HOMOTOPY_VAR == 0) {
-            mu_IP *= 0.5;
-            spdlog::info("mu decreased to {:g}", mu_IP);
+            kappa *= 0.5;
+            spdlog::info("kappa decreased to {:g}", kappa);
         }
         else if (HOMOTOPY_VAR == 1) {
             if (updateDHat) {
@@ -1830,8 +1830,8 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
                 }
                 computeConstraintSets(result);
                 spdlog::info("dHat decreased to {:g}", dHat);
-#ifdef ADAPTIVE_MU
-                initMu_IP(mu_IP);
+#ifdef ADAPTIVE_KAPPA
+                initKappa(kappa);
 #endif
             }
 
@@ -1843,7 +1843,7 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
             }
         }
         else {
-            spdlog::error("needs to define HOMOTOPY_VAR to either 0 (mu) or 1 (dHat)");
+            spdlog::error("needs to define HOMOTOPY_VAR to either 0 (kappa) or 1 (dHat)");
             exit(-1);
         }
     }
@@ -1881,7 +1881,7 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
 }
 
 template <int dim>
-bool Optimizer<dim>::solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
+bool Optimizer<dim>::solveSub_IP(double kappa, std::vector<std::vector<int>>& AHat,
     std::vector<std::vector<MMCVID>>& MMAHat)
 {
     int iterCap = 10000, k = 0; // 10000 for running comparative schemes that can potentially not converge
@@ -1930,13 +1930,13 @@ bool Optimizer<dim>::solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
         // check convergence
         double gradSqNorm = gradient.squaredNorm();
         double distToOpt_PN = searchDir.cwiseAbs().maxCoeff();
-        spdlog::info("mu = {:g}, dHat = {:g}, {:g}, subproblem ||g||^2 = {:g}", mu_IP, dHat, fricDHat, gradSqNorm);
+        spdlog::info("kappa = {:g}, dHat = {:g}, eps_v = {:g}, subproblem ||g||^2 = {:g}", kappa, dHat, fricDHat, gradSqNorm);
         spdlog::info("distToOpt_PN = {:g}, targetGRes = {:g}", distToOpt_PN, targetGRes);
         bool gradVanish = (distToOpt_PN < targetGRes);
         if (!useGD && k && gradVanish && (animScripter.getCompletedStepSize() > 1.0 - 1.0e-3)
             && (animScripter.getCOCompletedStepSize() > 1.0 - 1.0e-3)) {
             // subproblem converged
-            logFile << k << " Newton-type iterations for mu = " << mu_IP << ", dHat = " << dHat << std::endl;
+            logFile << k << " Newton-type iterations for kappa = " << kappa << ", dHat = " << dHat << std::endl;
             return false;
         }
         innerIterAmt++;
@@ -2155,7 +2155,7 @@ bool Optimizer<dim>::solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
 
             saveStatus("tinyStepSize");
             useGD = true;
-            // // mu_IP *= 1.1;
+            // // kappa *= 1.1;
             // if constexpr (dim == 3) {
             //     spdlog::info("check EE pairs:");
             //     for (const auto cI : MMActiveSet.back()) {
@@ -2239,27 +2239,27 @@ bool Optimizer<dim>::solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
 } // namespace IPC
 
 template <int dim>
-void Optimizer<dim>::upperBoundMu(double& mu)
+void Optimizer<dim>::upperBoundKappa(double& kappa)
 {
     double H_b;
     compute_H_b(1.0e-16 * bboxDiagSize2, dHat, H_b);
-    double muMax = 1.0e13 * result.avgNodeMass(dim) / (4.0e-16 * bboxDiagSize2 * H_b);
-    if (mu > muMax) {
-        mu = muMax;
-        logFile << "upper bounded mu to " << muMax << " at dHat = " << dHat << std::endl;
+    double kappaMax = 1.0e13 * result.avgNodeMass(dim) / (4.0e-16 * bboxDiagSize2 * H_b);
+    if (kappa > kappaMax) {
+        kappa = kappaMax;
+        logFile << "upper bounded kappa to " << kappaMax << " at dHat = " << dHat << std::endl;
     }
 }
 
 template <int dim>
-void Optimizer<dim>::suggestMu(double& mu)
+void Optimizer<dim>::suggestKappa(double& kappa)
 {
     double H_b;
     compute_H_b(1.0e-16 * bboxDiagSize2, dHat, H_b);
-    mu = 1.0e11 * result.avgNodeMass(dim) / (4.0e-16 * bboxDiagSize2 * H_b);
+    kappa = 1.0e11 * result.avgNodeMass(dim) / (4.0e-16 * bboxDiagSize2 * H_b);
 }
 
 template <int dim>
-void Optimizer<dim>::initMu_IP(double& mu)
+void Optimizer<dim>::initKappa(double& kappa)
 {
     //TODO: optimize implementation and pipeline
     buildConstraintStartIndsWithMM(activeSet, MMActiveSet, constraintStartInds);
@@ -2303,37 +2303,38 @@ void Optimizer<dim>::initMu_IP(double& mu)
         }
 
         // balance current gradient at constrained DOF
-        double mu_trial = -g_c.dot(g_E) / g_c.squaredNorm();
-        if (mu_trial > 0.0) {
-            mu = mu_trial;
+        double minKappa = -g_c.dot(g_E) / g_c.squaredNorm();
+        if (minKappa > 0.0) {
+            kappa = minKappa;
         }
-        suggestMu(mu_trial);
-        if (mu < mu_trial) {
-            mu = mu_trial;
+        suggestKappa(minKappa);
+        spdlog::info("kappa_min = {:g} kappa_max = {:g}", minKappa, 100 * minKappa);
+        if (kappa < minKappa) {
+            kappa = minKappa;
         }
-        upperBoundMu(mu);
+        upperBoundKappa(kappa);
 
         // minimize approximated next search direction
         //            Eigen::VectorXd HInvGc, HInvGE;
         //            linSysSolver->solve(g_c, HInvGc);
         //            linSysSolver->solve(g_E, HInvGE);
-        //            mu = HInvGE.dot(HInvGc) / HInvGc.squaredNorm();
-        //            if(mu < 0.0) {
-        //                mu = g_c.dot(g_E) / g_c.squaredNorm();
+        //            kappa = HInvGE.dot(HInvGc) / HInvGc.squaredNorm();
+        //            if(kappa < 0.0) {
+        //                kappa = g_c.dot(g_E) / g_c.squaredNorm();
         //            }
 
         // minimize approximated next search direction at constrained DOF
         //            Eigen::VectorXd HInvGc;
         //            linSysSolver->solve(g_c, HInvGc);
-        //            mu = g_E.dot(HInvGc) / g_c.dot(HInvGc);
-        //            if(mu < 0.0) {
-        //                mu = g_c.dot(g_E) / g_c.squaredNorm();
+        //            kappa = g_E.dot(HInvGc) / g_c.dot(HInvGc);
+        //            if(kappa < 0.0) {
+        //                kappa = g_c.dot(g_E) / g_c.squaredNorm();
         //            }
 
-        spdlog::info("mu initialized to {:g}", mu);
+        spdlog::info("kappa initialized to {:g}", kappa);
     }
     else {
-        spdlog::info("no constraint detected, start with default mu");
+        spdlog::info("no constraint detected, start with default kappa");
     }
 }
 
@@ -2381,23 +2382,23 @@ void Optimizer<dim>::computeSearchDir(int k, bool projectDBC)
 template <int dim>
 void Optimizer<dim>::postLineSearch(double alpha)
 {
-#ifdef ADAPTIVE_MU
-    if (mu_IP == 0.0) {
-        initMu_IP(mu_IP);
+#ifdef ADAPTIVE_KAPPA
+    if (kappa == 0.0) {
+        initKappa(kappa);
     }
     else {
         //TODO: avoid recomputation of constraint functions
-        bool updateMu = false;
+        bool updateKappa = false;
         for (int i = 0; i < closeConstraintID.size(); ++i) {
             double d;
             animConfig.collisionObjects[closeConstraintID[i].first]->evaluateConstraint(result,
                 closeConstraintID[i].second, d);
             if (d <= closeConstraintVal[i]) {
-                updateMu = true;
+                updateKappa = true;
                 break;
             }
         }
-        if (!updateMu) {
+        if (!updateKappa) {
             for (int i = 0; i < closeMConstraintID.size(); ++i) {
                 double d;
                 if (closeMConstraintID[i].first < animConfig.meshCollisionObjects.size()) {
@@ -2408,18 +2409,18 @@ void Optimizer<dim>::postLineSearch(double alpha)
                     SelfCollisionHandler<dim>::evaluateConstraint(result, closeMConstraintID[i].second, d);
                 }
                 if (d <= closeMConstraintVal[i]) {
-                    updateMu = true;
+                    updateKappa = true;
                     break;
                 }
             }
         }
-        if (updateMu) {
-            mu_IP *= 2.0;
-            upperBoundMu(mu_IP);
+        if (updateKappa) {
+            kappa *= 2.0;
+            upperBoundKappa(kappa);
         }
 #endif
 
-#ifdef ADAPTIVE_MU
+#ifdef ADAPTIVE_KAPPA
         closeConstraintID.resize(0);
         closeMConstraintID.resize(0);
         closeConstraintVal.resize(0);
@@ -2703,7 +2704,7 @@ bool Optimizer<dim>::lineSearch(double& stepSize,
     }
     else {
         timer_step.start(9);
-        computeEnergyVal(result, false, lastEnergyVal); //TODO: only for updated constraints set and mu
+        computeEnergyVal(result, false, lastEnergyVal); //TODO: only for updated constraints set and kappa
         timer_step.start(5);
     }
     msg << "E_last = " << lastEnergyVal << " stepSize: " << stepSize << " -> ";
@@ -3252,9 +3253,9 @@ void Optimizer<dim>::computeEnergyVal(const Mesh<dim>& data, int redoSVD, double
                 }
             }
         }
-        energyVal += mu_IP * bVals.sum();
-        // std::cout << ", E_c=" << mu_IP * bVals.sum();
-        // energies[1] = mu_IP * bVals.sum();
+        energyVal += kappa * bVals.sum();
+        // std::cout << ", E_c=" << kappa * bVals.sum();
+        // energies[1] = kappa * bVals.sum();
 
         for (int coI = 0; coI < animConfig.collisionObjects.size(); ++coI) {
             // friction
@@ -3368,7 +3369,7 @@ void Optimizer<dim>::computeGradient(const Mesh<dim>& data,
                 compute_g_b(constraintVal[cI], dHat, constraintVal[cI]);
             }
             animConfig.collisionObjects[coI]->leftMultiplyConstraintJacobianT(data, activeSet[coI],
-                constraintVal.segment(startCI, activeSet[coI].size()), gradient, mu_IP);
+                constraintVal.segment(startCI, activeSet[coI].size()), gradient, kappa);
 
             // friction
             if (activeSet_lastH[coI].size() && fricDHat > 0.0 && animConfig.collisionObjects[coI]->friction > 0.0) {
@@ -3383,10 +3384,10 @@ void Optimizer<dim>::computeGradient(const Mesh<dim>& data,
                 compute_g_b(constraintVal[cI], dHat, constraintVal[cI]);
             }
             animConfig.meshCollisionObjects[coI]->leftMultiplyConstraintJacobianT(data, MMActiveSet[coI],
-                constraintVal.segment(startCI, MMActiveSet[coI].size()), gradient, mu_IP);
+                constraintVal.segment(startCI, MMActiveSet[coI].size()), gradient, kappa);
 
             animConfig.meshCollisionObjects[coI]->augmentParaEEGradient(data,
-                paraEEMMCVIDSet[coI], paraEEeIeJSet[coI], gradient, dHat, mu_IP);
+                paraEEMMCVIDSet[coI], paraEEeIeJSet[coI], gradient, dHat, kappa);
         }
         if (animConfig.isSelfCollision) {
             int startCI = constraintVal.size();
@@ -3395,10 +3396,10 @@ void Optimizer<dim>::computeGradient(const Mesh<dim>& data,
                 compute_g_b(constraintVal[cI], dHat, constraintVal[cI]);
             }
             SelfCollisionHandler<dim>::leftMultiplyConstraintJacobianT(data, MMActiveSet.back(),
-                constraintVal.segment(startCI, MMActiveSet.back().size()), gradient, mu_IP);
+                constraintVal.segment(startCI, MMActiveSet.back().size()), gradient, kappa);
 
             SelfCollisionHandler<dim>::augmentParaEEGradient(data,
-                paraEEMMCVIDSet.back(), paraEEeIeJSet.back(), gradient, dHat, mu_IP);
+                paraEEMMCVIDSet.back(), paraEEeIeJSet.back(), gradient, dHat, kappa);
 
             if (MMActiveSet_lastH.back().size() && fricDHat > 0.0 && animConfig.selfFric > 0.0) {
                 SelfCollisionHandler<dim>::augmentFrictionGradient(data.V, result.V_prev, MMActiveSet_lastH.back(),
@@ -3407,7 +3408,7 @@ void Optimizer<dim>::computeGradient(const Mesh<dim>& data,
                 save_friction_data(
                     data, MMActiveSet_lastH.back(), MMLambda_lastH.back(),
                     MMDistCoord.back(), MMTanBasis.back(),
-                    dHat, mu_IP, fricDHat, animConfig.selfFric);
+                    dHat, kappa, fricDHat, animConfig.selfFric);
 #endif
             }
         }
@@ -3574,7 +3575,7 @@ void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
         timer_mt.start(12);
         for (int coI = 0; coI < animConfig.collisionObjects.size(); ++coI) {
             animConfig.collisionObjects[coI]->augmentIPHessian(data,
-                activeSet[coI], p_linSysSolver, dHat, mu_IP, projectDBC);
+                activeSet[coI], p_linSysSolver, dHat, kappa, projectDBC);
 
             // friction
             if (activeSet_lastH[coI].size() && fricDHat > 0.0 && animConfig.collisionObjects[coI]->friction > 0.0) {
@@ -3585,17 +3586,17 @@ void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
         }
         timer_mt.start(13);
         for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
-            animConfig.meshCollisionObjects[coI]->augmentIPHessian(data, MMActiveSet[coI], p_linSysSolver, dHat, mu_IP, projectDBC);
+            animConfig.meshCollisionObjects[coI]->augmentIPHessian(data, MMActiveSet[coI], p_linSysSolver, dHat, kappa, projectDBC);
 
             animConfig.meshCollisionObjects[coI]->augmentParaEEHessian(data, paraEEMMCVIDSet[coI], paraEEeIeJSet[coI],
-                p_linSysSolver, dHat, mu_IP, projectDBC);
+                p_linSysSolver, dHat, kappa, projectDBC);
         }
         timer_mt.start(14);
         if (animConfig.isSelfCollision) {
-            SelfCollisionHandler<dim>::augmentIPHessian(data, MMActiveSet.back(), p_linSysSolver, dHat, mu_IP, projectDBC);
+            SelfCollisionHandler<dim>::augmentIPHessian(data, MMActiveSet.back(), p_linSysSolver, dHat, kappa, projectDBC);
 
             SelfCollisionHandler<dim>::augmentParaEEHessian(data, paraEEMMCVIDSet.back(), paraEEeIeJSet.back(),
-                p_linSysSolver, dHat, mu_IP, projectDBC);
+                p_linSysSolver, dHat, kappa, projectDBC);
 
             if (MMActiveSet_lastH.back().size() && fricDHat > 0.0 && animConfig.selfFric > 0.0) {
                 SelfCollisionHandler<dim>::augmentFrictionHessian(data, result.V_prev, MMActiveSet_lastH.back(),

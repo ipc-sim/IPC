@@ -738,7 +738,15 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
     double& stepSize)
 {
 #if (CFL_FOR_CCD != 0)
+    if (!constraintSet.size()) { return; }
+
+    tbb::mutex stepSizeLock;
+
+#ifdef USE_TBB
+    tbb::parallel_for(0, (int)constraintSet.size(), 1, [&](int cI) {
+#else
     for (int cI = 0; cI < constraintSet.size(); ++cI) {
+#endif
         if (constraintSet[cI].first < 0) {
             if (constraintSet[cI].second < 0) {
                 // TP
@@ -751,6 +759,7 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
                 d_sqrt = std::sqrt(d_sqrt);
                 if (d_sqrt == 0) {
                     spdlog::error("Initial CCD distance is zero! Returning 0 stepSize.");
+                    tbb::mutex::scoped_lock lock(stepSizeLock);
                     stepSize = 0;
                     return;
                 }
@@ -798,7 +807,10 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
                 }
 
                 if (has_collision) {
-                    stepSize = toi;
+                    tbb::mutex::scoped_lock lock(stepSizeLock);
+                    if (toi < stepSize) {
+                        stepSize = toi;
+                    }
                 }
             }
             else {
@@ -812,6 +824,7 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
                 d_sqrt = std::sqrt(d_sqrt);
                 if (d_sqrt == 0) {
                     spdlog::error("Initial CCD distance is zero! Returning 0 stepSize.");
+                    tbb::mutex::scoped_lock lock(stepSizeLock);
                     stepSize = 0;
                     return;
                 }
@@ -859,7 +872,10 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
                 }
 
                 if (has_collision) {
-                    stepSize = toi;
+                    tbb::mutex::scoped_lock lock(stepSizeLock);
+                    if (toi < stepSize) {
+                        stepSize = toi;
+                    }
                 }
             }
         }
@@ -874,6 +890,7 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
             d_sqrt = std::sqrt(d_sqrt);
             if (d_sqrt == 0) {
                 spdlog::error("Initial CCD distance is zero! Returning 0 stepSize.");
+                tbb::mutex::scoped_lock lock(stepSizeLock);
                 stepSize = 0;
                 return;
             }
@@ -923,10 +940,16 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
             }
 
             if (has_collision) {
-                stepSize = toi;
+                tbb::mutex::scoped_lock lock(stepSizeLock);
+                if (toi < stepSize) {
+                    stepSize = toi;
+                }
             }
         }
     }
+#ifdef USE_TBB
+    );
+#endif
 #else
     largestFeasibleStepSize_CCD(mesh, sh, searchDir, tolerance, stepSize);
 #endif
@@ -1339,8 +1362,14 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
     const Eigen::VectorXd& searchDir,
     double tolerance, double& stepSize)
 {
+    tbb::mutex stepSizeLock;
+
     // point-triangle
+#ifdef USE_TBB
+    tbb::parallel_for(0, (int)Base::F.rows(), 1, [&](int sfI) {
+#else
     for (int sfI = 0; sfI < Base::F.rows(); ++sfI) {
+#endif
         const RowVector3i& sfVInd = Base::F.row(sfI);
 #ifdef USE_SH_LFSS
         std::unordered_set<int> pointInds; //NOTE: different constraint order will result in numerically different results
@@ -1358,6 +1387,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
             d_sqrt = std::sqrt(d_sqrt);
             if (d_sqrt == 0) {
                 spdlog::error("Initial CCD distance is zero! Returning 0 stepSize.");
+                tbb::mutex::scoped_lock lock(stepSizeLock);
                 stepSize = 0;
                 return;
             }
@@ -1405,13 +1435,23 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
             }
 
             if (has_collision) {
-                stepSize = toi;
+                tbb::mutex::scoped_lock lock(stepSizeLock);
+                if (toi < stepSize) {
+                    stepSize = toi;
+                }
             }
         }
     }
+#ifdef USE_TBB
+    );
+#endif
 
-    // triangle-point
+// triangle-point
+#ifdef USE_TBB
+    tbb::parallel_for(0, (int)Base::V.rows(), 1, [&](int vI) {
+#else
     for (int vI = 0; vI < Base::V.rows(); ++vI) {
+#endif
 #ifdef USE_SH_LFSS
         std::unordered_set<int> svInds, edgeInds, triInds; //NOTE: different constraint order will result in numerically different results
         sh.queryPointForPrimitives(Base::V.row(vI), Eigen::Matrix<double, 1, dim>::Zero(),
@@ -1434,6 +1474,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
             d_sqrt = std::sqrt(d_sqrt);
             if (d_sqrt == 0) {
                 spdlog::error("Initial CCD distance is zero! Returning 0 stepSize.");
+                tbb::mutex::scoped_lock lock(stepSizeLock);
                 stepSize = 0;
                 return;
             }
@@ -1481,13 +1522,23 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
             }
 
             if (has_collision) {
-                stepSize = toi;
+                tbb::mutex::scoped_lock lock(stepSizeLock);
+                if (toi < stepSize) {
+                    stepSize = toi;
+                }
             }
         }
     }
+#ifdef USE_TBB
+    );
+#endif
 
-    // edge-edge
+// edge-edge
+#ifdef USE_TBB
+    tbb::parallel_for(0, (int)edges.size(), 1, [&](int eJ) {
+#else
     for (int eJ = 0; eJ < edges.size(); ++eJ) {
+#endif
         const auto& meshEJ = edges[eJ];
 #ifdef USE_SH_LFSS
         std::vector<int> svInds, edgeInds; //NOTE: different constraint order will result in numerically different results
@@ -1507,6 +1558,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
             d_sqrt = std::sqrt(d_sqrt);
             if (d_sqrt == 0) {
                 spdlog::error("Initial CCD distance is zero! Returning 0 stepSize.");
+                tbb::mutex::scoped_lock lock(stepSizeLock);
                 stepSize = 0;
                 return;
             }
@@ -1554,10 +1606,16 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
             }
 
             if (has_collision) {
-                stepSize = toi;
+                tbb::mutex::scoped_lock lock(stepSizeLock);
+                if (toi < stepSize) {
+                    stepSize = toi;
+                }
             }
         }
     }
+#ifdef USE_TBB
+    );
+#endif
 }
 
 template <int dim>
@@ -2376,10 +2434,10 @@ void MeshCO<dim>::augmentParaEEHessian(const Mesh<dim>& mesh,
                     }
                 }
 
-                Eigen::Matrix<double, 12, 12> mu_gradb_gradeT;
-                mu_gradb_gradeT = ((coef * g_b) * grad_d) * e_g.transpose();
+                Eigen::Matrix<double, 12, 12> kappa_gradb_gradeT;
+                kappa_gradb_gradeT = ((coef * g_b) * grad_d) * e_g.transpose();
 
-                PEEHessian[cI] = mu_gradb_gradeT + mu_gradb_gradeT.transpose() + (coef * b) * e_H + ((coef * e * H_b) * grad_d) * grad_d.transpose() + (coef * e * g_b) * H_d;
+                PEEHessian[cI] = kappa_gradb_gradeT + kappa_gradb_gradeT.transpose() + (coef * b) * e_H + ((coef * e * H_b) * grad_d) * grad_d.transpose() + (coef * e * g_b) * H_d;
                 IglUtils::makePD(PEEHessian[cI]);
             }
 #ifdef USE_TBB

@@ -18,7 +18,7 @@
 #define USE_IQRSVD
 
 // interior point method for collision handling
-#define HOMOTOPY_VAR 1 // 0: mu, 1: dHat
+#define HOMOTOPY_VAR 1 // 0: kappa, 1: dHat
 #define BARRIER_FUNC_TYPE 2 // 0: C0 clamped log, 2: C2 clamped log
 
 #define USE_SH_LFSS // enable spatial hashing for largestFeasibleStepSize
@@ -34,7 +34,7 @@
 // #define CHECK_RATIONAL_CCD_GLOBAL
 
 #define USE_DISCRETE_CMS
-#define ADAPTIVE_MU
+#define ADAPTIVE_KAPPA
 #define SFCLAMPING_ORDER 1 // 0: C0 clamping, 1: C1, 2: C2
 // #define CHECK_FRIC_TANGENT
 

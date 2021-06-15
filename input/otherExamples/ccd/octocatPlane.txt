@@ -7,11 +7,11 @@ warmStart 0
 selfCollisionOn
 
 #CCDMethod FloatingPointRootFinder
-#CCDMethod TightInclusion
+CCDMethod TightInclusion
 #CCDTolerance 1e-3
 #CCDTolerance 3.162277e-5
 #CCDTolerance 1e-6
-CCDMethod FloatingPointRootParity
+#CCDMethod FloatingPointRootParity
 
 shapes input 1
 input/tetMeshes/32770_octocat.msh  0 0 0  -90 0 0  0.1 0.1 0.1

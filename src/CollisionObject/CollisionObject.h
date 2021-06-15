@@ -419,10 +419,16 @@ public:
         throw "computeRelDX not implemented!";
     }
 
-    virtual bool checkEdgeTriIntersection(const Mesh<dim>& mesh,
-        const SpatialHash<dim>& sh) {}
-    virtual bool checkEdgeTriIntersectionIfAny(const Mesh<dim>& mesh,
-        const SpatialHash<dim>& sh) {}
+    virtual bool checkEdgeTriIntersection(
+        const Mesh<dim>& mesh, const SpatialHash<dim>& sh)
+    {
+        throw "checkEdgeTriIntersection not implemented!";
+    }
+    virtual bool checkEdgeTriIntersectionIfAny(
+        const Mesh<dim>& mesh, const SpatialHash<dim>& sh)
+    {
+        throw "checkEdgeTriIntersectionIfAny not implemented!";
+    }
 
     virtual void move(const Eigen::Matrix<double, dim, 1>& deltaX,
         const Mesh<dim>& mesh, const SpatialHash<dim>& sh,
