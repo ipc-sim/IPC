@@ -169,6 +169,8 @@ int Config::loadFromFile(const std::string& p_filePath)
                 std::string type;
                 ss >> type;
                 energyType = getEnergyTypeByStr(type);
+            } else if (token == "minBarrierStiffnessScale") {
+                ss >> minBarrierStiffnessScale;
             }
             else if (token == "timeIntegration") {
                 std::string type;

@@ -45,6 +45,8 @@ enum QPSolverType {
 
 class Config {
 public:
+    double minBarrierStiffnessScale = 1.0e15;
+
     std::string filePath;
 
     double size = -1;
