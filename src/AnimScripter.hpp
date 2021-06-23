@@ -133,16 +133,16 @@ public:
 
 public:
     void initAnimScript(Mesh<dim>& mesh,
-        const std::vector<CollisionObject<dim>*>& ACO,
-        const std::vector<CollisionObject<dim>*>& MCO,
+        const std::vector<std::shared_ptr<CollisionObject<dim>>>& ACO,
+        const std::vector<std::shared_ptr<CollisionObject<dim>>>& MCO,
         double DBCTimeRange[2],
         double NBCTimeRange[2]);
     void initVelocity(const Mesh<dim>& mesh, const std::vector<double>& params,
         Eigen::VectorXd& velocity) const;
     int stepAnimScript(Mesh<dim>& mesh,
         const SpatialHash<dim>& sh,
-        std::vector<CollisionObject<dim>*>& ACO,
-        std::vector<CollisionObject<dim>*>& MCO,
+        std::vector<std::shared_ptr<CollisionObject<dim>>>& ACO,
+        std::vector<std::shared_ptr<CollisionObject<dim>>>& MCO,
         const ccd::CCDMethod method,
         double dt, double dHat, const std::vector<Energy<dim>*>& energyTerms,
         bool isSelfCollision, bool forceIntersectionLineSearch);

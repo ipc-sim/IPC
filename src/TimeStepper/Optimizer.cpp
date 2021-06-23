@@ -756,7 +756,7 @@ void Optimizer<dim>::updateQPObjective(
 template <int dim>
 void Optimizer<dim>::computeQPInequalityConstraint(
     const Mesh<dim>& mesh,
-    const std::vector<CollisionObject<dim>*>& collisionObjects,
+    const std::vector<std::shared_ptr<CollisionObject<dim>>>& collisionObjects,
     const std::vector<std::vector<int>>& activeSet,
     const int num_vars,
     std::vector<int>& constraintStartInds,
@@ -800,7 +800,7 @@ void Optimizer<dim>::computeQPInequalityConstraint(
 template <int dim>
 bool Optimizer<dim>::solveQP(
     const Mesh<dim>& mesh,
-    const std::vector<CollisionObject<dim>*>& collisionObjects,
+    const std::vector<std::shared_ptr<CollisionObject<dim>>>& collisionObjects,
     const std::vector<std::vector<int>>& activeSet,
     const LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* linSys,
     Eigen::SparseMatrix<double>& P,
@@ -940,7 +940,7 @@ bool Optimizer<dim>::solveQP_Gurobi(
 
 template <int dim>
 void Optimizer<dim>::computeQPResidual(const Mesh<dim>& mesh,
-    const std::vector<CollisionObject<dim>*>& collisionObjects,
+    const std::vector<std::shared_ptr<CollisionObject<dim>>>& collisionObjects,
     const std::vector<std::vector<int>>& activeSet,
     const std::vector<int>& constraintStartInds,
     const Eigen::VectorXd& gradient,
@@ -1422,8 +1422,8 @@ bool Optimizer<dim>::fullyImplicit(void)
     int constraintAmt = countConstraints();
     spdlog::debug("after initX: E={:g} ||g||²={:g} targetGRes={:g} constraintAmt={:d}",
         lastEnergyVal, gradient.squaredNorm(), targetGRes, constraintAmt);
-    file_iterStats << globalIterNum << " 0 " << lastEnergyVal << " "
-                   << gradient.squaredNorm() << " 0" << std::endl;
+    file_iterStats << fmt::format("{:d} 0 {:g} {:g} 0\n",
+        globalIterNum, lastEnergyVal, gradient.squaredNorm());
 
     // Termination criteria variables
     Eigen::VectorXd fb;
@@ -1480,7 +1480,8 @@ bool Optimizer<dim>::fullyImplicit(void)
             sqn_g0 = sqn_g;
         }
 
-        file_iterStats << lastEnergyVal << " " << sqn_g << " " << (constraintStartInds.empty() ? 0 : constraintStartInds.back()) << std::endl;
+        file_iterStats << fmt::format("{:g} {:g} {:d}\n",
+            lastEnergyVal, sqn_g, (constraintStartInds.empty() ? 0 : constraintStartInds.back()));
         timer_step.stop();
 
         constraintAmt = countConstraints();
@@ -1924,8 +1925,8 @@ bool Optimizer<dim>::solveSub_IP(double kappa, std::vector<std::vector<int>>& AH
         timer_step.stop();
         //TODO: constraint val can be computed and reused for E, g, H
 
-        spdlog::info("# constraint = {:d}", MMActiveSet.back().size());
-        spdlog::info("# paraEE = {:d}", paraEEMMCVIDSet.back().size());
+        spdlog::info("# constraint = {:d}", MMActiveSet.size() ? MMActiveSet.back().size() : 0);
+        spdlog::info("# paraEE = {:d}", paraEEMMCVIDSet.size() ? paraEEMMCVIDSet.back().size() : 0);
 
         // check convergence
         double gradSqNorm = gradient.squaredNorm();
@@ -2236,14 +2237,14 @@ bool Optimizer<dim>::solveSub_IP(double kappa, std::vector<std::vector<int>>& AH
     }
 
     return true;
-} // namespace IPC
+}
 
 template <int dim>
 void Optimizer<dim>::upperBoundKappa(double& kappa)
 {
     double H_b;
     compute_H_b(1.0e-16 * bboxDiagSize2, dHat, H_b);
-    double kappaMax = 1.0e13 * result.avgNodeMass(dim) / (4.0e-16 * bboxDiagSize2 * H_b);
+    double kappaMax = 100 * animConfig.kappaMinMultiplier * result.avgNodeMass(dim) / (4.0e-16 * bboxDiagSize2 * H_b);
     if (kappa > kappaMax) {
         kappa = kappaMax;
         logFile << "upper bounded kappa to " << kappaMax << " at dHat = " << dHat << std::endl;
@@ -2255,7 +2256,7 @@ void Optimizer<dim>::suggestKappa(double& kappa)
 {
     double H_b;
     compute_H_b(1.0e-16 * bboxDiagSize2, dHat, H_b);
-    kappa = 1.0e11 * result.avgNodeMass(dim) / (4.0e-16 * bboxDiagSize2 * H_b);
+    kappa = animConfig.kappaMinMultiplier * result.avgNodeMass(dim) / (4.0e-16 * bboxDiagSize2 * H_b);
 }
 
 template <int dim>
@@ -3617,9 +3618,9 @@ void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
 
     if (!mute) { timer_step.stop(); }
     // output matrix and exit
-    //        IglUtils::writeSparseMatrixToFile("/Users/mincli/Desktop/IPC/output/A", p_linSysSolver, true);
-    //        std::cout << "matrix written" << std::endl;
-    //        exit(0);
+    // IglUtils::writeSparseMatrixToFile("/Users/mincli/Desktop/IPC/output/A", p_linSysSolver, true);
+    // std::cout << "matrix written" << std::endl;
+    // exit(0);
 }
 
 template <int dim>

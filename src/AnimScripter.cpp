@@ -57,8 +57,8 @@ AnimScripter<dim>::AnimScripter(AnimScriptType p_animScriptType)
 
 template <int dim>
 void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
-    const std::vector<CollisionObject<dim>*>& ACO,
-    const std::vector<CollisionObject<dim>*>& MCO,
+    const std::vector<std::shared_ptr<CollisionObject<dim>>>& ACO,
+    const std::vector<std::shared_ptr<CollisionObject<dim>>>& MCO,
     double DBCTimeRange[2],
     double NBCTimeRange[2])
 {
@@ -987,9 +987,9 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
 
         MCORotCenter.resize(2);
         MCORotCenter[0] = MCO[0]->origin;
-        MCORotCenter[0][1] += dynamic_cast<MeshCO<dim>*>(MCO[0])->scale / 2.0;
+        MCORotCenter[0][1] += std::dynamic_pointer_cast<MeshCO<dim>>(MCO[0])->scale / 2.0;
         MCORotCenter[1] = MCO[1]->origin;
-        MCORotCenter[1][1] -= dynamic_cast<MeshCO<dim>*>(MCO[1])->scale / 2.0;
+        MCORotCenter[1][1] -= std::dynamic_pointer_cast<MeshCO<dim>>(MCO[1])->scale / 2.0;
 
         MCOAngVel.resize(2);
         MCOAngVel[0].setZero();
@@ -1368,8 +1368,8 @@ void AnimScripter<dim>::initVelocity(const Mesh<dim>& mesh,
 template <int dim>
 int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
     const SpatialHash<dim>& sh,
-    std::vector<CollisionObject<dim>*>& ACO,
-    std::vector<CollisionObject<dim>*>& MCO,
+    std::vector<std::shared_ptr<CollisionObject<dim>>>& ACO,
+    std::vector<std::shared_ptr<CollisionObject<dim>>>& MCO,
     const ccd::CCDMethod method,
     double dt, double dHat, const std::vector<Energy<dim>*>& energyTerms,
     bool isSelfCollision, bool forceIntersectionLineSearch)

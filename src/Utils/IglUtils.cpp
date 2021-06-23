@@ -696,38 +696,15 @@ void IglUtils::Init_Dirichlet(Eigen::MatrixXd& X,
         return;
     }
 
-    Eigen::Vector3d bboxMin;
-    Eigen::Vector3d bboxMax;
-    for (int id = 0; id < X.rows(); ++id) {
-        const Eigen::Vector3d x = X.row(id);
-        if (id == 0) {
-            bboxMin = x;
-            bboxMax = x;
-        }
-        else {
-            for (int dimI = 0; dimI < 3; ++dimI) {
-                if (bboxMax(dimI) < x(dimI)) {
-                    bboxMax(dimI) = x(dimI);
-                }
-                if (bboxMin(dimI) > x(dimI)) {
-                    bboxMin(dimI) = x(dimI);
-                }
-            }
-        }
-    }
+    Eigen::Array3d bboxMin = X.colwise().minCoeff().array();
+    Eigen::Array3d bboxMax = X.colwise().maxCoeff().array();
 
-    Eigen::Vector3d rangeMin = relBoxMin;
-    Eigen::Vector3d rangeMax = relBoxMax;
-    for (int dimI = 0; dimI < 3; ++dimI) {
-        rangeMin(dimI) *= bboxMax(dimI) - bboxMin(dimI);
-        rangeMin(dimI) += bboxMin(dimI);
-        rangeMax(dimI) *= bboxMax(dimI) - bboxMin(dimI);
-        rangeMax(dimI) += bboxMin(dimI);
-    }
+    Eigen::Array3d rangeMin = (bboxMax - bboxMin) * relBoxMin.array() + bboxMin;
+    Eigen::Array3d rangeMax = (bboxMax - bboxMin) * relBoxMax.array() + bboxMin;
 
     for (int id = 0; id < X.rows(); ++id) {
-        const Eigen::Vector3d x = X.row(id);
-        if (x(0) >= rangeMin(0) && x(0) <= rangeMax(0) && x(1) >= rangeMin(1) && x(1) <= rangeMax(1) && x(2) >= rangeMin(2) && x(2) <= rangeMax(2)) {
+        const Eigen::Array3d x = X.row(id).array();
+        if ((x >= rangeMin).all() && (x <= rangeMax).all()) {
             selectedVerts.emplace_back(id);
         }
     }

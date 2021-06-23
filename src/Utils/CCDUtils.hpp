@@ -23,24 +23,24 @@ extern Eigen::Vector3d invShift;
 template <int dim>
 void computeTightInclusionError(
     Mesh<dim>& mesh,
-    std::vector<CollisionObject<dim>*>& meshCollisionObjects);
+    std::vector<std::shared_ptr<CollisionObject<dim>>>& meshCollisionObjects);
 
 template <int dim>
 void computeTightInclusionError(
     Mesh<dim>& mesh,
-    std::vector<CollisionObject<dim>*>& meshCollisionObjects,
+    std::vector<std::shared_ptr<CollisionObject<dim>>>& meshCollisionObjects,
     const Eigen::Vector3d& world_min,
     const Eigen::Vector3d& world_max);
 
 template <int dim>
 Eigen::Vector3d shiftVertices(
     Mesh<dim>& mesh,
-    std::vector<CollisionObject<dim>*>& meshCollisionObjects);
+    std::vector<std::shared_ptr<CollisionObject<dim>>>& meshCollisionObjects);
 
 template <int dim>
 Eigen::Vector3d shiftVertices(
     Mesh<dim>& mesh,
-    std::vector<CollisionObject<dim>*>& meshCollisionObjects,
+    std::vector<std::shared_ptr<CollisionObject<dim>>>& meshCollisionObjects,
     const Eigen::Vector3d& world_min,
     const Eigen::Vector3d& world_max);
 

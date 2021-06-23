@@ -15,6 +15,7 @@
 
 #include <iostream>
 #include <map>
+#include <memory>
 
 namespace IPC {
 
@@ -97,13 +98,14 @@ public:
     bool disableCout = false;
 
     // collision objects
-    std::vector<CollisionObject<DIM>*> collisionObjects;
-    std::vector<CollisionObject<DIM>*> meshCollisionObjects;
+    std::vector<std::shared_ptr<CollisionObject<DIM>>> collisionObjects;
+    std::vector<std::shared_ptr<CollisionObject<DIM>>> meshCollisionObjects;
 
     std::string appendStr;
 
     std::vector<double> tuning; // the parameter that is currently tuning
     bool useAbsParameters = false;
+    double kappaMinMultiplier = 1e11;
     int fricIterAmt = 1;
     std::vector<double> scriptParams; // the parameters for setting script if any,
     // like initial velocity, position, etc

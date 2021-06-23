@@ -171,7 +171,7 @@ protected: // helper functions
     /// @brief Compute the QP inequality constraints \f$Ax \geq b\f$
     virtual void computeQPInequalityConstraint(
         const Mesh<dim>& mesh,
-        const std::vector<CollisionObject<dim>*>& collisionObjects,
+        const std::vector<std::shared_ptr<CollisionObject<dim>>>& collisionObjects,
         const std::vector<std::vector<int>>& activeSet,
         const int num_vars,
         std::vector<int>& constraintStartInds,
@@ -180,7 +180,7 @@ protected: // helper functions
     /// @brief Solve the QP of the objective and collision constraints.
     virtual bool solveQP(
         const Mesh<dim>& mesh,
-        const std::vector<CollisionObject<dim>*>& collisionObjects,
+        const std::vector<std::shared_ptr<CollisionObject<dim>>>& collisionObjects,
         const std::vector<std::vector<int>>& activeSet,
         const LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* linSys,
         Eigen::SparseMatrix<double>& P,
@@ -209,7 +209,7 @@ protected: // helper functions
 #endif
 
     virtual void computeQPResidual(const Mesh<dim>& mesh,
-        const std::vector<CollisionObject<dim>*>& collisionObjects,
+        const std::vector<std::shared_ptr<CollisionObject<dim>>>& collisionObjects,
         const std::vector<std::vector<int>>& activeSet,
         const std::vector<int>& constraintStartInds,
         const Eigen::VectorXd& gradient,

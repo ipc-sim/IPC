@@ -16,7 +16,7 @@ Eigen::Vector3d invShift = Eigen::Vector3d::Zero();
 
 template <int dim>
 void computeConservativeWorldBBox(Mesh<dim>& mesh,
-    std::vector<CollisionObject<dim>*>& meshCollisionObjects,
+    std::vector<std::shared_ptr<CollisionObject<dim>>>& meshCollisionObjects,
     Eigen::Vector3d& world_min,
     Eigen::Vector3d& world_max)
 {
@@ -25,7 +25,7 @@ void computeConservativeWorldBBox(Mesh<dim>& mesh,
     // compute a bounding box for the entire scene
     world_min = mesh.V.colwise().minCoeff().transpose();
     world_max = mesh.V.colwise().maxCoeff().transpose();
-    for (CollisionObject<dim>* meshCO : meshCollisionObjects) {
+    for (std::shared_ptr<CollisionObject<dim>> meshCO : meshCollisionObjects) {
         world_min = world_min.cwiseMin(meshCO->V.colwise().minCoeff().transpose());
         world_max = world_max.cwiseMax(meshCO->V.colwise().maxCoeff().transpose());
     }
@@ -50,7 +50,7 @@ void computeConservativeWorldBBox(Mesh<dim>& mesh,
 template <int dim>
 void computeTightInclusionError(
     Mesh<dim>& mesh,
-    std::vector<CollisionObject<dim>*>& meshCollisionObjects)
+    std::vector<std::shared_ptr<CollisionObject<dim>>>& meshCollisionObjects)
 {
     assert(dim == 3);
     Eigen::Vector3d world_min, world_max;
@@ -61,7 +61,7 @@ void computeTightInclusionError(
 template <int dim>
 void computeTightInclusionError(
     Mesh<dim>& mesh,
-    std::vector<CollisionObject<dim>*>& meshCollisionObjects,
+    std::vector<std::shared_ptr<CollisionObject<dim>>>& meshCollisionObjects,
     const Eigen::Vector3d& world_min,
     const Eigen::Vector3d& world_max)
 {
@@ -84,7 +84,7 @@ void computeTightInclusionError(
 template <int dim>
 Eigen::Vector3d shiftVertices(
     Mesh<dim>& mesh,
-    std::vector<CollisionObject<dim>*>& meshCollisionObjects)
+    std::vector<std::shared_ptr<CollisionObject<dim>>>& meshCollisionObjects)
 {
     assert(dim == 3);
     Eigen::Vector3d world_min, world_max;
@@ -95,7 +95,7 @@ Eigen::Vector3d shiftVertices(
 template <int dim>
 Eigen::Vector3d shiftVertices(
     Mesh<dim>& mesh,
-    std::vector<CollisionObject<dim>*>& meshCollisionObjects,
+    std::vector<std::shared_ptr<CollisionObject<dim>>>& meshCollisionObjects,
     const Eigen::Vector3d& world_min,
     const Eigen::Vector3d& world_max)
 {
@@ -104,12 +104,12 @@ Eigen::Vector3d shiftVertices(
 #ifdef USE_FPRP_CCD
     // Stack all vertices to shift by the same amount
     size_t num_vertices = mesh.V.rows();
-    for (CollisionObject<dim>* meshCO : meshCollisionObjects) {
+    for (std::shared_ptr<CollisionObject<dim>> meshCO : meshCollisionObjects) {
         num_vertices += meshCO->V.rows();
     }
     Eigen::MatrixX3d all_vertices(num_vertices, 3);
     size_t start_vi = 0;
-    for (CollisionObject<dim>* meshCO : meshCollisionObjects) {
+    for (std::shared_ptr<CollisionObject<dim>> meshCO : meshCollisionObjects) {
         all_vertices.middleRows(start_vi, meshCO->V.rows()) = meshCO->V;
         start_vi += meshCO->V.rows();
     }
@@ -125,7 +125,7 @@ Eigen::Vector3d shiftVertices(
 
     // Split all vertices
     start_vi = 0;
-    for (CollisionObject<dim>* meshCO : meshCollisionObjects) {
+    for (std::shared_ptr<CollisionObject<dim>> meshCO : meshCollisionObjects) {
         meshCO->V = all_vertices.middleRows(start_vi, meshCO->V.rows());
         start_vi += meshCO->V.rows();
     }
@@ -244,35 +244,35 @@ bool edgeEdgeToIBisection(
 
 template void computeTightInclusionError(
     Mesh<2>& mesh,
-    std::vector<CollisionObject<2>*>& meshCollisionObjects);
+    std::vector<std::shared_ptr<CollisionObject<2>>>& meshCollisionObjects);
 template void computeTightInclusionError(
     Mesh<2>& mesh,
-    std::vector<CollisionObject<2>*>& meshCollisionObjects,
+    std::vector<std::shared_ptr<CollisionObject<2>>>& meshCollisionObjects,
     const Eigen::Vector3d& world_min,
     const Eigen::Vector3d& world_max);
 template Eigen::Vector3d shiftVertices(
     Mesh<2>& mesh,
-    std::vector<CollisionObject<2>*>& meshCollisionObjects);
+    std::vector<std::shared_ptr<CollisionObject<2>>>& meshCollisionObjects);
 template Eigen::Vector3d shiftVertices(
     Mesh<2>& mesh,
-    std::vector<CollisionObject<2>*>& meshCollisionObjects,
+    std::vector<std::shared_ptr<CollisionObject<2>>>& meshCollisionObjects,
     const Eigen::Vector3d& world_min,
     const Eigen::Vector3d& world_max);
 
 template void computeTightInclusionError(
     Mesh<3>& mesh,
-    std::vector<CollisionObject<3>*>& meshCollisionObjects);
+    std::vector<std::shared_ptr<CollisionObject<3>>>& meshCollisionObjects);
 template void computeTightInclusionError(
     Mesh<3>& mesh,
-    std::vector<CollisionObject<3>*>& meshCollisionObjects,
+    std::vector<std::shared_ptr<CollisionObject<3>>>& meshCollisionObjects,
     const Eigen::Vector3d& world_min,
     const Eigen::Vector3d& world_max);
 template Eigen::Vector3d shiftVertices(
     Mesh<3>& mesh,
-    std::vector<CollisionObject<3>*>& meshCollisionObjects);
+    std::vector<std::shared_ptr<CollisionObject<3>>>& meshCollisionObjects);
 template Eigen::Vector3d shiftVertices(
     Mesh<3>& mesh,
-    std::vector<CollisionObject<3>*>& meshCollisionObjects,
+    std::vector<std::shared_ptr<CollisionObject<3>>>& meshCollisionObjects,
     const Eigen::Vector3d& world_min,
     const Eigen::Vector3d& world_max);
 

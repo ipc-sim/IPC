@@ -65,6 +65,8 @@ Eigen::MatrixXd faceColors_default;
 bool showTexture = true; // show checkerboard
 bool isLighting = true;
 bool showFixedVerts = true;
+// Eigen::RowVector3d fixedVertsColor(0, 0, 0);
+Eigen::RowVector3d fixedVertsColor(0.128729, 0.563265, 0.551229);
 
 std::vector<bool> isSurfNode;
 std::vector<int> tetIndToSurf;
@@ -272,10 +274,10 @@ void updateViewerData(void)
         }
 #endif
 
-        viewer.data().set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d(0.0, 0.0, 0.0));
+        viewer.data().set_points(Eigen::MatrixXd::Zero(0, 3), fixedVertsColor);
         if (showFixedVerts) {
             for (const auto& fixedVI : triSoup[viewChannel]->fixedVert) {
-                viewer.data().add_points(UV_vis.row(fixedVI), Eigen::RowVector3d(0.0, 0.0, 0.0));
+                viewer.data().add_points(UV_vis.row(fixedVI), fixedVertsColor);
             }
         }
 
@@ -311,10 +313,10 @@ void updateViewerData(void)
             viewer.core().lighting_factor = 0.0;
         }
 
-        viewer.data().set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d(0.0, 0.0, 0.0));
+        viewer.data().set_points(Eigen::MatrixXd::Zero(0, 3), fixedVertsColor);
         if (showFixedVerts) {
             for (const auto& fixedVI : triSoup[viewChannel]->fixedVert) {
-                viewer.data().add_points(V_vis.row(fixedVI), Eigen::RowVector3d(0.0, 0.0, 0.0));
+                viewer.data().add_points(V_vis.row(fixedVI), fixedVertsColor);
             }
         }
     }
@@ -334,7 +336,7 @@ void saveScreenshot(const std::string& filePath, double scale, bool writeGIF, bo
     if (writeGIF) {
         scale = GIFScale;
     }
-    viewer.data().point_size = 5 * scale;
+    viewer.data().point_size *= scale;
 
     int width = static_cast<int>(scale * (viewer.core().viewport[2] - viewer.core().viewport[0]));
     int height = static_cast<int>(scale * (viewer.core().viewport[3] - viewer.core().viewport[1]));
@@ -367,7 +369,7 @@ void saveScreenshot(const std::string& filePath, double scale, bool writeGIF, bo
         GifWriteFrame(&GIFWriter, img.data(), width, height, GIFDelay);
     }
 
-    viewer.data().point_size = 5;
+    viewer.data().point_size /= scale;
 #endif
 }
 
@@ -541,6 +543,30 @@ bool key_down(igl::opengl::glfw::Viewer& viewer, unsigned char key, int modifier
         default:
             break;
         }
+    }
+
+    updateViewerData();
+
+    return false;
+}
+
+bool key_pressed(igl::opengl::glfw::Viewer& viewer, unsigned char key, int modifier)
+{
+    switch (key) {
+    case '=':
+    case '+': {
+        viewer.data().point_size += modifier & IGL_MOD_SHIFT ? 10 : 1;
+        break;
+    }
+
+    case '-':
+    case '_': {
+        viewer.data().point_size = std::max(1.0f, viewer.data().point_size - (modifier & IGL_MOD_SHIFT ? 10 : 1));
+        break;
+    }
+
+    default:
+        break;
     }
 
     updateViewerData();
@@ -1281,6 +1307,7 @@ int main(int argc, char* argv[])
         // Setup viewer and launch
         viewer.core().background_color << 1.0f, 1.0f, 1.0f, 0.0f;
         viewer.callback_key_down = &key_down;
+        viewer.callback_key_pressed = &key_pressed;
         viewer.callback_pre_draw = &preDrawFunc;
         viewer.callback_post_draw = &postDrawFunc;
         viewer.data().show_lines = true;

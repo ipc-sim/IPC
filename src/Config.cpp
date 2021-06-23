@@ -47,9 +47,6 @@ Config::Config(void)
 
 Config::~Config(void)
 {
-    for (auto& coI : collisionObjects) {
-        delete coI;
-    }
 }
 
 std::string getRootDirectory()
@@ -362,7 +359,7 @@ int Config::loadFromFile(const std::string& p_filePath)
                 double groundFriction, groundY;
                 ss >> groundFriction >> groundY;
                 assert(groundFriction >= 0.0);
-                collisionObjects.emplace_back(new HalfSpace<DIM>(groundY, groundFriction));
+                collisionObjects.push_back(std::make_shared<HalfSpace<DIM>>(groundY, groundFriction));
             }
             else if (token == "halfSpace") {
                 Eigen::Matrix<double, DIM, 1> origin, normal;
@@ -378,8 +375,8 @@ int Config::loadFromFile(const std::string& p_filePath)
                 double stiffness, friction;
                 ss >> stiffness >> friction;
                 assert(friction >= 0.0);
-                collisionObjects.emplace_back(new HalfSpace<DIM>(origin,
-                    normal, Eigen::Matrix<double, DIM, 1>::Zero(), friction));
+                collisionObjects.push_back(std::make_shared<HalfSpace<DIM>>(
+                    origin, normal, Eigen::Matrix<double, DIM, 1>::Zero(), friction));
             }
             else if (token == "meshCO") {
                 std::string meshCOFilePath;
@@ -407,7 +404,7 @@ int Config::loadFromFile(const std::string& p_filePath)
                                  .toRotationMatrix();
                 }
 
-                meshCollisionObjects.emplace_back(new MeshCO<DIM>(meshCOFilePath.c_str(), origin, rotMat, scale, friction));
+                meshCollisionObjects.emplace_back(std::make_shared<MeshCO<DIM>>(meshCOFilePath.c_str(), origin, rotMat, scale, friction));
             }
             else if (token == "selfCollisionOn") {
                 isSelfCollision = true;
@@ -489,6 +486,9 @@ int Config::loadFromFile(const std::string& p_filePath)
             else if (token == "useAbsParameters") {
                 useAbsParameters = true;
             }
+            else if (token == "kappaMinMultiplier") {
+                ss >> kappaMinMultiplier;
+            }
 
             else if (token == "constraintOffset") {
                 ss >> constraintOffset;
@@ -543,7 +543,7 @@ int Config::loadFromFile(const std::string& p_filePath)
 
         file.close();
 
-        isConstrained = isSelfCollision || !(collisionObjects.empty() && meshCollisionObjects.empty());
+        isConstrained = isSelfCollision || !(collisionObjects.empty() && meshCollisionObjects.empty()) || constraintSolverType == CST_IP;
         if (dampingRatio > 0) {
             dampingStiff = dampingRatio * std::pow(dt, 3) * 3 / 4;
         }
