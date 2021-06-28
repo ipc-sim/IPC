@@ -773,8 +773,8 @@ int main(int argc, char* argv[])
     std::vector<int> componentNodeRange, componentSFRange, componentCERange, componentCoDim;
     std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>> componentMaterial, componentLVels, componentAVels;
     std::vector<std::pair<Eigen::Vector3i, std::array<Eigen::Vector3d, 2>>> componentInitVels;
-    std::vector<std::pair<std::vector<int>, std::array<Eigen::Vector3d, 2>>> DBCInfo;
-    std::map<int, Eigen::Matrix<double, 1, DIM>> NBCInfo;
+    std::vector<IPC::DirichletBC> DirichletBCs;
+    std::vector<IPC::NeumannBC> NeumannBCs;
     std::vector<std::pair<int, std::string>> meshSeqFolderPath;
     if (suffix == ".txt") {
         loadSucceed = !config.loadFromFile(meshFilePath);
@@ -927,24 +927,26 @@ int main(int argc, char* argv[])
                     while (DBCI < config.inputShapeDBC.size() && config.inputShapeDBC[DBCI].first == i) {
                         // vertex selection
                         std::vector<int> selectedVerts;
-                        IPC::IglUtils::Init_Dirichlet(newV, config.inputShapeDBC[DBCI].second[0],
-                            config.inputShapeDBC[DBCI].second[1], selectedVerts);
+                        const auto& inputDBC = config.inputShapeDBC[DBCI].second;
+                        IPC::IglUtils::Init_Dirichlet(newV, inputDBC.minBBox, inputDBC.maxBBox, selectedVerts);
                         for (auto& i : selectedVerts) {
                             i += V.rows();
                         }
                         if (selectedVerts.size()) {
-                            DBCInfo.emplace_back(std::pair<std::vector<int>, std::array<Eigen::Vector3d, 2>>(selectedVerts,
-                                { config.inputShapeDBC[DBCI].second[2], config.inputShapeDBC[DBCI].second[3] }));
+                            DirichletBCs.emplace_back(selectedVerts, inputDBC.linearVelocity, inputDBC.angularVelocity, inputDBC.timeRange);
                         }
                         ++DBCI;
                     }
                     while (NBCI < config.inputShapeNBC.size() && config.inputShapeNBC[NBCI].first == i) {
                         // vertex selection
                         std::vector<int> selectedVerts;
-                        IPC::IglUtils::Init_Dirichlet(newV, config.inputShapeNBC[NBCI].second[0],
-                            config.inputShapeNBC[NBCI].second[1], selectedVerts);
-                        for (const auto& vI : selectedVerts) {
-                            NBCInfo[vI + V.rows()] = config.inputShapeNBC[NBCI].second[2].template segment<DIM>(0).transpose();
+                        const auto& inputNBC = config.inputShapeNBC[NBCI].second;
+                        IPC::IglUtils::Init_Dirichlet(newV, inputNBC.minBBox, inputNBC.maxBBox, selectedVerts);
+                        for (auto& i : selectedVerts) {
+                            i += V.rows();
+                        }
+                        if (selectedVerts.size()) {
+                            NeumannBCs.emplace_back(selectedVerts, inputNBC.force, inputNBC.timeRange);
                         }
                         ++NBCI;
                     }
@@ -1075,7 +1077,7 @@ int main(int argc, char* argv[])
     // construct mesh data structure
     IPC::Mesh<DIM>* temp = new IPC::Mesh<DIM>(V, F, SF, E, UV,
         componentNodeRange, componentSFRange, componentCERange, componentCoDim,
-        componentMaterial, componentLVels, componentAVels, componentInitVels, DBCInfo, NBCInfo,
+        componentMaterial, componentLVels, componentAVels, componentInitVels, DirichletBCs, NeumannBCs,
         config.inputShapeMeshSeqFolderPath,
         config.YM, config.PR, config.rho);
     // primitive test cases

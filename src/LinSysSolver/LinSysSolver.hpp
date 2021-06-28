@@ -415,7 +415,7 @@ public:
     }
     virtual void getMaxDiag(double& maxDiag)
     {
-        maxDiag = -__DBL_MAX__;
+        maxDiag = -std::numeric_limits<double>::infinity();
         for (int rowI = 0; rowI < numRows; ++rowI) {
             const auto finder = IJ2aI[rowI].find(rowI);
             assert(finder != IJ2aI[rowI].end());

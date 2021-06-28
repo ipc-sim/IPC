@@ -44,6 +44,34 @@ enum QPSolverType {
     QP_GUROBI
 };
 
+struct InputDBC {
+    InputDBC(const Eigen::Vector3d& minBBox, const Eigen::Vector3d& maxBBox,
+        const Eigen::Vector3d& linearVelocity, const Eigen::Vector3d& angularVelocity,
+        const std::array<double, 2>& timeRange)
+        : minBBox(minBBox), maxBBox(maxBBox), linearVelocity(linearVelocity), angularVelocity(angularVelocity), timeRange(timeRange)
+    {
+    }
+
+    Eigen::Vector3d minBBox;
+    Eigen::Vector3d maxBBox;
+    Eigen::Vector3d linearVelocity;
+    Eigen::Vector3d angularVelocity;
+    std::array<double, 2> timeRange;
+};
+
+struct InputNBC {
+    InputNBC(const Eigen::Vector3d& minBBox, const Eigen::Vector3d& maxBBox,
+        const Eigen::Vector3d& force, const std::array<double, 2>& timeRange)
+        : minBBox(minBBox), maxBBox(maxBBox), force(force), timeRange(timeRange)
+    {
+    }
+
+    Eigen::Vector3d minBBox;
+    Eigen::Vector3d maxBBox;
+    Eigen::Vector3d force;
+    std::array<double, 2> timeRange;
+};
+
 class Config {
 public:
     std::string filePath;
@@ -55,8 +83,8 @@ public:
     AnimScriptType animScriptType = AST_NULL;
     double handleRatio = 0.01;
     std::string meshSeqFolderPath;
-    double DBCTimeRange[2] = { 0, __DBL_MAX__ };
-    double NBCTimeRange[2] = { 0, __DBL_MAX__ };
+    std::array<double, 2> DBCTimeRange = { 0.0, std::numeric_limits<double>::infinity() };
+    std::array<double, 2> NBCTimeRange = { 0.0, std::numeric_limits<double>::infinity() };
 
     double rho = 1000.0;
     bool withGravity = true;
@@ -85,8 +113,8 @@ public:
     std::vector<Eigen::Vector3d> inputShapeAVels;
     std::vector<std::array<Eigen::Vector3d, 2>> inputShapeInitVels;
     std::vector<std::pair<int, std::string>> inputShapeMeshSeqFolderPath;
-    std::vector<std::pair<int, std::array<Eigen::Vector3d, 4>>> inputShapeDBC;
-    std::vector<std::pair<int, std::array<Eigen::Vector3d, 3>>> inputShapeNBC;
+    std::vector<std::pair<int, InputDBC>> inputShapeDBC;
+    std::vector<std::pair<int, InputNBC>> inputShapeNBC;
 
     bool orthographic = false;
     double zoom = 1.0;

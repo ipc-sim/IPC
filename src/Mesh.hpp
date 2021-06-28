@@ -20,6 +20,30 @@
 
 namespace IPC {
 
+struct DirichletBC {
+    DirichletBC(const std::vector<int>& vertIds,
+        const Eigen::Vector3d& linearVelocity,
+        const Eigen::Vector3d& angularVelocity,
+        const std::array<double, 2>& timeRange = { 0.0, std::numeric_limits<double>::infinity() })
+        : vertIds(vertIds), linearVelocity(linearVelocity), angularVelocity(angularVelocity), timeRange(timeRange) {}
+
+    std::vector<int> vertIds;
+    Eigen::Vector3d linearVelocity;
+    Eigen::Vector3d angularVelocity;
+    std::array<double, 2> timeRange = { 0.0, std::numeric_limits<double>::infinity() };
+};
+
+struct NeumannBC {
+    NeumannBC(const std::vector<int>& vertIds,
+        const Eigen::Vector3d& force,
+        const std::array<double, 2>& timeRange = { 0.0, std::numeric_limits<double>::infinity() })
+        : vertIds(vertIds), force(force), timeRange(timeRange) {}
+
+    std::vector<int> vertIds;
+    Eigen::Vector3d force;
+    std::array<double, 2> timeRange = { 0.0, std::numeric_limits<double>::infinity() };
+};
+
 template <int dim>
 class Mesh {
 public: // owned data
@@ -40,7 +64,8 @@ public: // owned data
     std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>> componentLVels; ///< @brief scripted linear velocity if any of each loaded component [compI, startElemI, endElemI, density, E, nu]
     std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>> componentAVels; ///< @brief scripted angular velocity if any of each loaded component [compI, startElemI, endElemI, density, E, nu]
     std::vector<std::pair<Eigen::Vector3i, std::array<Eigen::Vector3d, 2>>> componentInitVels; ///< @brief initial linear and angular velocity for any of each loaded component [compI, startElemI, endElemI, density, E, nu]
-    std::vector<std::pair<std::vector<int>, std::array<Eigen::Vector3d, 2>>> DBCInfo;
+    std::vector<DirichletBC> DirichletBCs;
+    std::vector<NeumannBC> NeumannBCs;
     std::vector<std::pair<int, std::string>> meshSeqFolderPath;
 
 public: // owned features
@@ -49,7 +74,6 @@ public: // owned features
     Eigen::VectorXd u, lambda;
     Eigen::VectorXd triArea; // triangle rest area
     double avgEdgeLen;
-    std::map<int, Eigen::Matrix<double, 1, dim>> NeumannBC;
     std::set<int> fixedVert; // for linear solve
     std::vector<bool> isFixedVert;
     Eigen::Matrix<double, 2, 3> bbox;
@@ -81,8 +105,8 @@ public: // constructor
         const std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>>& componentLVels,
         const std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>>& componentAVels,
         const std::vector<std::pair<Eigen::Vector3i, std::array<Eigen::Vector3d, 2>>>& componentInitVels,
-        const std::vector<std::pair<std::vector<int>, std::array<Eigen::Vector3d, 2>>>& DBCInfo,
-        const std::map<int, Eigen::Matrix<double, 1, dim>>& NeumannBC,
+        const std::vector<DirichletBC>& DirichletBCs,
+        const std::vector<NeumannBC>& NeumannBCs,
         const std::vector<std::pair<int, std::string>>& meshSeqFolderPath,
         double YM, double PR, double rho);
 

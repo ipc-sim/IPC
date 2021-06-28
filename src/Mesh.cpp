@@ -51,8 +51,8 @@ Mesh<dim>::Mesh(const Eigen::MatrixXd& V_mesh,
     const std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>>& p_componentLVels,
     const std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>>& p_componentAVels,
     const std::vector<std::pair<Eigen::Vector3i, std::array<Eigen::Vector3d, 2>>>& p_componentInitVels,
-    const std::vector<std::pair<std::vector<int>, std::array<Eigen::Vector3d, 2>>>& p_DBCInfo,
-    const std::map<int, Eigen::Matrix<double, 1, dim>>& p_NeumannBC,
+    const std::vector<DirichletBC>& p_DirichletBCs,
+    const std::vector<NeumannBC>& p_NeumannBCs,
     const std::vector<std::pair<int, std::string>>& p_meshSeqFolderPath,
     double YM, double PR, double rho)
 {
@@ -71,8 +71,8 @@ Mesh<dim>::Mesh(const Eigen::MatrixXd& V_mesh,
     componentLVels = p_componentLVels;
     componentAVels = p_componentAVels;
     componentInitVels = p_componentInitVels;
-    DBCInfo = p_DBCInfo;
-    NeumannBC = p_NeumannBC;
+    DirichletBCs = p_DirichletBCs;
+    NeumannBCs = p_NeumannBCs;
     meshSeqFolderPath = p_meshSeqFolderPath;
     if (Vt_mesh.rows() == V_mesh.rows()) {
         V = Vt_mesh;
@@ -616,8 +616,8 @@ double Mesh<dim>::matSpaceBBoxSize2(int coDim) const
         assert(coDim >= 0 && coDim <= 3);
 
         Eigen::Array<double, 1, dim> bottomLeft, topRight;
-        bottomLeft = __DBL_MAX__;
-        topRight = -__DBL_MAX__;
+        bottomLeft = std::numeric_limits<double>::infinity();
+        topRight = -std::numeric_limits<double>::infinity();
         for (int compI = 0; compI < componentCoDim.size(); ++compI) {
             if (componentCoDim[compI] == coDim) {
                 bottomLeft = bottomLeft.min(V_rest.block(componentNodeRange[compI], 0, componentNodeRange[compI + 1] - componentNodeRange[compI], dim).colwise().minCoeff().array());
@@ -852,7 +852,21 @@ void Mesh<dim>::saveBCNodes(const std::string& filePath) const
     for (const auto& fixedVI : fixedVert) {
         fprintf(out, "%d\n", fixedVI);
     }
-    for (const auto& NMI : NeumannBC) {
+
+    std::map<int, Eigen::Vector3d> vertexToNBC;
+    for (const auto NBC : NeumannBCs) {
+        for (const auto& vI : NBC.vertIds) {
+            auto loc = vertexToNBC.find(vI);
+            if (loc == vertexToNBC.end()) {
+                vertexToNBC[vI] = NBC.force;
+            }
+            else {
+                loc->second += NBC.force;
+            }
+        }
+    }
+
+    for (const auto& NMI : vertexToNBC) {
         fprintf(out, "%d %le %le", NMI.first, NMI.second[0], NMI.second[1]);
         if constexpr (dim == 2) {
             fprintf(out, "\n");

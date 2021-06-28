@@ -59,13 +59,11 @@ template <int dim>
 void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     const std::vector<std::shared_ptr<CollisionObject<dim>>>& ACO,
     const std::vector<std::shared_ptr<CollisionObject<dim>>>& MCO,
-    double DBCTimeRange[2],
-    double NBCTimeRange[2])
+    const std::array<double, 2>& DBCTimeRange,
+    const std::array<double, 2>& NBCTimeRange)
 {
-    this->DBCTimeRange[0] = DBCTimeRange[0];
-    this->DBCTimeRange[1] = DBCTimeRange[1];
-    this->NBCTimeRange[0] = NBCTimeRange[0];
-    this->NBCTimeRange[1] = NBCTimeRange[1];
+    this->DBCTimeRange = DBCTimeRange;
+    this->NBCTimeRange = NBCTimeRange;
 
     switch (animScriptType) {
     case AST_NULL: {
@@ -94,8 +92,8 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         }
 
         // fix Dirchlet nodes
-        for (const auto& DBCInfoI : mesh.DBCInfo) {
-            for (const auto& vI : DBCInfoI.first) {
+        for (const auto& DBC : mesh.DirichletBCs) {
+            for (const auto& vI : DBC.vertIds) {
                 fixedVerts.emplace_back(vI);
             }
         }
@@ -894,15 +892,18 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
         Eigen::RowVectorXd topRight = mesh.V.colwise().maxCoeff();
         Eigen::RowVectorXd range = topRight - bottomLeft;
+
+        std::vector<int> NBCVertices;
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if (mesh.V(vI, 1) < bottomLeft[1] + range[1] * 0.05) {
                 mesh.addFixedVert(vI);
             }
             else if (mesh.V(vI, 1) > topRight[1] - range[1] * 0.05) {
-                mesh.NeumannBC[vI].setZero();
-                mesh.NeumannBC[vI][0] = -600.0;
+                NBCVertices.push_back(vI);
             }
         }
+        mesh.NeumannBCs = { { NeumannBC(NBCVertices, Eigen::Vector3d(-600, 0, 0)) } };
+
         break;
     }
 
@@ -913,15 +914,18 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
         Eigen::RowVectorXd topRight = mesh.V.colwise().maxCoeff();
         Eigen::RowVectorXd range = topRight - bottomLeft;
+
+        std::vector<int> NBCVertices;
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if (mesh.V(vI, 1) < bottomLeft[1] + range[1] * 0.05) {
                 mesh.addFixedVert(vI);
             }
             else if (mesh.V(vI, 1) > topRight[1] - range[1] * 0.05) {
-                mesh.NeumannBC[vI].setZero();
-                mesh.NeumannBC[vI][2] = 600.0;
+                NBCVertices.push_back(vI);
             }
         }
+        mesh.NeumannBCs = { { NeumannBC(NBCVertices, Eigen::Vector3d(600, 0, 0)) } };
+
         break;
     }
 
@@ -1095,8 +1099,8 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         mesh.resetFixedVert();
         std::vector<int> fixedVerts;
         Eigen::Matrix<double, 1, dim> leftBottom, rightTop;
-        leftBottom.setConstant(__DBL_MAX__);
-        rightTop.setConstant(-__DBL_MAX__);
+        leftBottom.setConstant(std::numeric_limits<double>::infinity());
+        rightTop.setConstant(-std::numeric_limits<double>::infinity());
         for (int i = mesh.componentNodeRange[1]; i < mesh.componentNodeRange[2]; ++i) {
             fixedVerts.emplace_back(i);
 
@@ -1123,8 +1127,8 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         mesh.resetFixedVert();
         std::vector<int> fixedVerts;
         Eigen::Matrix<double, 1, dim> leftBottom, rightTop;
-        leftBottom.setConstant(__DBL_MAX__);
-        rightTop.setConstant(-__DBL_MAX__);
+        leftBottom.setConstant(std::numeric_limits<double>::infinity());
+        rightTop.setConstant(-std::numeric_limits<double>::infinity());
         for (int i = mesh.componentNodeRange[1]; i < mesh.componentNodeRange[2]; ++i) {
             fixedVerts.emplace_back(i);
 
@@ -1257,18 +1261,19 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
         Eigen::RowVectorXd topRight = mesh.V.colwise().maxCoeff();
         Eigen::RowVectorXd range = topRight - bottomLeft;
+
         // fix bottom and push top down
+        std::vector<int> NBCVertices;
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
-            bool isOnBottom = mesh.V(vI, 1) < bottomLeft[1] + range[0] * 1e-4;
-            bool isOnTop = mesh.V(vI, 1) > topRight[1] - range[0] * 1e-4;
-            if (isOnTop) {
-                mesh.NeumannBC[vI].setZero();
-                mesh.NeumannBC[vI][1] = -1.5;
+            if (mesh.V(vI, 1) > topRight[1] - range[0] * 1e-4) { // isOnTop
+                NBCVertices.push_back(vI);
             }
-            else if (isOnBottom) {
+            else if (mesh.V(vI, 1) < bottomLeft[1] + range[0] * 1e-4) { // isOnBottom
                 mesh.addFixedVert(vI);
             }
         }
+        mesh.NeumannBCs = { { NeumannBC(NBCVertices, Eigen::Vector3d(0, -1.5, 0)) } };
+
         break;
     }
 
@@ -1392,7 +1397,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
 
             for (int vI = scriptedAVelI.first[1]; vI < scriptedAVelI.first[2]; ++vI) {
                 searchDir.template segment<dim>(vI * dim)
-                    = rotMtr.template block<dim, dim>(0, 0) * (mesh.V.row(vI).transpose() - MCORotCenter) + MCORotCenter - mesh.V.row(vI).transpose();
+                    += rotMtr.template block<dim, dim>(0, 0) * (mesh.V.row(vI).transpose() - MCORotCenter) + MCORotCenter - mesh.V.row(vI).transpose();
             }
         }
 
@@ -1408,28 +1413,26 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
             if (mesh.fixedVert.empty()) {
                 mesh.resetFixedVert(fixedVertBK);
             }
-            for (const auto& DBCInfoI : mesh.DBCInfo) {
-                Eigen::Matrix3d rotMtr = (Eigen::AngleAxisd(DBCInfoI.second[1][0] * dt, Eigen::Vector3d::UnitX())
-                    * Eigen::AngleAxisd(DBCInfoI.second[1][1] * dt, Eigen::Vector3d::UnitY())
-                    * Eigen::AngleAxisd(DBCInfoI.second[1][2] * dt, Eigen::Vector3d::UnitZ()))
+            for (const auto& DBC : mesh.DirichletBCs) {
+                if (curTime <= DBC.timeRange[0] || curTime > DBC.timeRange[1]) {
+                    continue;
+                }
+
+                Eigen::Matrix3d rotMtr = (Eigen::AngleAxisd(DBC.angularVelocity[0] * dt, Eigen::Vector3d::UnitX())
+                    * Eigen::AngleAxisd(DBC.angularVelocity[1] * dt, Eigen::Vector3d::UnitY())
+                    * Eigen::AngleAxisd(DBC.angularVelocity[2] * dt, Eigen::Vector3d::UnitZ()))
                                              .toRotationMatrix();
 
-                Eigen::Vector3d min = mesh.V.row(DBCInfoI.first[0]), max = mesh.V.row(DBCInfoI.first[0]);
-                for (const auto& vI : DBCInfoI.first) {
-                    for (int d = 0; d < 3; ++d) {
-                        if (mesh.V(vI, d) < min[d]) {
-                            min[d] = mesh.V(vI, d);
-                        }
-                        if (mesh.V(vI, d) > max[d]) {
-                            max[d] = mesh.V(vI, d);
-                        }
-                    }
+                Eigen::RowVector3d min = mesh.V.row(DBC.vertIds[0]), max = mesh.V.row(DBC.vertIds[0]);
+                for (const auto& vI : DBC.vertIds) {
+                    min = min.cwiseMin(mesh.V.row(vI));
+                    max = max.cwiseMax(mesh.V.row(vI));
                 }
                 Eigen::Vector3d rotCenter = (min + max) / 2;
 
-                for (const auto& vI : DBCInfoI.first) {
+                for (const auto& vI : DBC.vertIds) {
                     searchDir.template segment<dim>(vI * dim)
-                        = rotMtr.template block<dim, dim>(0, 0) * (mesh.V.row(vI).transpose() - rotCenter) + rotCenter + DBCInfoI.second[0] * dt - mesh.V.row(vI).transpose();
+                        += rotMtr.template block<dim, dim>(0, 0) * (mesh.V.row(vI).transpose() - rotCenter) + rotCenter + DBC.linearVelocity * dt - mesh.V.row(vI).transpose();
                 }
             }
         }
@@ -1445,8 +1448,8 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
             case 3: {
                 // msh
                 Eigen::MatrixXi Fms, SFms;
-                if (!IglUtils::readTetMesh(meshSeqI.second + "/" + std::to_string(meshI) + ".msh", Vms, Fms, SFms)) {
-                    spdlog::error("Unable to read input file: {:s}", meshSeqI.second + "/" + std::to_string(meshI) + ".msh");
+                if (!IglUtils::readTetMesh(fmt::format("{}/{:d}.msh", meshSeqI.second, meshI), Vms, Fms, SFms)) {
+                    spdlog::error("Unable to read input file: {}/{:d}.msh", meshSeqI.second, meshI);
                     exit(-1);
                 }
                 break;
@@ -1455,8 +1458,8 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
             case 2: {
                 // obj
                 Eigen::MatrixXi Fms;
-                if (!igl::readOBJ(meshSeqI.second + "/" + std::to_string(meshI) + ".obj", Vms, Fms)) {
-                    spdlog::error("Unable to read input file: {:s}", meshSeqI.second + "/" + std::to_string(meshI) + ".obj");
+                if (!igl::readOBJ(fmt::format("{}/{:d}.obj", meshSeqI.second, meshI), Vms, Fms)) {
+                    spdlog::error("Unable to read input file: {}/{:d}.obj", meshSeqI.second, meshI);
                     exit(-1);
                 }
                 break;
@@ -1465,11 +1468,11 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
             case 1: {
                 // seg
                 Eigen::MatrixXi Ems;
-                if (!IglUtils::readSEG(meshSeqI.second + "/" + std::to_string(meshI) + ".seg", Vms, Ems)) {
+                if (!IglUtils::readSEG(fmt::format("{}/{:d}.seg", meshSeqI.second, meshI), Vms, Ems)) {
                     // if not found, from obj
                     Eigen::MatrixXi Fms;
-                    if (!igl::readOBJ(meshSeqI.second + "/" + std::to_string(meshI) + ".obj", Vms, Fms)) {
-                        spdlog::error("Unable to read input file: {:s}", meshSeqI.second + "/" + std::to_string(meshI) + ".seg or .obj");
+                    if (!igl::readOBJ(fmt::format("{}/{:d}.obj", meshSeqI.second, meshI), Vms, Fms)) {
+                        spdlog::error("Unable to read input file: {}/{:d}.seg or .obj", meshSeqI.second, meshI);
                         exit(-1);
                     }
                 }
@@ -1479,10 +1482,10 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
             case 0: {
                 // pt
                 Eigen::MatrixXi Fms;
-                if (!igl::readOBJ(meshSeqI.second + "/" + std::to_string(meshI) + ".pt", Vms, Fms)) {
+                if (!igl::readOBJ(fmt::format("{}/{:d}.pt", meshSeqI.second, meshI), Vms, Fms)) {
                     // if not found, from obj
-                    if (!igl::readOBJ(meshSeqI.second + "/" + std::to_string(meshI) + ".obj", Vms, Fms)) {
-                        spdlog::error("Unable to read input file: {:s}", meshSeqI.second + "/" + std::to_string(meshI) + ".pt or .obj");
+                    if (!igl::readOBJ(fmt::format("{}/{:d}.obj", meshSeqI.second, meshI), Vms, Fms)) {
+                        spdlog::error("Unable to read input file: {}/{:d}.pt or .obj", meshSeqI.second, meshI);
                         exit(-1);
                     }
                 }
@@ -1528,7 +1531,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
 
     case AST_PUSH: {
         if (mesh.V(velocityTurningPoints.first, 1) <= velocityTurningPoints.second(0, 1)) {
-            velocityTurningPoints.second(0, 1) = -__DBL_MAX__;
+            velocityTurningPoints.second(0, 1) = -std::numeric_limits<double>::infinity();
             for (const auto& vI : handleVerts[0]) {
                 velocity_handleVerts[vI].setZero();
             }
@@ -1542,7 +1545,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
 
     case AST_TEAR: {
         if (mesh.V(velocityTurningPoints.first, 0) <= velocityTurningPoints.second(0, 0)) {
-            velocityTurningPoints.second(0, 1) = -__DBL_MAX__;
+            velocityTurningPoints.second(0, 1) = -std::numeric_limits<double>::infinity();
             for (const auto& vI : handleVerts[0]) {
                 velocity_handleVerts[vI] = -velocity_handleVerts[vI];
             }
@@ -1587,7 +1590,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_DRAGRIGHT: {
-        double MCORightMost = -__DBL_MAX__;
+        double MCORightMost = -std::numeric_limits<double>::infinity();
         for (const auto& mcoI : MCO) {
             double maxI = mcoI->V.col(0).maxCoeff();
             if (MCORightMost < maxI) {
@@ -1700,7 +1703,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
 
     case AST_RUBBERBANDPULL: {
         if (mesh.V(velocityTurningPoints.first, 0) <= velocityTurningPoints.second(0, 0)) {
-            velocityTurningPoints.second(0, 0) = -__DBL_MAX__;
+            velocityTurningPoints.second(0, 0) = -std::numeric_limits<double>::infinity();
             for (const auto& vI : handleVerts[0]) {
                 mesh.removeFixedVert(vI);
                 velocity_handleVerts[vI].setZero();
@@ -1718,7 +1721,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
 
     case AST_FOURLEGPULL: {
         if (mesh.V(velocityTurningPoints.first, 1) <= velocityTurningPoints.second(0, 1)) {
-            velocityTurningPoints.second(0, 1) = -__DBL_MAX__;
+            velocityTurningPoints.second(0, 1) = -std::numeric_limits<double>::infinity();
             for (const auto& vI : handleVerts[0]) {
                 mesh.removeFixedVert(vI);
                 velocity_handleVerts[vI].setZero();
@@ -1737,7 +1740,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
 
     case AST_HEADTAILPULL: {
         if (mesh.V(velocityTurningPoints.first, 0) >= velocityTurningPoints.second(0, 0)) {
-            velocityTurningPoints.second(0, 0) = __DBL_MAX__;
+            velocityTurningPoints.second(0, 0) = std::numeric_limits<double>::infinity();
             for (const auto& vI : handleVerts[0]) {
                 mesh.removeFixedVert(vI);
                 velocity_handleVerts[vI].setZero();
@@ -1768,7 +1771,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
 
     case AST_TOGGLETOP: {
         if (mesh.V(velocityTurningPoints.first, 0) <= velocityTurningPoints.second(0, 0)) {
-            velocityTurningPoints.second(0, 0) = -__DBL_MAX__;
+            velocityTurningPoints.second(0, 0) = -std::numeric_limits<double>::infinity();
             for (const auto& vI : handleVerts[0]) {
                 mesh.removeFixedVert(vI);
                 velocity_handleVerts[vI].setZero();
@@ -1963,7 +1966,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
     case AST_DCOHAMMERWALNUT: {
         assert(mesh.componentCoDim.size() >= 2);
 
-        double yMin = __DBL_MAX__;
+        double yMin = std::numeric_limits<double>::infinity();
         for (int vI = mesh.componentNodeRange[1]; vI < mesh.componentNodeRange[2]; ++vI) {
             if (yMin > mesh.V(vI, 1)) {
                 yMin = mesh.V(vI, 1);
@@ -1986,7 +1989,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
     case AST_DCOCUT: {
         assert(mesh.componentCoDim.size() >= 2);
 
-        double yMin = __DBL_MAX__;
+        double yMin = std::numeric_limits<double>::infinity();
         for (int vI = mesh.componentNodeRange[1]; vI < mesh.componentNodeRange[2]; ++vI) {
             if (yMin > mesh.V(vI, 1)) {
                 yMin = mesh.V(vI, 1);
@@ -2048,7 +2051,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
         break;
 
     case AST_DCOSEGBEDSQUASH: {
-        double topMin = __DBL_MAX__, bottomMax = -__DBL_MAX__;
+        double topMin = std::numeric_limits<double>::infinity(), bottomMax = -std::numeric_limits<double>::infinity();
         for (int compI = 0; compI < mesh.componentCoDim.size(); ++compI) {
             if (mesh.componentCoDim[compI] < 3) {
                 if (compI >= (mesh.componentCoDim.size() + 1) / 2) {
@@ -2070,7 +2073,8 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_DCOSQUEEZEOUT: {
-        double topMax = -__DBL_MAX__, bottomMax = -__DBL_MAX__, bottomMin = __DBL_MAX__;
+        double topMax, bottomMax, bottomMin;
+        topMax = bottomMax = bottomMin = -std::numeric_limits<double>::infinity();
         for (int compI = 0; compI < mesh.componentCoDim.size(); ++compI) {
             if (mesh.componentCoDim[compI] < 3) {
                 if (compI == 0) {
@@ -2341,6 +2345,12 @@ template <int dim>
 bool AnimScripter<dim>::isNBCActive(void) const
 {
     return curTime > NBCTimeRange[0] && curTime <= NBCTimeRange[1];
+}
+
+template <int dim>
+bool AnimScripter<dim>::isNBCActive(const Mesh<dim>& mesh, int NBCi) const
+{
+    return curTime > mesh.NeumannBCs[NBCi].timeRange[0] && curTime <= mesh.NeumannBCs[NBCi].timeRange[1];
 }
 
 template <int dim>

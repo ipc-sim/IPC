@@ -79,6 +79,24 @@ std::string resolvePath(
     return (fs::path(getRootDirectory()) / path).string();
 }
 
+template <typename T>
+bool getOptional(std::stringstream& sstream, T& val, const T& defaultVal)
+{
+    if (sstream.eof()) {
+        val = defaultVal;
+        return false;
+    }
+    long pos = sstream.tellg();
+    sstream >> val;
+    if (sstream.fail()) {
+        val = defaultVal;
+        sstream.clear();
+        sstream.seekg(pos);
+        return false;
+    }
+    return true;
+}
+
 int Config::loadFromFile(const std::string& p_filePath)
 {
     filePath = p_filePath;
@@ -224,14 +242,35 @@ int Config::loadFromFile(const std::string& p_filePath)
                             for (int i = 0; i < 12; ++i) {
                                 ss_shapes >> DBC[i];
                             }
-                            inputShapeDBC.push_back(std::pair<int, std::array<Eigen::Vector3d, 4>>(shapeI, { Eigen::Vector3d(DBC[0], DBC[1], DBC[2]), Eigen::Vector3d(DBC[3], DBC[4], DBC[5]), Eigen::Vector3d(DBC[6], DBC[7], DBC[8]), Eigen::Vector3d(DBC[9], DBC[10], DBC[11]) * M_PI / 180 }));
+                            // Optional start and stop time of DBC
+                            std::array<double, 2> timeRange;
+                            getOptional(ss_shapes, timeRange[0], 0.0);
+                            getOptional(ss_shapes, timeRange[1], std::numeric_limits<double>::infinity());
+
+                            inputShapeDBC.emplace_back(shapeI,
+                                InputDBC(
+                                    Eigen::Vector3d(DBC[0], DBC[1], DBC[2]), // bbox min
+                                    Eigen::Vector3d(DBC[3], DBC[4], DBC[5]), // bbox max
+                                    Eigen::Vector3d(DBC[6], DBC[7], DBC[8]), // linear velocity
+                                    Eigen::Vector3d(DBC[9], DBC[10], DBC[11]) * M_PI / 180, // angular velocity
+                                    timeRange));
                         }
                         else if (extra == "NBC") {
                             double NBC[9];
                             for (int i = 0; i < 9; ++i) {
                                 ss_shapes >> NBC[i];
                             }
-                            inputShapeNBC.push_back(std::pair<int, std::array<Eigen::Vector3d, 3>>(shapeI, { Eigen::Vector3d(NBC[0], NBC[1], NBC[2]), Eigen::Vector3d(NBC[3], NBC[4], NBC[5]), Eigen::Vector3d(NBC[6], NBC[7], NBC[8]) }));
+                            // Optional start and stop time of NBC
+                            std::array<double, 2> timeRange;
+                            getOptional(ss_shapes, timeRange[0], 0.0);
+                            getOptional(ss_shapes, timeRange[1], std::numeric_limits<double>::infinity());
+
+                            inputShapeNBC.emplace_back(shapeI,
+                                InputNBC(
+                                    Eigen::Vector3d(NBC[0], NBC[1], NBC[2]), // bbox min
+                                    Eigen::Vector3d(NBC[3], NBC[4], NBC[5]), // bbox max
+                                    Eigen::Vector3d(NBC[6], NBC[7], NBC[8]), // force
+                                    timeRange));
                         }
                         else if (extra == "initVel") {
                             ss_shapes >> initLV[0] >> initLV[1] >> initLV[2] >> initAV[0] >> initAV[1] >> initAV[2];
@@ -241,6 +280,14 @@ int Config::loadFromFile(const std::string& p_filePath)
                             ss_shapes >> meshSeqFolderPath;
                             meshSeqFolderPath = resolvePath(meshSeqFolderPath, p_filePath);
                             inputShapeMeshSeqFolderPath.emplace_back(shapeI, meshSeqFolderPath);
+                        }
+                        else {
+                            spdlog::error("Uknown keyword in shape line {:d}: {}", shapeI, extra);
+                        }
+
+                        if (!ss_shapes.eof() && ss_shapes.fail()) {
+                            spdlog::error("Failed to parse {} section of shape line {:d} ({})", extra, shapeI, ss_shapes.str());
+                            break;
                         }
                     }
                     inputShapeMaterials.push_back(Eigen::Vector3d(density, E, nu));

@@ -1427,7 +1427,7 @@ bool Optimizer<dim>::fullyImplicit(void)
 
     // Termination criteria variables
     Eigen::VectorXd fb;
-    double sqn_g = __DBL_MAX__, sqn_g0;
+    double sqn_g = std::numeric_limits<double>::infinity(), sqn_g0;
     int iterCap = 10000, curIterI = 0;
     bool newConstraintsAdded = false;
 
@@ -3146,9 +3146,12 @@ void Optimizer<dim>::computeEnergyVal(const Mesh<dim>& data, int redoSVD, double
     energyVal += energyVals.sum();
 
     if (animScripter.isNBCActive()) {
-        for (const auto& NMI : data.NeumannBC) {
-            if (!data.isFixedVert[NMI.first]) {
-                energyVal -= dtSq * data.massMatrix.coeff(NMI.first, NMI.first) * data.V.row(NMI.first).dot(NMI.second);
+        for (int NBCi = 0; NBCi < data.NeumannBCs.size(); NBCi++) {
+            const auto& NBC = data.NeumannBCs[NBCi];
+            for (const auto& vI : NBC.vertIds) {
+                if (!data.isFixedVert[vI] && animScripter.isNBCActive(data, NBCi)) {
+                    energyVal -= dtSq * data.massMatrix.coeff(vI, vI) * data.V.row(vI).dot(NBC.force.transpose());
+                }
             }
         }
     }
@@ -3354,9 +3357,12 @@ void Optimizer<dim>::computeGradient(const Mesh<dim>& data,
 #endif
 
     if (animScripter.isNBCActive()) {
-        for (const auto& NMI : data.NeumannBC) {
-            if (!data.isFixedVert[NMI.first]) {
-                gradient.template segment<dim>(NMI.first * dim) -= dtSq * data.massMatrix.coeff(NMI.first, NMI.first) * NMI.second.transpose();
+        for (int NBCi = 0; NBCi < data.NeumannBCs.size(); NBCi++) {
+            const auto& NBC = data.NeumannBCs[NBCi];
+            for (const auto& vI : NBC.vertIds) {
+                if (!data.isFixedVert[vI] && animScripter.isNBCActive(data, NBCi)) {
+                    gradient.template segment<dim>(vI * dim) -= dtSq * data.massMatrix.coeff(vI, vI) * NBC.force;
+                }
             }
         }
     }

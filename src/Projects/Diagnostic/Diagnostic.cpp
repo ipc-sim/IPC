@@ -236,8 +236,8 @@ public:
                     std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>>(),
                     std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>>(),
                     std::vector<std::pair<Eigen::Vector3i, std::array<Eigen::Vector3d, 2>>>(),
-                    std::vector<std::pair<std::vector<int>, std::array<Eigen::Vector3d, 2>>>(),
-                    std::map<int, Eigen::Matrix<double, 1, DIM>>(),
+                    std::vector<DirichletBC>(),
+                    std::vector<NeumannBC>(),
                     std::vector<std::pair<int, std::string>>(),
                     1e5, 0.4, 1e3);
                 int numOfInv = 0, numOfBInv = 0;

@@ -157,8 +157,8 @@ See our [quick start guide](https://github.com/ipc-sim/IPC/wiki) for detailed ex
     * `<extra-command>`: assigning different materials, initial velocities, boundary conditions, or scripted motions for each shape individually if any
       * `material <density> <young-modulus> <poisson-ratio>`
       * `initVel <lvx> <lvy> <lvz> <avx> <avy> <avz>`
-      * `DBC <left-bottom-back-x> <left-bottom-back-y> <left-bottom-back-z> <right-top-front-x> <right-top-front-y> <right-top-front-z>  <lvx> <lvy> <lvz> <avx> <avy> <avz>`
-      * `NBC <left-bottom-back-x> <left-bottom-back-y> <left-bottom-back-z> <right-top-front-x> <right-top-front-y> <right-top-front-z>  <ax> <ay> <az>`
+      * `DBC <left-bottom-back-x> <left-bottom-back-y> <left-bottom-back-z> <right-top-front-x> <right-top-front-y> <right-top-front-z>  <lvx> <lvy> <lvz> <avx> <avy> <avz> [<t_begin>] [<t_end>]`
+      * `NBC <left-bottom-back-x> <left-bottom-back-y> <left-bottom-back-z> <right-top-front-x> <right-top-front-y> <right-top-front-z>  <ax> <ay> <az> [<t_begin>] [<t_end>]`
       * `linearVelocity <lvx> <lvy> <lvz>`
       * `angularVelocity <avx> <avy> <avz>`
 * `DBCTimeRange <t_begin> <t_end>`
