@@ -1,0 +1,8 @@
+energy NH
+density 1000
+stiffness 1e9 0.4
+
+shapes input 1
+input/tetMeshes/bar-2523.msh 0 0 0  0 0 0  1 1 1 DBC 0 0 0  0.01 1 1  0 0 0  0 0 0  DBC 0.99 0 0  1 1 1  0 0 0  270 0 0
+
+selfCollisionOff
