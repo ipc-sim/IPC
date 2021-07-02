@@ -519,7 +519,7 @@ void Optimizer<dim>::setTime(double duration, double dt)
     fricDHat0 = bboxDiagSize2 * 1.0e-6 * dtSq; // initial value of fricDHat
     if (animConfig.tuning.size() > 4) {
         fricDHat0 = animConfig.tuning[4] * animConfig.tuning[4] * dtSq;
-        if (animConfig.useRelParameters) {
+        if (!animConfig.useAbsParameters) {
             fricDHat0 *= bboxDiagSize2;
         }
     }
@@ -1644,7 +1644,7 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
 #endif
     if (globalIterNum == 0) {
         // first time step
-        lastBarrierStiff = mu_IP;
+        lastBarrierStiff = kappa;
     }
 
     timer_step.start(10);
@@ -1769,7 +1769,7 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
 #else
                 fricConstraintSet_TK.clear();
                 ipc::construct_friction_constraint_set(result.V, E_TK, result.SF,
-                    constraintSet_TK, std::sqrt(dHat), mu_IP, animConfig.selfFric, fricConstraintSet_TK);
+                    constraintSet_TK, std::sqrt(dHat), kappa, animConfig.selfFric, fricConstraintSet_TK);
                 activeSetChanged = true; //TODO: check friction constraint set convergence
 #endif
             }
@@ -3314,7 +3314,7 @@ void Optimizer<dim>::computeEnergyVal(const Mesh<dim>& data, int redoSVD, double
                 }
             }
 #else
-            energyVal += mu_IP * ipc::compute_barrier_potential(data.V, E_TK, data.SF, constraintSet_TK, std::sqrt(dHat));
+            energyVal += kappa * ipc::compute_barrier_potential(data.V, E_TK, data.SF, constraintSet_TK, std::sqrt(dHat));
 #endif
         }
         energyVal += kappa * bVals.sum();
@@ -3484,7 +3484,7 @@ void Optimizer<dim>::computeGradient(const Mesh<dim>& data,
 #endif
             }
 #else
-            gradient += mu_IP * ipc::compute_barrier_potential_gradient(data.V, E_TK, data.SF, constraintSet_TK, std::sqrt(dHat));
+            gradient += kappa * ipc::compute_barrier_potential_gradient(data.V, E_TK, data.SF, constraintSet_TK, std::sqrt(dHat));
             gradient += ipc::compute_friction_potential_gradient(result.V_prev, data.V, E_TK, data.SF, fricConstraintSet_TK, std::sqrt(fricDHat));
 #endif
         }
@@ -3680,7 +3680,7 @@ void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
         timer_mt.start(14);
         if (animConfig.isSelfCollision) {
 #ifndef USE_IPCTOOLKIT
-            SelfCollisionHandler<dim>::augmentIPHessian(data, MMActiveSet.back(), p_linSysSolver, dHat, mu_IP, projectDBC);
+            SelfCollisionHandler<dim>::augmentIPHessian(data, MMActiveSet.back(), p_linSysSolver, dHat, kappa, projectDBC);
 
             SelfCollisionHandler<dim>::augmentParaEEHessian(data, paraEEMMCVIDSet.back(), paraEEeIeJSet.back(),
                 p_linSysSolver, dHat, kappa, projectDBC);
@@ -3695,7 +3695,7 @@ void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
             for (int k = 0; k < SFH.outerSize(); ++k) {
                 for (Eigen::SparseMatrix<double>::InnerIterator it(SFH, k); it; ++it) {
                     if (!data.isFixedVert[it.row() / dim] && !data.isFixedVert[it.col() / dim]) {
-                        p_linSysSolver->addCoeff(it.row(), it.col(), mu_IP * it.value());
+                        p_linSysSolver->addCoeff(it.row(), it.col(), kappa * it.value());
                     }
                 }
             }
