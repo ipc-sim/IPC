@@ -2021,6 +2021,24 @@ bool Optimizer<dim>::solveSub_IP(double kappa, std::vector<std::vector<int>>& AH
                     for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
                         switch (animConfig.ccdMethod) {
                         case ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER:
+                            animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_CCD(
+                                result, sh, searchDir, slackness_m, alpha);
+                            break;
+
+                        case ccd::CCDMethod::TIGHT_INCLUSION:
+                            animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_CCD_TightInclusion(
+                                result, sh, searchDir, animConfig.ccdTolerance, alpha);
+                            break;
+
+                        default:
+                            animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_CCD_exact(
+                                result, sh, searchDir, animConfig.ccdMethod, alpha);
+                        }
+                    }
+
+                    if (animConfig.isSelfCollision) {
+                        switch (animConfig.ccdMethod) {
+                        case ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER:
                             SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD(
                                 result, sh, searchDir, slackness_m, newCandidates, alpha);
                             break;
@@ -2034,14 +2052,14 @@ bool Optimizer<dim>::solveSub_IP(double kappa, std::vector<std::vector<int>>& AH
                             SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(
                                 result, sh, searchDir, animConfig.ccdMethod, alpha);
                         }
+                    }
 
-                        if (alpha < alpha_CFL) {
-                            alpha = alpha_CFL;
-                            spdlog::info("take a full CCD instead but failed, take CFL {:g}", alpha);
-                        }
-                        else {
-                            spdlog::info("take a full CCD instead {:g}", alpha);
-                        }
+                    if (alpha < alpha_CFL) {
+                        alpha = alpha_CFL;
+                        spdlog::info("take a full CCD instead but failed, take CFL {:g}", alpha);
+                    }
+                    else {
+                        spdlog::info("take a full CCD instead {:g}", alpha);
                     }
                 }
                 else {
