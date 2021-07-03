@@ -100,7 +100,7 @@ void saveInfo(bool writePNG = true, bool writeGIF = true, int writeMesh = 1, dou
 void saveScreenshot(const std::string& filePath, double scale = 1.0, bool writeGIF = false, bool writePNG = true);
 void saveInfoForPresent(const std::string fileName = "info.txt", double save_dt = 1e-2);
 
-static int progressBarMaxIter = 0;
+bool useProgressBar = true;
 void printProgressBar(
     int cur_iter,
     int max_iter,
@@ -160,7 +160,7 @@ void proceedOptimization(int proceedNum = 1)
         }
         iterNum = optimizer->getIterNum();
 
-        if (!converged && spdlog::get_level() >= spdlog::level::level_enum::warn) {
+        if (useProgressBar && !converged && spdlog::get_level() >= spdlog::level::level_enum::warn) {
             printProgressBar(iterNum, optimizer->getFrameAmt());
         }
 
@@ -677,6 +677,7 @@ struct CLIArgs {
     std::string folderTail = "";
     std::string outputDir = "";
     int logLevel = 0; // trace (all logs)
+    bool noProgressBar = false;
 };
 
 void init_cli_app(CLI::App& app, CLIArgs& args)
@@ -697,6 +698,8 @@ void init_cli_app(CLI::App& app, CLIArgs& args)
         "set log level (0=trace, 1=debug, 2=info, 3=warn, 4=error, 5=critical,"
         " 6=off)",
         true);
+    app.add_flag("--noProgressBar,--noPBar", args.noProgressBar,
+        "disable printing a progress bar");
 }
 
 int main(int argc, char* argv[])
@@ -721,6 +724,8 @@ int main(int argc, char* argv[])
     if (args.logLevel == 6) {
         std::cout.setstate(std::ios_base::failbit);
     }
+
+    useProgressBar = !args.noProgressBar;
 
     switch (args.progMode) {
     case 0:
