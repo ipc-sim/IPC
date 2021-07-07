@@ -271,6 +271,12 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
     animScripter.initAnimScript(result, animConfig.collisionObjects,
         animConfig.meshCollisionObjects, animConfig.DBCTimeRange, animConfig.NBCTimeRange);
     result.saveBCNodes(outputFolderPath + "/BC_0.txt");
+
+    // Initialize these to zero in case they are missing from the status file
+    velocity = Eigen::VectorXd::Zero(result.V.rows() * dim);
+    dx_Elastic = Eigen::MatrixXd::Zero(result.V.rows(), dim);
+    acceleration = Eigen::MatrixXd::Zero(result.V.rows(), dim);
+
     if (animConfig.restart) {
         std::ifstream in(animConfig.statusPath.c_str());
         assert(in.is_open());
@@ -305,6 +311,20 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
                     in >> velocity[velI];
                 }
             }
+            else if (token == "acceleration") {
+                spdlog::info("read restart acceleration");
+                int accRows, dim_in;
+                ss >> accRows >> dim_in;
+                assert(accRows <= result.V.rows());
+                assert(dim_in == result.V.cols());
+                acceleration.setZero(result.V.rows(), dim);
+                for (int vI = 0; vI < accRows; ++vI) {
+                    in >> acceleration(vI, 0) >> acceleration(vI, 1);
+                    if constexpr (dim == 3) {
+                        in >> acceleration(vI, 2);
+                    }
+                }
+            }
             else if (token == "dx_Elastic") {
                 spdlog::info("read restart dx_Elastic");
                 int dxERows, dim_in;
@@ -321,12 +341,9 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
             }
         }
         in.close();
-        //TODO: load acceleration, also save acceleration in the saveStatus() function
     }
     else {
         animScripter.initVelocity(result, animConfig.scriptParams, velocity);
-        dx_Elastic = Eigen::MatrixXd::Zero(result.V.rows(), dim);
-        acceleration = Eigen::MatrixXd::Zero(result.V.rows(), dim);
     }
     result.V_prev = result.V;
     computeXTilta();
@@ -646,20 +663,23 @@ int Optimizer<dim>::solve(int maxIter)
             }
 
             timer_step.start(11);
+            typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RowMatrixXd;
             switch (animConfig.timeIntegrationType) {
-            case TIT_BE:
+            case TIT_BE: {
                 dx_Elastic = result.V - xTilta;
-                velocity = Eigen::Map<Eigen::MatrixXd>(Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>((result.V - result.V_prev).array() / dt).data(), velocity.rows(), 1);
+                Eigen::VectorXd velocity_prev = velocity; // temporary storage
+                velocity = Eigen::Map<Eigen::VectorXd>(RowMatrixXd((result.V - result.V_prev).array() / dt).data(), velocity.rows());
+                acceleration = RowMatrixXd::Map(((velocity - velocity_prev) / dt).eval().data(), acceleration.rows(), acceleration.cols());
                 result.V_prev = result.V;
                 computeXTilta();
-                break;
+            } break;
 
             case TIT_NM:
                 dx_Elastic = result.V - xTilta;
-                velocity = velocity + dt * (1 - gamma_NM) * Eigen::Map<Eigen::MatrixXd>(Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>(acceleration).data(), velocity.rows(), 1);
+                velocity = velocity + dt * (1 - gamma_NM) * Eigen::Map<Eigen::MatrixXd>(RowMatrixXd(acceleration).data(), velocity.rows(), 1);
                 acceleration = (result.V - xTilta) / (dtSq * beta_NM);
                 acceleration.rowwise() += gravity.transpose();
-                velocity += dt * gamma_NM * Eigen::Map<Eigen::MatrixXd>(Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>(acceleration).data(), velocity.rows(), 1);
+                velocity += dt * gamma_NM * Eigen::Map<Eigen::MatrixXd>(RowMatrixXd(acceleration).data(), velocity.rows(), 1);
                 result.V_prev = result.V;
                 computeXTilta();
                 break;
@@ -3029,6 +3049,16 @@ void Optimizer<dim>::saveStatus(const std::string& appendStr)
         status << "velocity " << velocity.size() << "\n";
         for (int velI = 0; velI < velocity.size(); ++velI) {
             status << velocity[velI] << "\n";
+        }
+        status << "\n";
+
+        status << "acceleration " << acceleration.rows() << " " << dim << "\n";
+        for (int accI = 0; accI < acceleration.rows(); ++accI) {
+            status << acceleration(accI, 0) << " " << acceleration(accI, 1);
+            if constexpr (dim == 3) {
+                status << " " << acceleration(accI, 2);
+            }
+            status << "\n";
         }
         status << "\n";
 

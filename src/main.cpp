@@ -781,7 +781,7 @@ int main(int argc, char* argv[])
     std::vector<IPC::DirichletBC> DirichletBCs;
     std::vector<IPC::NeumannBC> NeumannBCs;
     std::vector<std::pair<int, std::string>> meshSeqFolderPath;
-    if (suffix == ".txt") {
+    if (suffix == ".txt" || suffix == ".ipc") {
         loadSucceed = !config.loadFromFile(meshFilePath);
         if (loadSucceed) {
             assert(DIM == 3);

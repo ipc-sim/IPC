@@ -205,6 +205,10 @@ int Config::loadFromFile(const std::string& p_filePath)
 
                     std::string path;
                     ss_shapes >> path;
+                    if (path.empty() || path[0] == '#') {
+                        shapeNum++; // This increase will be canceled out
+                        continue;
+                    }
                     path = resolvePath(path, p_filePath);
                     inputShapePaths.push_back(path);
                     double x, y, z;
