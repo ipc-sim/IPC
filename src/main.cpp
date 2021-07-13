@@ -759,20 +759,12 @@ int main(int argc, char* argv[])
     }
 
     // Optimization mode
-    std::string meshFilePath;
-    if (args.inputFileName.at(0) == '/') {
-        spdlog::info("The input script file name is gloabl mesh file path.");
-        meshFilePath = args.inputFileName;
-        args.inputFileName = args.inputFileName.substr(args.inputFileName.find_last_of('/') + 1);
-    }
-    else {
-        meshFilePath = args.inputFileName;
-    }
-    std::string meshName = args.inputFileName.substr(0, args.inputFileName.find_last_of('.'));
+    const fs::path meshFilePath = fs::path(args.inputFileName);
+    const std::string meshName = meshFilePath.stem().string();
     // Load mesh
     Eigen::MatrixXd V, UV, N;
     Eigen::MatrixXi F, FUV, FN, E;
-    const std::string suffix = meshFilePath.substr(meshFilePath.find_last_of('.'));
+    const std::string suffix = meshFilePath.extension().string();
     bool loadSucceed = false;
     std::vector<std::vector<int>> borderVerts_primitive;
     std::vector<int> componentNodeRange, componentSFRange, componentCERange, componentCoDim;
@@ -801,19 +793,20 @@ int main(int argc, char* argv[])
             for (int i = 0; i < (int)config.inputShapePaths.size(); ++i) {
                 componentCoDim.emplace_back(3);
 
-                const auto& inputShapePath = config.inputShapePaths[i];
+                const auto& inputShapePathStr = config.inputShapePaths[i];
+                const fs::path inputShapePath(inputShapePathStr);
                 const auto& translate = config.inputShapeTranslates[i];
                 const auto& rotate = config.inputShapeRotates[i];
                 const auto& scale = config.inputShapeScales[i];
-                int suffixI = inputShapePath.find_last_of('.');
-                if (suffixI == std::string::npos) {
-                    IPC::IglUtils::readNodeEle(inputShapePath, newV, newF, newSF);
+                if (!inputShapePath.has_extension()) {
+                    IPC::IglUtils::readNodeEle(inputShapePathStr, newV, newF, newSF);
                 }
                 else {
-                    const std::string meshFileSuffix = inputShapePath.substr(suffixI);
+                    const std::string meshFileSuffix = inputShapePath.extension().string();
+                    const std::string inputShapePathNoSuffix = inputShapePath.parent_path() / inputShapePath.stem();
                     if (meshFileSuffix == ".msh") {
-                        if (!IPC::IglUtils::readTetMesh(inputShapePath, newV, newF, newSF)) {
-                            spdlog::error("Unable to read input msh file: {:s}", inputShapePath);
+                        if (!IPC::IglUtils::readTetMesh(inputShapePathStr, newV, newF, newSF)) {
+                            spdlog::error("Unable to read input msh file: {:s}", inputShapePathStr);
                             exit(1);
                         }
                         newE.resize(0, 2);
@@ -827,8 +820,7 @@ int main(int argc, char* argv[])
                         }
                     }
                     else if (meshFileSuffix == ".ele") {
-                        std::string inputPathPre = inputShapePath.substr(0, suffixI);
-                        IPC::IglUtils::readNodeEle(inputPathPre, newV, newF, newSF);
+                        IPC::IglUtils::readNodeEle(inputShapePathNoSuffix, newV, newF, newSF);
                         newE.resize(0, 2);
 
                         if (config.inputShapeMaterials[i][0] > 0.0 && config.inputShapeMaterials[i][1] > 0.0 && config.inputShapeMaterials[i][2] > 0.0) {
@@ -842,8 +834,8 @@ int main(int argc, char* argv[])
                     else if (meshFileSuffix == ".obj") {
                         // for kinematic object
                         componentCoDim.back() = 2;
-                        if (!igl::readOBJ(inputShapePath, newV, newSF)) {
-                            spdlog::error("Unable to read input obj file: {:s}", inputShapePath);
+                        if (!igl::readOBJ(inputShapePathStr, newV, newSF)) {
+                            spdlog::error("Unable to read input obj file: {:s}", inputShapePathStr);
                             exit(-1);
                         }
                         newF.resize(0, 4);
@@ -852,10 +844,10 @@ int main(int argc, char* argv[])
                     else if (meshFileSuffix == ".seg") {
                         // for kinematic object
                         componentCoDim.back() = 1;
-                        if (!IPC::IglUtils::readSEG(inputShapePath, newV, newE)) {
+                        if (!IPC::IglUtils::readSEG(inputShapePathStr, newV, newE)) {
                             Eigen::MatrixXi tempF;
-                            if (!igl::readOBJ(inputShapePath.substr(0, suffixI) + ".obj", newV, tempF)) {
-                                spdlog::error("Unable to read input seg or obj file: {:s}", inputShapePath);
+                            if (!igl::readOBJ(inputShapePathNoSuffix + ".obj", newV, tempF)) {
+                                spdlog::error("Unable to read input seg or obj file: {:s}", inputShapePathStr);
                                 exit(1);
                             }
 
@@ -892,9 +884,9 @@ int main(int argc, char* argv[])
                         // for kinematic object
                         componentCoDim.back() = 0;
                         Eigen::MatrixXi temp;
-                        if (!igl::readOBJ(inputShapePath, newV, temp)) {
-                            if (!igl::readOBJ(inputShapePath.substr(0, suffixI) + ".obj", newV, temp)) {
-                                spdlog::error("Unable to read input pt or obj file: {:s}", inputShapePath);
+                        if (!igl::readOBJ(inputShapePathStr, newV, temp)) {
+                            if (!igl::readOBJ(inputShapePathNoSuffix + ".obj", newV, temp)) {
+                                spdlog::error("Unable to read input pt or obj file: {:s}", inputShapePathStr);
                                 exit(1);
                             }
                         }

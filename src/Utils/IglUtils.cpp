@@ -15,6 +15,7 @@
 #endif
 
 #include <set>
+#include <unordered_map>
 
 #include <ghc/fs_std.hpp> // filesystem
 #include <spdlog/spdlog.h>
@@ -201,8 +202,14 @@ double Signed2DTriArea(const Eigen::RowVector2d& a, const Eigen::RowVector2d& b,
 
 void IglUtils::findSurfaceTris(const Eigen::MatrixXi& TT, Eigen::MatrixXi& F)
 {
+    int nVertices = TT.maxCoeff();
+
+    auto triangle_hash = [&](const Triplet& tri) {
+        return nVertices * (nVertices * tri[0] + tri[1]) + tri[2];
+    };
+
     //TODO: merge with below
-    std::map<Triplet, int> tri2Tet;
+    std::unordered_map<Triplet, int, decltype(triangle_hash)> tri2Tet(4 * TT.rows(), triangle_hash);
     for (int elemI = 0; elemI < TT.rows(); elemI++) {
         const Eigen::RowVector4i& elemVInd = TT.row(elemI);
         tri2Tet[Triplet(elemVInd[0], elemVInd[2], elemVInd[1])] = elemI;
@@ -212,24 +219,22 @@ void IglUtils::findSurfaceTris(const Eigen::MatrixXi& TT, Eigen::MatrixXi& F)
     }
 
     //TODO: parallelize
-    F.conservativeResize(0, 3);
+    std::vector<Eigen::RowVector3i> tmpF;
     for (const auto& triI : tri2Tet) {
-        const int* triVInd = triI.first.key;
+        const Triplet& triVInd = triI.first;
         // find dual triangle with reversed indices:
-        auto finder = tri2Tet.find(Triplet(triVInd[2], triVInd[1], triVInd[0]));
-        if (finder == tri2Tet.end()) {
-            finder = tri2Tet.find(Triplet(triVInd[1], triVInd[0], triVInd[2]));
-            if (finder == tri2Tet.end()) {
-                finder = tri2Tet.find(Triplet(triVInd[0], triVInd[2], triVInd[1]));
-                if (finder == tri2Tet.end()) {
-                    int oldSize = F.rows();
-                    F.conservativeResize(oldSize + 1, 3);
-                    F(oldSize, 0) = triVInd[0];
-                    F(oldSize, 1) = triVInd[1];
-                    F(oldSize, 2) = triVInd[2];
-                }
-            }
+        bool isSurfaceTriangle = //
+            tri2Tet.find(Triplet(triVInd[2], triVInd[1], triVInd[0])) == tri2Tet.end()
+            && tri2Tet.find(Triplet(triVInd[1], triVInd[0], triVInd[2])) == tri2Tet.end()
+            && tri2Tet.find(Triplet(triVInd[0], triVInd[2], triVInd[1])) == tri2Tet.end();
+        if (isSurfaceTriangle) {
+            tmpF.emplace_back(triVInd[0], triVInd[1], triVInd[2]);
         }
+    }
+
+    F.resize(tmpF.size(), 3);
+    for (int i = 0; i < F.rows(); i++) {
+        F.row(i) = tmpF[i];
     }
 }
 void IglUtils::buildSTri2Tet(const Eigen::MatrixXi& F, const Eigen::MatrixXi& SF,
@@ -500,6 +505,7 @@ bool IglUtils::readTetMesh(const std::string& filePath,
     if (!findSurface) {
         spdlog::warn("readTetMesh is finding the surface because $Surface is not supported by MshIO");
     }
+    spdlog::info("Finding the surface triangle mesh for {:s}", filePath);
     findSurfaceTris(TT, F);
 
     spdlog::info(
@@ -572,6 +578,7 @@ bool IglUtils::readTetMesh_msh4(const std::string& filePath,
     }
     else if (findSurface) {
         // if no surface triangles information provided, then find
+        spdlog::info("Finding the surface triangle mesh for {:s}", filePath);
         findSurfaceTris(TT, F);
     }
 

@@ -51,10 +51,7 @@ Config::~Config(void)
 
 std::string getRootDirectory()
 {
-    std::string file_path(__FILE__);
-    std::string parent_dir = file_path.substr(0, file_path.find_last_of("/"));
-    std::string parent_parent_dir = parent_dir.substr(0, parent_dir.find_last_of("/"));
-    return parent_parent_dir;
+    return fs::path(__FILE__).parent_path().parent_path().string();
 }
 
 std::string resolvePath(
@@ -618,8 +615,7 @@ void Config::appendInfoStr(std::string& inputStr) const
     std::string shapeName;
     int shapeI = 0;
     for (const auto& inputShapePathI : inputShapePaths) {
-        std::string fileName = inputShapePathI.substr(inputShapePathI.find_last_of('/') + 1);
-        shapeName += fileName.substr(0, fileName.find_last_of('.')) + "-";
+        shapeName += fs::path(inputShapePathI).stem().string() + "-";
         if (++shapeI >= 3) {
             if (shapeI > 3) {
                 shapeName += std::to_string(inputShapePaths.size() - 3) + "others_";
