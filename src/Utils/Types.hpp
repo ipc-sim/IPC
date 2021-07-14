@@ -38,7 +38,7 @@
 #define SFCLAMPING_ORDER 1 // 0: C0 clamping, 1: C1, 2: C2
 // #define CHECK_FRIC_TANGENT
 
-#include "Triplet.h"
+#include "Triplet.hpp"
 
 #ifdef USE_TBB
 #include <tbb/tbb.h>

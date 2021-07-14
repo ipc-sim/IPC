@@ -1,5 +1,5 @@
 //
-//  Triplet.h
+//  Triplet.hpp
 //  IPC
 //
 //  Created by Minchen Li on 9/30/18.
