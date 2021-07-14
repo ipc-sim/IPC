@@ -8,6 +8,8 @@
 #ifndef Triplet_h
 #define Triplet_h
 
+#include <cassert>
+
 #include <iostream>
 
 namespace IPC {
