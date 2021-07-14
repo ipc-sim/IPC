@@ -10,12 +10,6 @@ set_target_properties(meshprocessing PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE
 ################################################################################
 target_link_libraries(meshprocessing PUBLIC ${PROJECT_NAME}_dev)
 
-# Cholmod solver
-target_link_libraries(meshprocessing PUBLIC ${CHOLMOD_LIBRARIES})
-
-# OSQP
-target_link_libraries(meshprocessing PUBLIC osqp::osqp)
-
 # libigl
 target_link_libraries(meshprocessing PUBLIC igl::core igl::opengl_glfw igl::triangle igl::png igl::tetgen)
 

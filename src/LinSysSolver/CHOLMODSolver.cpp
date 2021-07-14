@@ -5,6 +5,8 @@
 //  Created by Minchen Li on 6/22/18.
 //
 
+#ifdef USE_CHOLMOD
+
 #include "CHOLMODSolver.hpp"
 #include "getRSS.hpp"
 
@@ -193,3 +195,5 @@ void CHOLMODSolver<vectorTypeI, vectorTypeS>::outputFactorization(const std::str
 template class CHOLMODSolver<Eigen::VectorXi, Eigen::VectorXd>;
 
 } // namespace IPC
+
+#endif

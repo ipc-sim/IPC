@@ -5,6 +5,8 @@
 //  Created by Minchen Li on 11/06/19.
 //
 
+#ifdef USE_AMGCL
+
 #ifndef AMGCLSolver_hpp
 #define AMGCLSolver_hpp
 
@@ -95,3 +97,5 @@ public:
 } // namespace IPC
 
 #endif /* AMGCLSolver_hpp */
+
+#endif /* USE_AMGCL */

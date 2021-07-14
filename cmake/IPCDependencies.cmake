@@ -15,9 +15,11 @@ include(IPCDownloadExternal)
 ################################################################################
 
 # SuiteSparse
-set(SUITESPARSE_INCLUDE_DIR_HINTS $ENV{SUITESPARSE_INC})
-set(SUITESPARSE_LIBRARY_DIR_HINTS $ENV{SUITESPARSE_LIB})
-find_package(SuiteSparse REQUIRED)
+if(IPC_WITH_CHOLMOD)
+  set(SUITESPARSE_INCLUDE_DIR_HINTS $ENV{SUITESPARSE_INC})
+  set(SUITESPARSE_LIBRARY_DIR_HINTS $ENV{SUITESPARSE_LIB})
+  find_package(SuiteSparse REQUIRED)
+endif()
 
 # OSQP library
 if(NOT TARGET osqp::osqp)
@@ -59,7 +61,7 @@ if(NOT TARGET spdlog::spdlog)
 endif()
 
 # AMGCL
-if(NOT TARGET amgcl::amgcl)
+if(IPC_WITH_AMGCL AND NOT TARGET amgcl::amgcl)
   download_amgcl()
   set(Boost_USE_MULTITHREADED TRUE)
   add_subdirectory(${IPC_EXTERNAL}/amgcl EXCLUDE_FROM_ALL)
@@ -104,7 +106,7 @@ if(NOT TARGET CCDWrapper)
     set(CCD_WRAPPER_WITH_RP  OFF CACHE BOOL "Enable root parity method"                   FORCE)
     set(CCD_WRAPPER_WITH_BSC OFF CACHE BOOL "Enable Bernstein sign classification method" FORCE)
   endif()
-  option(CCD_WRAPPER_WITH_RRP        "Enable rational root parity method"  ON)
+  option(CCD_WRAPPER_WITH_RRP        "Enable rational root parity method" OFF)
   option(CCD_WRAPPER_WITH_TIGHT_CCD  "Enable TightCCD method"             OFF)
   option(CCD_WRAPPER_WITH_INTERVAL   "Enable interval-based methods"      OFF)
   option(CCD_WRAPPER_WITH_TIGHT_INCLUSION "Enable Tight Inclusion method"  ON)

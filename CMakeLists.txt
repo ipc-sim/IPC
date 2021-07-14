@@ -12,6 +12,8 @@ endif()
 
 # Project options
 option(IPC_WITH_OPENGL "Use libgil viewer for preview and output" ON)
+option(IPC_WITH_AMGCL "Enable AMGCL linear system solver (select with IPC_LINSYSSOLVER=\"AMGCL\")" ON)
+option(IPC_WITH_CHOLMOD "Enable CHOLMOD linear system solver (select with IPC_LINSYSSOLVER=\"CHOLMOD\")" ON)
 set(IPC_LINSYSSOLVER "CHOLMOD" CACHE STRING "Linear system solver to use (options: CHOLMOD, AMGCL, EIGEN)")
 set_property(CACHE IPC_LINSYSSOLVER PROPERTY STRINGS "CHOLMOD" "AMGCL" "EIGEN")
 ## SQP and QP options
@@ -23,11 +25,7 @@ option(IPC_WITH_EXACT_CCD "Use exact CCD as a verification"                OFF)
 option(IPC_WITH_FPRP      "Use exact floating-point CCD as a verification" OFF)
 mark_as_advanced(IPC_WITH_FPRP)
 ## Top level options
-if(IPC_TOPLEVEL_PROJECT)
-  option(IPC_WITH_TESTS   "Build unit tests using Catch2"                       ON)
-else()
-  option(IPC_WITH_TESTS   "Build unit tests using Catch2"                       ON)
-endif()
+option(IPC_WITH_TESTS "Build unit tests using Catch2" ${IPC_TOPLEVEL_PROJECT})
 
 # libigl
 # WARNING: LIBIGL_USE_STATIC_LIBRARY=ON does not work with C++ 17
@@ -128,8 +126,10 @@ target_link_libraries(${PROJECT_NAME}_bin PUBLIC CLI11::CLI11)
 ################################################################################
 
 # SuiteSparse
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC ${SUITESPARSE_LIBRARIES})
-target_include_directories(${PROJECT_NAME}_dev PUBLIC ${SUITESPARSE_INCLUDE_DIRS})
+if(IPC_WITH_CHOLMOD)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC ${SUITESPARSE_LIBRARIES})
+  target_include_directories(${PROJECT_NAME}_dev PUBLIC ${SUITESPARSE_INCLUDE_DIRS})
+endif()
 
 # OSQP
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC osqp::osqp)
@@ -159,12 +159,13 @@ endif()
 # tbb
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC TBB::tbb)
 
-
 # Logger
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC spdlog::spdlog)
 
 # AMGCL
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC amgcl::amgcl)
+if(IPC_WITH_AMGCL)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC amgcl::amgcl)
+endif()
 
 # target_link_libraries(${PROJECT_NAME}_dev PUBLIC pardiso600-GNU720-X86-64 gfortran)
 # find_package(Pardiso)
@@ -285,11 +286,27 @@ endif()
 
 # Set the selected linear system solver
 if(IPC_LINSYSSOLVER STREQUAL "CHOLMOD")
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC LINSYSSOLVER_USE_CHOLMOD)
+  if(IPC_WITH_CHOLMOD)
+    target_compile_definitions(${PROJECT_NAME}_dev PUBLIC LINSYSSOLVER_USE_CHOLMOD)
+  else()
+    message(FATAL_ERROR "CHOLMOD selected as IPC_LINSYSSOLVER, but CHOLMOD is disabled (IPC_WITH_CHOLMOD=OFF)!")
+  endif()
 elseif(IPC_LINSYSSOLVER STREQUAL "AMGCL")
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC LINSYSSOLVER_USE_AMGCL)
+  if(IPC_WITH_AMGCL)
+    target_compile_definitions(${PROJECT_NAME}_dev PUBLIC LINSYSSOLVER_USE_AMGCL)
+  else()
+    message(FATAL_ERROR "AMGCL selected as IPC_LINSYSSOLVER, but AMGCL is disabled (IPC_WITH_AMGCL=OFF)!")
+  endif()
 elseif(NOT (IPC_LINSYSSOLVER STREQUAL "EIGEN"))
   message(WARNING "Invalid linear system solver: ${IPC_LINSYSSOLVER}. Falling back to EIGEN.")
+endif()
+
+if(IPC_WITH_AMGCL)
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_AMGCL)
+endif()
+
+if(IPC_WITH_CHOLMOD)
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_CHOLMOD)
 endif()
 
 # Quiet the viewer

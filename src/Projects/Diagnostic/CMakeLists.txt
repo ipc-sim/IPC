@@ -11,7 +11,9 @@ set_target_properties(diagnostic PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CUR
 target_link_libraries(diagnostic PUBLIC ${PROJECT_NAME}_dev)
 
 # Cholmod solver
-target_link_libraries(diagnostic PUBLIC ${CHOLMOD_LIBRARIES})
+if(IPC_WITH_CHOLMOD)
+  target_link_libraries(diagnostic PUBLIC ${CHOLMOD_LIBRARIES})
+endif()
 
 # OSQP
 target_link_libraries(diagnostic PUBLIC osqp::osqp)
@@ -23,4 +25,6 @@ target_link_libraries(diagnostic PUBLIC igl::core igl::opengl_glfw igl::triangle
 target_link_libraries(diagnostic PUBLIC TBB::tbb)
 
 # AMGCL
-target_link_libraries(diagnostic PUBLIC amgcl::amgcl)
+if(IPC_WITH_AMGCL)
+  target_link_libraries(diagnostic PUBLIC amgcl::amgcl)
+endif()

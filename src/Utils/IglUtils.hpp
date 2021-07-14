@@ -20,7 +20,7 @@
 
 #ifdef USE_PREDICATES
 #include <igl/predicates/predicates.h>
-#include <ECCD.hpp>
+// #include <ECCD.hpp>
 #endif
 
 #include <Eigen/Eigen>

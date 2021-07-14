@@ -5,6 +5,8 @@
 //  Created by Minchen Li on 11/06/19.
 //
 
+#ifdef USE_AMGCL
+
 #include "AMGCLSolver.hpp"
 #include "getRSS.hpp"
 
@@ -228,4 +230,7 @@ void AMGCLSolver<vectorTypeI, vectorTypeS>::solve(Eigen::VectorXd& rhs,
 }
 
 template class AMGCLSolver<Eigen::VectorXi, Eigen::VectorXd>;
+
 } // namespace IPC
+
+#endif

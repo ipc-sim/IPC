@@ -5,17 +5,6 @@
 //  Created by Minchen Li on 1/31/18.
 //
 
-#ifndef MeshProcessing_hpp
-#define MeshProcessing_hpp
-
-#ifdef LINSYSSOLVER_USE_CHOLMOD
-#include "CHOLMODSolver.hpp"
-#elif defined(LINSYSSOLVER_USE_AMGCL)
-#include "AMGCLSolver.hpp"
-#else
-#include "EigenLibSolver.hpp"
-#endif
-
 #include "IglUtils.hpp"
 
 #include "Timer.hpp"
@@ -196,5 +185,3 @@ int main(int argc, char* argv[])
     IPC::MeshProcessing::run(argc, argv);
     return 0;
 }
-
-#endif /* MeshProcessing_hpp */

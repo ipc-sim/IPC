@@ -5,6 +5,8 @@
 //  Created by Minchen Li on 6/22/18.
 //
 
+#ifdef USE_CHOLMOD
+
 #ifndef CHOLMODSolver_hpp
 #define CHOLMODSolver_hpp
 
@@ -57,3 +59,5 @@ public:
 } // namespace IPC
 
 #endif /* CHOLMODSolver_hpp */
+
+#endif /* USE_CHOLMOD */

@@ -35,12 +35,14 @@
 #endif
 
 // amgcl
+#ifdef USE_AMGCL
 #include <amgcl/make_solver.hpp>
 #include <amgcl/solver/bicgstab.hpp>
 #include <amgcl/amg.hpp>
 #include <amgcl/coarsening/smoothed_aggregation.hpp>
 #include <amgcl/relaxation/spai0.hpp>
 #include <amgcl/adapter/crs_tuple.hpp>
+#endif
 
 #include "Timer.hpp"
 
@@ -336,6 +338,7 @@ public:
                 break;
             }
 
+#ifdef USE_AMGCL
             case 22: { // test AMGCL
                 std::vector<int> ptr, col;
                 std::vector<double> val, rhs;
@@ -366,6 +369,7 @@ public:
 
                 break;
             }
+#endif
 
             case 23: { // test linear solver
                 LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* linSysSolver;

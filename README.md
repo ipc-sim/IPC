@@ -31,13 +31,21 @@ make -j4
 ```
 gcc 7 or later is recommended.
 
-### Dependancies
+### Dependencies
+
+* [libigl](https://libigl.github.io/), [OSQP](https://osqp.org/), [TBB](https://software.intel.com/content/www/us/en/develop/tools/threading-building-blocks.html), [spdlog](https://github.com/gabime/spdlog), [MshIO](https://github.com/qnzhou/MshIO.git), [Gulrak's Filesystem](https://github.com/gulrak/filesystem.git), and [CLI11](https://github.com/CLIUtils/CLI11): downloaded and built through CMake
+* [CCD-Wrapper](https://github.com/Continuous-Collision-Detection/CCD-Wrapper): downloaded and built through CMake
+    * Includes [Etienne Vouga's CTCD](https://github.com/Continuous-Collision-Detection/Floating-Point-Root-Finder) and [Tight-Inclusion](https://github.com/Continuous-Collision-Detection/Tight-Inclusion) CCD methods
+
+#### Optional Dependencies
 
 * [SuiteSparse](http://faculty.cse.tamu.edu/davis/suitesparse.html): must be
 installed at a system level
     * Specifically IPC requires CHOLMOD, AMD, CAMD, CCOLAMD, and COLAMD
     which are all part of SuiteSparse and METIS which is sometimes a separate
     library
+    * Enabled by default, and it can be disabled using the CMake argument `-DIPC_WITH_CHOLMOD=OFF`
+    * **Use of the CHOLMOD linear system solver is highly recommended as it is significantly faster than the alternative solvers provided (Eigen and AMGCL).**
     * macOS: `brew install suite-sparse`
         * Alternatively, you can build SuiteSparse and then copy all files under
         `SuiteSparse/include` and `SuiteSparse/lib` to `/usr/local/include` and
@@ -45,11 +53,15 @@ installed at a system level
     * Ubuntu: `sudo apt-get install libsuitesparse-dev libmetis-dev`
         * For program efficiency, we strongly recommend compiling SuiteSparse using [Intel MKL](https://software.intel.com/content/www/us/en/develop/tools/math-kernel-library.html) LAPACK and BLAS (on an Intel machine): `make library BLAS='-lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread -lpthread -lm -lmkl_blas95_lp64 -liomp5' LAPACK='-lmkl_lapack95_lp64' -j 8`
     * IPC also supports using [Eigen](http://eigen.tuxfamily.org/) or [AMGCL](https://github.com/ddemidov/amgcl) as linear solver, which can be set via `IPC_LINSYSSOLVER` in `CMakeLists.txt`. To use custom linear solvers, you can implement a new interface (subclass) to our `LinSysSolver` class.
-* [Boost](https://www.boost.org/): must be installed at a system level (required by AMGCL)
-    * Ubuntu: `sudo apt-get install libboost-all-dev`
-    * macOS: ` brew install boost`
-* [libigl](https://libigl.github.io/), [OSQP](https://osqp.org/), [AMGCL](https://github.com/ddemidov/amgcl), and [TBB](https://software.intel.com/content/www/us/en/develop/tools/threading-building-blocks.html): downloaded and built through CMake
-* [GMP LIB](https://gmplib.org/): `sudo apt install libgmp-dev` on Ubuntu.
+* [AMGCL](https://github.com/ddemidov/amgcl): downloaded and built through CMake
+    * Enabled by default, and it can be disabled using the CMake argument `-DIPC_WITH_AMGCL=OFF`
+    * Requires [Boost](https://www.boost.org/) to be installed at a system level
+        * Ubuntu: `sudo apt-get install libboost-all-dev`
+        * macOS: ` brew install boost`
+<!-- * [GMP LIB](https://gmplib.org/): `sudo apt install libgmp-dev` on Ubuntu. -->
+* [Catch2](https://github.com/catchorg/Catch2): downloaded and built through CMake
+    * Used for unit-tests.
+    * Enabled by default iff IPC is being built as the top-level project.
 
 ### Without OpenGL
 
@@ -68,9 +80,9 @@ batch job. You can check the status of the job using
 `squeue -u $USER -n IPC_build`.
 
 It is important to not build on the login node because while it supports AVX2,
-other computer nodes may not. Building on the login node will enable AVX2
+the compute nodes may not. Building on the login node will enable AVX2
 support which may cause an `Illegal instruction` error when run on a compute
-node. Alternativly, this can be fixed by using Intel's compilers, `icc` and `icpc`, with the
+node. Alternatively, this can be fixed by using Intel's compilers, `icc` and `icpc`, with the
 flag `-axCORE-AVX2`. This enables executables to run on compute nodes with or
 without AVX2 instructions. If the compute nodes support AVX2 instructions,
 executables will run AVX2 instructions, otherwise it will use other available
@@ -79,8 +91,8 @@ instructions such as AVX or SSE4.2.
 ### Sub-Projects
 
 IPC contains two optional sub-projects for unit tests, debug, and file processing. To enable them use the CMake
-flag `-DBUILD_<sub-project-name>_PROJECT=On` where `sub-project-name` is the name
-of the sub-project (e.g. `DIAGNOSTIC`, `MESH_PROCESSING`). You can also set these interactively using `ccmake`.
+flag `-DIPC_BUILD_<sub-project-name>_PROJECT=On` where `sub-project-name` is the name
+of the sub-project (e.g. `DIAGNOSTIC` or `MESH_PROCESSING`). You can also set these interactively using `ccmake`.
 
 ## Run
 
