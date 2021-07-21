@@ -120,7 +120,7 @@ protected:
     std::string meshSeqFolderPath;
     int meshI;
 
-    double curTime = 0;
+    double stepStartTime = 0, stepEndTime = 0;
     std::array<double, 2> DBCTimeRange = { 0.0, std::numeric_limits<double>::infinity() };
     std::array<double, 2> NBCTimeRange = { 0.0, std::numeric_limits<double>::infinity() };
     std::set<int> fixedVertBK;
@@ -166,6 +166,9 @@ public:
 public:
     static AnimScriptType getAnimScriptTypeByStr(const std::string& str);
     static std::string getStrByAnimScriptType(AnimScriptType animScriptType);
+
+protected:
+    void setFixedVertices(Mesh<dim>& mesh) const;
 };
 
 } // namespace IPC

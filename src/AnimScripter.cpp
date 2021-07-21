@@ -56,6 +56,46 @@ AnimScripter<dim>::AnimScripter(AnimScriptType p_animScriptType)
 }
 
 template <int dim>
+void AnimScripter<dim>::setFixedVertices(Mesh<dim>& mesh) const
+{
+    std::set<int> fixedVerts;
+
+    // fix codim objects
+    for (int compI = 0; compI < mesh.componentCoDim.size(); ++compI) {
+        if (mesh.componentCoDim[compI] < 3) {
+            for (int i = mesh.componentNodeRange[compI]; i < mesh.componentNodeRange[compI + 1]; ++i) {
+                fixedVerts.insert(i);
+            }
+        }
+    }
+
+    // fix objects with scripted linear and angular velocity
+    for (const auto& scriptedLVelI : mesh.componentLVels) {
+        for (int i = scriptedLVelI.first[1]; i < scriptedLVelI.first[2]; ++i) {
+            fixedVerts.insert(i);
+        }
+    }
+    for (const auto& scriptedAVelI : mesh.componentAVels) {
+        for (int i = scriptedAVelI.first[1]; i < scriptedAVelI.first[2]; ++i) {
+            fixedVerts.insert(i);
+        }
+    }
+
+    // fix Dirchlet nodes
+    if (stepStartTime >= DBCTimeRange[0] && stepStartTime < DBCTimeRange[1]) {
+        for (const auto& DBC : mesh.DirichletBCs) {
+            if (stepStartTime >= DBC.timeRange[0] && stepStartTime < DBC.timeRange[1]) {
+                for (const auto& vI : DBC.vertIds) {
+                    fixedVerts.insert(vI);
+                }
+            }
+        }
+    }
+
+    mesh.resetFixedVert(fixedVerts);
+}
+
+template <int dim>
 void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     const std::vector<std::shared_ptr<CollisionObject<dim>>>& ACO,
     const std::vector<std::shared_ptr<CollisionObject<dim>>>& MCO,
@@ -67,55 +107,24 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
 
     switch (animScriptType) {
     case AST_NULL: {
-        mesh.resetFixedVert();
-        std::vector<int> fixedVerts;
-
-        // fix codim objects
-        for (int compI = 0; compI < mesh.componentCoDim.size(); ++compI) {
-            if (mesh.componentCoDim[compI] < 3) {
-                for (int i = mesh.componentNodeRange[compI]; i < mesh.componentNodeRange[compI + 1]; ++i) {
-                    fixedVerts.emplace_back(i);
-                }
-            }
-        }
-
-        // fix objects with scripted linear and angular velocity
-        for (const auto& scriptedLVelI : mesh.componentLVels) {
-            for (int i = scriptedLVelI.first[1]; i < scriptedLVelI.first[2]; ++i) {
-                fixedVerts.emplace_back(i);
-            }
-        }
-        for (const auto& scriptedAVelI : mesh.componentAVels) {
-            for (int i = scriptedAVelI.first[1]; i < scriptedAVelI.first[2]; ++i) {
-                fixedVerts.emplace_back(i);
-            }
-        }
-
-        // fix Dirchlet nodes
-        for (const auto& DBC : mesh.DirichletBCs) {
-            for (const auto& vI : DBC.vertIds) {
-                fixedVerts.emplace_back(vI);
-            }
-        }
-
-        mesh.addFixedVert(fixedVerts);
+        setFixedVertices(mesh);
         break;
     }
 
     case AST_SCALEF: {
         mesh.resetFixedVert();
-        //                handleVerts.resize(0);
-        //                int bI = 0;
-        //                for(const auto borderI : mesh.borderVerts_primitive) {
-        //                    mesh.addFixedVert(borderI);
-        //                    handleVerts.emplace_back(borderI);
-        //                    bI++;
-        //                }
+        // handleVerts.resize(0);
+        // int bI = 0;
+        // for(const auto borderI : mesh.borderVerts_primitive) {
+        //     mesh.addFixedVert(borderI);
+        //     handleVerts.emplace_back(borderI);
+        //     bI++;
+        // }
 
         Eigen::Matrix3d M;
-        //                M << 1.5, 0.5, 0.0,
-        //                0.0, 0.5, -0.5,
-        //                0.0, 0.0, 1.0;
+        // M << 1.5, 0.5, 0.0,
+        // 0.0, 0.5, -0.5,
+        // 0.0, 0.0, 1.0;
         M << 1.5, 0.0, 0.0,
             0.0, 1.5, 0.0,
             0.0, 0.0, 1.5;
@@ -1379,7 +1388,8 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
     double dt, double dHat, const std::vector<Energy<dim>*>& energyTerms,
     bool isSelfCollision, bool forceIntersectionLineSearch)
 {
-    curTime += dt;
+    stepStartTime = stepEndTime;
+    stepEndTime += dt;
 
     searchDir.setZero(mesh.V.rows() * dim);
     int returnFlag = 0;
@@ -1409,12 +1419,12 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
         }
 
         // move Dirichlet nodes
-        if (curTime > DBCTimeRange[0] && curTime <= DBCTimeRange[1]) {
-            if (mesh.fixedVert.empty()) {
-                mesh.resetFixedVert(fixedVertBK);
-            }
+        fixedVertBK = mesh.fixedVert;
+        setFixedVertices(mesh);
+        returnFlag = fixedVertBK != mesh.fixedVert;
+        if (stepStartTime >= DBCTimeRange[0] && stepStartTime < DBCTimeRange[1]) {
             for (const auto& DBC : mesh.DirichletBCs) {
-                if (curTime <= DBC.timeRange[0] || curTime > DBC.timeRange[1]) {
+                if (stepStartTime < DBC.timeRange[0] || stepStartTime >= DBC.timeRange[1]) {
                     continue;
                 }
 
@@ -1435,9 +1445,6 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
                         += rotMtr.template block<dim, dim>(0, 0) * (mesh.V.row(vI).transpose() - rotCenter) + rotCenter + DBC.linearVelocity * dt - mesh.V.row(vI).transpose();
                 }
             }
-        }
-        else {
-            mesh.resetFixedVert();
         }
 
         // mesh sequence DBC
@@ -2344,13 +2351,13 @@ double AnimScripter<dim>::getCOCompletedStepSize(void) const
 template <int dim>
 bool AnimScripter<dim>::isNBCActive(void) const
 {
-    return curTime > NBCTimeRange[0] && curTime <= NBCTimeRange[1];
+    return stepStartTime >= NBCTimeRange[0] && stepStartTime < NBCTimeRange[1];
 }
 
 template <int dim>
 bool AnimScripter<dim>::isNBCActive(const Mesh<dim>& mesh, int NBCi) const
 {
-    return curTime > mesh.NeumannBCs[NBCi].timeRange[0] && curTime <= mesh.NeumannBCs[NBCi].timeRange[1];
+    return stepStartTime >= mesh.NeumannBCs[NBCi].timeRange[0] && stepStartTime < mesh.NeumannBCs[NBCi].timeRange[1];
 }
 
 template <int dim>

@@ -503,6 +503,12 @@ double Optimizer<dim>::getDt(void) const
 }
 
 template <int dim>
+const AnimScripter<dim>& Optimizer<dim>::getAnimScripter() const
+{
+    return animScripter;
+}
+
+template <int dim>
 void Optimizer<dim>::setAnimScriptType(AnimScriptType animScriptType,
     const std::string& meshSeqFolderPath)
 {
@@ -2271,6 +2277,7 @@ bool Optimizer<dim>::solveSub_IP(double kappa, std::vector<std::vector<int>>& AH
 
     if (k >= iterCap) {
         logFile << "iteration cap reached for IP subproblem solve!!!" << std::endl;
+        spdlog::error("iteration cap reached for IP subproblem solve!!!");
         exit(0); // for stopping comparative schemes that can potentially not converge
     }
 

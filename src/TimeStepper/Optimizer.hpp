@@ -143,6 +143,7 @@ public: // API
     virtual int getInnerIterAmt(void) const;
     virtual void setRelGL2Tol(double p_relTol = 1.0e-2);
     virtual double getDt(void) const;
+    virtual const AnimScripter<dim>& getAnimScripter() const;
     virtual void setAnimScriptType(AnimScriptType animScriptType,
         const std::string& meshSeqFolderPath);
 

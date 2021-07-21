@@ -282,6 +282,20 @@ int Config::loadFromFile(const std::string& p_filePath)
                             meshSeqFolderPath = resolvePath(meshSeqFolderPath, p_filePath);
                             inputShapeMeshSeqFolderPath.emplace_back(shapeI, meshSeqFolderPath);
                         }
+                        else if (extra == "\\") {
+                            std::getline(file, line_shapes);
+                            ss_shapes = std::stringstream(line_shapes);
+                        }
+                        else if (extra[0] == '#') {
+                            while (!ss_shapes.eof()) {
+                                ss_shapes >> extra;
+                                if (extra == "\\") {
+                                    std::getline(file, line_shapes);
+                                    ss_shapes = std::stringstream(line_shapes);
+                                    break;
+                                }
+                            }
+                        }
                         else {
                             spdlog::error("Uknown keyword in shape line {:d}: {}", shapeI, extra);
                         }

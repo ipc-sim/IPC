@@ -65,8 +65,9 @@ Eigen::MatrixXd faceColors_default;
 bool showTexture = true; // show checkerboard
 bool isLighting = true;
 bool showFixedVerts = true;
-// Eigen::RowVector3d fixedVertsColor(0, 0, 0);
-Eigen::RowVector3d fixedVertsColor(0.128729, 0.563265, 0.551229);
+bool showNeumannVerts = true;
+Eigen::RowVector3d fixedVertsColor;
+Eigen::RowVector3d neumannVertsColor;
 
 std::vector<bool> isSurfNode;
 std::vector<int> tetIndToSurf;
@@ -280,6 +281,17 @@ void updateViewerData(void)
                 viewer.data().add_points(UV_vis.row(fixedVI), fixedVertsColor);
             }
         }
+        if (showNeumannVerts && optimizer->getAnimScripter().isNBCActive()) {
+            int NBCi = 0;
+            for (const auto& NBC : triSoup[viewChannel]->NeumannBCs) {
+                if (optimizer->getAnimScripter().isNBCActive(*(triSoup[viewChannel]), NBCi)) {
+                    for (const auto& neumannVI : NBC.vertIds) {
+                        viewer.data().add_points(UV_vis.row(neumannVI), neumannVertsColor);
+                    }
+                }
+                NBCi++;
+            }
+        }
 
         // draw codimensional segment collision objects
         viewer.data().clear_edges();
@@ -317,6 +329,13 @@ void updateViewerData(void)
         if (showFixedVerts) {
             for (const auto& fixedVI : triSoup[viewChannel]->fixedVert) {
                 viewer.data().add_points(V_vis.row(fixedVI), fixedVertsColor);
+            }
+        }
+        if (showNeumannVerts) {
+            for (const auto& NBC : triSoup[viewChannel]->NeumannBCs) {
+                for (const auto& neumannVI : NBC.vertIds) {
+                    viewer.data().add_points(V_vis.row(neumannVI), neumannVertsColor);
+                }
             }
         }
     }
@@ -704,10 +723,12 @@ void init_cli_app(CLI::App& app, CLIArgs& args)
 
 int main(int argc, char* argv[])
 {
-#ifdef USE_TBB
-#ifdef TBB_NUM_THREADS
+    // initialize colors
+    igl::colormap(igl::COLOR_MAP_TYPE_VIRIDIS, 1.0 / 3.0, fixedVertsColor.data());
+    igl::colormap(igl::COLOR_MAP_TYPE_VIRIDIS, 2.0 / 3.0, neumannVertsColor.data());
+
+#if defined(USE_TBB) && defined(TBB_NUM_THREADS)
     tbb::task_scheduler_init init(TBB_NUM_THREADS);
-#endif
 #endif
 
     CLI::App app{ "IPC" };
