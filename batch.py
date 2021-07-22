@@ -17,7 +17,8 @@ inputFolderPath = os.path.realpath('.') + '/input/'
 # on Minchen's Mac:
 # progPath = '/Users/mincli/Library/Developer/Xcode/DerivedData/IPC-cegibpdumtrmuqbjruacrqwltitb/Build/Products/Release/IPC'
 # on Ubuntu:
-progPath = os.path.realpath('.') + '/build/IPC_bin'
+progPath ='$HOME/c3d/bazel-bin/third_party/ipc/bin/IPC_bin'
+# progPath = os.path.realpath('.') + '/build/IPC_bin'
 # progPath = os.path.realpath('.') + '/src/Projects/DistortionMin/DistortionMin'
 
 # envSetStr = 'export LD_LIBRARY_PATH=/usr/local/lib\n'
@@ -28,6 +29,9 @@ NTSetStr1 = 'export OMP_NUM_THREADS='
 # for Mac when CHOLMOD is compiled with default LAPACK and BLAS
 NTSetStr2 = 'export VECLIB_MAXIMUM_THREADS='
 
+outdir = '/tmp/ipc_test_outdir'
+create_dir_cmd = 'mkdir -p {}\n'.format(outdir)
+
 for numOfThreads in ['1', '8', '16']:
     inputFolderPath = os.path.realpath('.') + '/input/' + numOfThreads + '/'
     if(not os.path.isdir(inputFolderPath)):
@@ -36,11 +40,14 @@ for numOfThreads in ['1', '8', '16']:
         f for f in listdir(inputFolderPath) if isfile(join(inputFolderPath, f))
     ]
     for inputModelNameI in onlyfiles:
-        runCommand = NTSetStr0 + numOfThreads + '\n'
+        runCommand = create_dir_cmd
+        runCommand += NTSetStr0 + numOfThreads + '\n'
         runCommand += NTSetStr1 + numOfThreads + '\n'
         runCommand += NTSetStr2 + numOfThreads + '\n'
-        runCommand += "{} {} {} t{}".format(
+        #this one output more things with -a flag
+        #runCommand += "{} {} {} t{} -o {} -a".format(
+        runCommand += "{} {} {} t{} -o {}".format(
             progPath, '100' if args.offline else '10',
-            inputFolderPath + inputModelNameI, numOfThreads)
+            inputFolderPath + inputModelNameI, numOfThreads, outdir)
         if subprocess.call([runCommand], shell=True):
             continue

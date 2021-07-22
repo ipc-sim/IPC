@@ -12,13 +12,13 @@ runCommand = (
 c3d_path = '$HOME/c3d/devtools/c3d'
 store_base = '$HOME/c3d/bazel-out/k8-opt/bin'
 cmds = ['cd $HOME/c3d\n',
-        '{} build third_party/gmp_test\n'.format(c3d_path),
+        #'{} build third_party/gmp_test\n'.format(c3d_path),
         'cd -\n',
-        'rm -rf build\n',
-        'mkdir build\n',
+#        'rm -rf build\n',
+#        'mkdir build\n',
         'cd build\n',
         'cmake',
-        '-DCMAKE_CXX_FLAGS=-std=c++17',
+        '-DCMAKE_CXX_FLAGS=-std=c++17 -fopenmp',
         '-DCMAKE_BUILD_TYPE=Release',
         '-DGMP_LIBRARIES={}/third_party/gmp/lib/libgmp.a'.format(store_base),
         '-DGMP_INCLUDE_DIRS={}/third_party/gmp/include'.format(store_base),

@@ -1,6 +1,6 @@
 #include <catch2/catch.hpp>
 
-#include "CTCD.h"
+#include "ipc/CCD/EVCTCD/CTCD.h"
 
 static const double EPSILON = std::numeric_limits<float>::epsilon();
 

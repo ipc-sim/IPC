@@ -14,32 +14,73 @@ include(IPCDownloadExternal)
 # Required libraries
 ################################################################################
 
-# SuiteSparse
-set(SUITESPARSE_INCLUDE_DIR_HINTS $ENV{SUITESPARSE_INC})
-set(SUITESPARSE_LIBRARY_DIR_HINTS $ENV{SUITESPARSE_LIB})
-find_package(SuiteSparse REQUIRED)
-
-# OSQP library
-if(IPC_WITH_OSQP_MKL AND NOT TARGET osqp::osqp)
-  download_osqp()
-  # Make sure the right types are used
-  set(DFLOAT OFF CACHE BOOL "Use float numbers instead of doubles"   FORCE)
-  set(DLONG  OFF CACHE BOOL "Use long integers (64bit) for indexing" FORCE)
-  add_subdirectory(${IPC_EXTERNAL}/osqp EXCLUDE_FROM_ALL)
-  if(UNIX AND NOT APPLE)
-    set_target_properties(osqpstatic PROPERTIES INTERFACE_LINK_LIBRARIES ${CMAKE_DL_LIBS})
-  endif()
-  add_library(osqp::osqp ALIAS osqpstatic)
-endif()
+message(STATUS "Downloading externals")
 
 # libigl
-if(NOT TARGET igl)
+if(IPC_WITH_PREBUILT_EXT)
+  message(STATUS "Building with prebuilt")
+  find_library(PREDICATES_LIBRARIES REQUIRED)
+  find_path(PREDICATES_INCLUDE_DIR REQUIRED)
+  find_path(IGL_INCLUDE_DIR REQUIRED)
+  target_include_directories(${PROJECT_NAME}_dev SYSTEM INTERFACE ${PREDICATES_INCLUDE_DIR})
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC ${PREDICATES_LIBRARIES})
+  target_include_directories(${PROJECT_NAME}_dev SYSTEM INTERFACE ${IGL_INCLUDE_DIR})
+elseif(NOT TARGET igl)
   download_libigl()
   add_subdirectory(${IPC_EXTERNAL}/libigl EXCLUDE_FROM_ALL)
+  # libigl
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::predicates igl::core)
+  if(LIBIGL_WITH_TRIANGLE)
+    target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::triangle)
+  endif(LIBIGL_WITH_TRIANGLE)
+  if(LIBIGL_WITH_TETGEN)
+    target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::tetgen)
+  endif(LIBIGL_WITH_TETGEN)
+else()
+  message(STATUS "Seems like igl is ready")
+endif()
+target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_PREDICATES)
+
+# exact-ccd
+if(IPC_WITH_EXACT_CCD)
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_EXACT_CCD)
+  if(IPC_WITH_PREBUILT_EXT)
+    find_path(EXACT_CCD_INCLUDE_DIR REQUIRED)
+    find_library(EXACT_CCD_LIBRARIES REQUIRED)
+    target_link_libraries(${PROJECT_NAME}_dev PUBLIC ${EXACT_CCD_LIBRARIES})
+    target_include_directories(${PROJECT_NAME}_dev PUBLIC ${EXACT_CCD_INCLUDE_DIR})
+  elseif(IPC_WITH_EXACT_CCD AND NOT TARGET exact-ccd::exact-ccd)
+    download_exact_ccd()
+    add_subdirectory(${IPC_EXTERNAL}/exact-ccd EXCLUDE_FROM_ALL)
+    add_library(exact-ccd::exact-ccd ALIAS exact-ccd)
+    target_link_libraries(${PROJECT_NAME}_dev PUBLIC exact-ccd::exact-ccd)
+  endif()
+endif(IPC_WITH_EXACT_CCD)
+
+# spdlog
+if(NOT IPC_WITH_PREBUILT_EXT AND NOT TARGET spdlog::spdlog)
+  add_library(spdlog INTERFACE)
+  add_library(spdlog::spdlog ALIAS spdlog)
+  download_spdlog()
+  target_include_directories(spdlog SYSTEM INTERFACE ${IPC_EXTERNAL}/spdlog/include)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC spdlog::spdlog)
+endif()
+if(IPC_WITH_PREBUILT_EXT)
+  find_path(SPDLOG_INCLUDE_DIR REQUIRED)
+  target_include_directories(${PROJECT_NAME}_dev PUBLIC ${SPDLOG_INCLUDE_DIR})
 endif()
 
-# TBB
-if(IPC_WITH_TBB AND NOT TARGET TBB::tbb)
+################################################################################
+# Optional Libraries
+################################################################################
+if(IPC_WITH_OPENGL AND NOT IPC_WITH_PREBUILT_EXT)
+  message(FATAL_ERROR "We are not supporting OpenGL for now")
+  #target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::opengl_glfw igl::opengl_glfw_imgui igl::png)
+  #target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_OPENGL)
+endif()
+
+# tbb
+if(IPC_WITH_TBB AND NOT IPC_WITH_PREBUILT_EXT)
   download_tbb()
   set(TBB_BUILD_STATIC ON CACHE BOOL " " FORCE)
   set(TBB_BUILD_SHARED OFF CACHE BOOL " " FORCE)
@@ -48,58 +89,45 @@ if(IPC_WITH_TBB AND NOT TARGET TBB::tbb)
   set(TBB_BUILD_TESTS OFF CACHE BOOL " " FORCE)
   add_subdirectory(${IPC_EXTERNAL}/tbb EXCLUDE_FROM_ALL)
   add_library(TBB::tbb ALIAS tbb_static)
-endif()
-
-# exact-ccd
-if(IPC_WITH_EXACT_CCD AND NOT TARGET exact-ccd::exact-ccd)
-  download_exact_ccd()
-  add_subdirectory(${IPC_EXTERNAL}/exact-ccd EXCLUDE_FROM_ALL)
-  add_library(exact-ccd::exact-ccd ALIAS exact-ccd)
-endif()
-
-# spdlog
-if(NOT TARGET spdlog::spdlog)
-    download_spdlog()
-    add_library(spdlog INTERFACE)
-    add_library(spdlog::spdlog ALIAS spdlog)
-    target_include_directories(spdlog SYSTEM INTERFACE ${IPC_EXTERNAL}/spdlog/include)
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_TBB)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC TBB::tbb)
 endif()
 
 # AMGCL
-# NOTE: we don't use AMGCL so we won't build it for simplicity
-if(IPC_WITH_AMGCL AND NOT TARGET amgcl::amgcl)
+if(IPC_WITH_AMGCL AND NOT IPC_WITH_PREBUILT_EXT)
   download_amgcl()
   set(Boost_USE_MULTITHREADED TRUE)
   add_subdirectory(${IPC_EXTERNAL}/amgcl EXCLUDE_FROM_ALL)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC amgcl::amgcl)
 endif()
 
-# Catch2
-if(IPC_WITH_TESTS AND NOT TARGET Catch2::Catch2)
-    download_catch2()
-    add_subdirectory(${IPC_EXTERNAL}/Catch2 catch2)
-    list(APPEND CMAKE_MODULE_PATH ${IPC_EXTERNAL}/Catch2/contrib)
-endif()
-
-# finite-diff
-if(IPC_WITH_TESTS AND NOT TARGET FiniteDiff::FiniteDiff)
-  download_finite_diff()
-  add_subdirectory(${IPC_EXTERNAL}/finite-diff EXCLUDE_FROM_ALL)
-  add_library(FiniteDiff::FiniteDiff ALIAS FiniteDiff)
-endif()
-
-# CLI11
-if(IPC_WITH_MAIN AND NOT TARGET CLI11::CLI11)
-  download_cli11()
-  add_subdirectory(${IPC_EXTERNAL}/cli11)
-endif()
-
-# eigen-gurobi
-if(IPC_WITH_GUROBI AND NOT TARGET EigenGurobi::EigenGurobi)
+if(IPC_WITH_GUROBI AND NOT IPC_WITH_PREBUILT_EXT)
   download_eigen_gurobi()
   add_subdirectory(${IPC_EXTERNAL}/eigen-gurobi EXCLUDE_FROM_ALL)
-  add_library(EigenGurobi::EigenGurobi ALIAS EigenGurobi)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC EigenGurobi::EigenGurobi)
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_GUROBI)
 endif()
 
 # Rational CCD
-download_rational_ccd()
-add_subdirectory(${IPC_EXTERNAL}/rational_ccd)
+if(IPC_WITH_RATIONAL_CCD AND NOT IPC_WITH_PREBUILT_EXT)
+  download_rational_ccd()
+  add_subdirectory(${IPC_EXTERNAL}/rational_ccd)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC RationalCCD)
+endif()
+
+################################################################################
+# Parameter parsing library for main
+################################################################################
+if(IPC_WITH_MAIN)
+  message(STATUS "Linking main with parameter parsing libs")
+  if(IPC_WITH_PREBUILT_EXT)
+    message(STATUS "Linking main with prebuilt CLI11")
+    find_path(CLI11_INCLUDE_DIR REQUIRED)
+    target_include_directories(${PROJECT_NAME}_bin PUBLIC ${CLI11_INCLUDE_DIR})
+  else()
+    message(STATUS "Linking main with CLI11")
+    download_cli11()
+    add_subdirectory(${IPC_EXTERNAL}/cli11)
+    target_link_libraries(${PROJECT_NAME}_bin PUBLIC CLI11::CLI11)
+  endif()
+endif(IPC_WITH_MAIN)

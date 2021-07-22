@@ -1,11 +1,15 @@
 cmake_minimum_required(VERSION 3.9)
-
+cmake_policy(SET CMP0025 NEW)
 # use clang for compilation
 set(CMAKE_C_COMPILER "/usr/bin/clang")
 set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
-set(CMAKE_CXX_FLAGS "-std=gnu++17 -fopenmp")
-set(CMAKE_CXX_STANDARD, 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_FLAGS "-std=c++17 -fopenmp")# -D_GLIBCXX_USE_CXX11_ABI=0")
+
+# the following 2 are for fixing undefined symbol caused by CMake unable to find
+# correct ABI implementation. See the source of this fix:
+# https://gitlab.kitware.com/cmake/cmake/-/issues/18275
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -lc++abi")
 
 project(IPC)
 
@@ -32,8 +36,8 @@ option(LIBIGL_WITH_OPENGL_GLFW       "Use GLFW"                     OFF)
 option(LIBIGL_WITH_OPENGL_GLFW_IMGUI "Use ImGui"                    OFF)
 option(LIBIGL_WITH_PNG               "Use PNG"                      ON)
 option(LIBIGL_WITH_PYTHON            "Use Python"                   OFF)
-option(LIBIGL_WITH_TETGEN            "Use Tetgen"                   ON)
-option(LIBIGL_WITH_TRIANGLE          "Use Triangle"                 ON)
+option(LIBIGL_WITH_TETGEN            "Use Tetgen"                   OFF)
+option(LIBIGL_WITH_TRIANGLE          "Use Triangle"                 OFF)
 option(LIBIGL_WITH_VIEWER            "Use OpenGL viewer"            OFF)
 option(LIBIGL_QUIET_VIEWER           "Suppress viewer messages"     ON)
 option(LIBIGL_WITH_XML               "Use XML"                      OFF)
@@ -51,6 +55,9 @@ option(IPC_EXIT_UPON_QP_FAIL  "Exit if the QP/SQP intersects or blows-up" OFF)
 option(IPC_WITH_MAIN                 "Build binary with library"     ON)
 option(IPC_WITH_AMGCL                  "Build with AMGCL"              OFF)
 option(IPC_WITH_TBB                    "Build with TBB"                OFF)
+option(IPC_WITH_PREBUILT_EXT "For externals, use prebuilt version" OFF)
+option(IPC_WITH_RATIONAL_CCD "With rational CCD if turned on when not using prebuilt externals" OFF)
+option(IPC_WITH_SERIALIZED_OUTPUT "With serialized output in IPC" ON)
 
 if(NOT IPC_WITH_OPENGL)
   set(LIBIGL_WITH_VIEWER OFF CACHE BOOL "" FORCE)
@@ -63,34 +70,25 @@ endif()
 # debug-options
 
 ################################################################################
-
-### Configuration
-set(IPC_EXTERNAL "${CMAKE_CURRENT_SOURCE_DIR}/external")
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-
-# include(Warnings)
-include(${PROJECT_NAME}Dependencies)
-
-################################################################################
 # IPC Library
 ################################################################################
-message("You compiler again: ${CMAKE_CXX_COMPILER}")
+message("Creating library")
 
 # project source files
 file(GLOB SRCFILES
-  "src/*.cpp"
-  "src/Energy/*.cpp"
-  "src/Energy/Physics_Elasticity/*.cpp"
-  "src/Energy/Geometry_Isometry/*.cpp"
-  "src/Energy/Connectivity/*.cpp"
-  "src/Energy/Collision/*.cpp"
-  "src/CollisionObject/*.cpp"
-  "src/CCD/*.cpp"
-  "src/Utils/*.cpp"
-  "src/LinSysSolver/EigenLibSolver.cpp"
-  "src/LinSysSolver/CHOLMODSolver.cpp"
+  "ipc/*.cpp"
+  "ipc/Energy/*.cpp"
+  "ipc/Energy/Physics_Elasticity/*.cpp"
+  "ipc/Energy/Geometry_Isometry/*.cpp"
+  "ipc/Energy/Connectivity/*.cpp"
+  "ipc/Energy/Collision/*.cpp"
+  "ipc/CollisionObject/*.cpp"
+  "ipc/CCD/*.cpp"
+  "ipc/Utils/*.cpp"
+  "ipc/LinSysSolver/EigenLibSolver.cpp"
+  "ipc/LinSysSolver/CHOLMODSolver.cpp"
 #  "src/LinSysSolver/AMGCLSolver.cpp"
-  "src/TimeStepper/*.cpp"
+  "ipc/TimeStepper/*.cpp"
 )
 
 FOREACH(item ${SRCFILES})
@@ -100,136 +98,94 @@ FOREACH(item ${SRCFILES})
 ENDFOREACH(item)
 
 add_library(${PROJECT_NAME}_dev ${SRCFILES})
-
-target_include_directories(${PROJECT_NAME}_dev PUBLIC
-  "src"
-  "src/Energy"
-  "src/Energy/Physics_Elasticity"
-  "src/Energy/Geometry_Isometry"
-  "src/Energy/Connectivity"
-  "src/Energy/Collision"
-  "src/CollisionObject/"
-  "src/CCD/"
-  "src/Utils"
-  "src/Utils/SVD"
-  "src/LinSysSolver"
-  "src/TimeStepper"
-)
-
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC stdc++fs)
-else()
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC c++fs)
-endif()
-
-################################################################################
-# Simulations Executable
-################################################################################
-
 if(IPC_WITH_MAIN)
-  add_executable(${PROJECT_NAME}_bin "src/main.cpp")
+  add_executable(${PROJECT_NAME}_bin "ipc/main.cpp")
   # Link against the library
   target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME}_dev)
-  # CLI11
-  target_link_libraries(${PROJECT_NAME}_bin PUBLIC CLI11::CLI11)
+endif(IPC_WITH_MAIN)
+
+if(IPC_WITH_SERIALIZED_OUTPUT)
+  message(STATUS "Output result in serialized way")
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC SERIALIZED_OUTPUT)
+endif(IPC_WITH_SERIALIZED_OUTPUT)
+
+target_include_directories(${PROJECT_NAME}_dev PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+#target_include_directories(${PROJECT_NAME}_dev PUBLIC
+#  "src/ipc"
+#  "src/ipc/Energy"
+#  "src/ipc/Energy/Physics_Elasticity"
+#  "src/ipc/Energy/Geometry_Isometry"
+#  "src/ipc/Energy/Connectivity"
+#  "src/ipc/Energy/Collision"
+#  "src/ipc/CollisionObject/"
+#  "src/ipc/CCD/"
+#  "src/ipc/Utils"
+#  "src/ipc/Utils/SVD"
+#  "src/ipc/LinSysSolver"
+#  "src/ipc/TimeStepper"
+#)
+
+#if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+#  target_link_libraries(${PROJECT_NAME}_dev PUBLIC stdc++fs)
+#else()
+#  target_link_libraries(${PROJECT_NAME}_dev PUBLIC c++fs)
+#endif()
+
+# Link with eigen when using prebuilt. If not with prebuilt externals, library will
+# be linked to igl::core in IPCDependencies.cmake which links to Eigen
+if(IPC_WITH_PREBUILT_EXT)
+  message(STATUS "Linking eigen")
+  find_path(EIGEN_INCLUDE_DIR REQUIRED)
+  target_include_directories(${PROJECT_NAME}_dev PUBLIC ${EIGEN_INCLUDE_DIR})
 endif()
+
+################################################################################
+
+### Configuration
+if(IPC_WITH_PREBUILT_EXT)
+  message(STATUS "Using prebuilt external libs")
+else()
+  message(STATUS "Using external downloads")
+  set(IPC_EXTERNAL "${CMAKE_CURRENT_SOURCE_DIR}/external")
+endif()
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
+# include(Warnings)
+# The following file handles situations for both with and without prebuilt externals
+include(${PROJECT_NAME}Dependencies)
 
 ################################################################################
 # Etienne Vouga's CTCD Library
 ################################################################################
-
-add_library(EVCTCD "src/CCD/EVCTCD/CTCD.cpp")
-target_include_directories(EVCTCD PUBLIC "src/CCD/EVCTCD/")
-# Link against Eigen in libigl
-target_link_libraries(EVCTCD PUBLIC igl::core)
+add_library(EVCTCD "ipc/CCD/EVCTCD/CTCD.cpp")
+target_include_directories(EVCTCD PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+if(NOT IPC_WITH_PREBUILT_EXT)
+    # Link against Eigen in libigl
+    target_link_libraries(EVCTCD PUBLIC igl::core)
+else()
+    # find and link libigl outside which has Eigen
+    target_include_directories(EVCTCD PUBLIC ${EIGEN_INCLUDE_DIR})
+    message(STATUS "Test eigen")
+    foreach(subdir ${SUBDIR})
+      message(STATUS "${subdir}")
+    endforeach()
+endif()
 # Turn of floating point contraction for CCD robustness
-target_compile_options(EVCTCD PUBLIC "-ffp-contract=off")
-
-################################################################################
-# Required Libraries
-################################################################################
-
-# EVCTCD
+#target_compile_options(EVCTCD PUBLIC "-ffp-contract=off")
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC EVCTCD)
 
+################################################################################
+# Packages that can potentially be found by invoking ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Find${PACKAGENAME}.cmake
+# using find_package. This also means by invocation of find_package, a corresponding
+# FindPACKAGENAME.cmake is needed (at least in module mode)
+################################################################################
 # SuiteSparse
+set(SUITESPARSE_INCLUDE_DIR_HINTS $ENV{SUITESPARSE_INC})
+set(SUITESPARSE_LIBRARY_DIR_HINTS $ENV{SUITESPARSE_LIB})
+find_package(SuiteSparse REQUIRED)
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC ${SUITESPARSE_LIBRARIES})
 target_include_directories(${PROJECT_NAME}_dev PUBLIC ${SUITESPARSE_INCLUDE_DIRS})
-
-# OSQP
-if(IPC_WITH_OSQP_MKL)
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC osqp::osqp)
-endif()
-
-# libigl
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::core igl::triangle igl::tetgen)
-if(IPC_WITH_OPENGL)
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::opengl_glfw igl::opengl_glfw_imgui igl::png)
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_OPENGL)
-endif()
-
-if(LIBIGL_WITH_PREDICATES)
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::predicates)
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_PREDICATES)
-endif()
-
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC RationalCCD)
-
-# tbb
-if(IPC_WITH_TBB)
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_TBB)
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC TBB::tbb)
-endif()
-
-# exact-ccd
-if(IPC_WITH_EXACT_CCD)
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC exact-ccd::exact-ccd)
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_EXACT_CCD)
-endif()
-
-# Logger
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC spdlog::spdlog)
-
-# AMGCL
-if(IPC_WITH_AMGCL)
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC amgcl::amgcl)
-endif()
-# target_link_libraries(${PROJECT_NAME}_dev PUBLIC pardiso600-GNU720-X86-64 gfortran)
-# find_package(Pardiso)
-# if(PARDISO_FOUND)
-#     find_package(LAPACK)
-#     if(LAPACK_FOUND)
-#         target_link_libraries(${PROJECT_NAME}_dev PUBLIC ${LAPACK_LIBRARIES})
-#     else()
-#         message(FATAL_ERROR “unable to find lapack”)
-#     endif()
-
-#     # find_package(OpenMP)
-#     # if( OpenMP_CXX_FOUND )
-#     #   target_link_libraries(polyfem PUBLIC ${OpenMP_CXX_LIBRARIES})
-#     #   # target_compile_definitions(polyfem PUBLIC ${OpenMP_CXX_FLAGS})
-#     # else()
-#     #   message(FATAL_ERROR “unable to find omp”)
-#     # endif()
-
-#     target_link_libraries(${PROJECT_NAME}_dev PUBLIC ${PARDISO_LIBRARIES})
-# else()
-#     message(WARNING “Pardiso not found, solver will not be available.“)
-# endif()
-# target_link_libraries(${PROJECT_NAME}_dev PUBLIC gfortran)
-
-if(IPC_WITH_GUROBI)
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC EigenGurobi::EigenGurobi)
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_GUROBI)
-endif()
-
-# Extra warnings
-# target_link_libraries(${PROJECT_NAME}_dev PRIVATE warnings::all)
-
-
-################################################################################
-# Compiler options
-################################################################################
 
 # Set version of SVD to use
 message(STATUS "Using scalar implmentation of SVD")
@@ -255,9 +211,6 @@ target_compile_options(${PROJECT_NAME}_dev PUBLIC ${SIMD_FLAGS})
 find_package(Threads)
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC ${CMAKE_THREAD_LIBS_INIT})
 
-# Use C++17
-target_compile_features(${PROJECT_NAME}_dev PUBLIC cxx_std_17)
-
 # code only support 3D
 message(STATUS "Building for three dimensions")
 target_compile_definitions(${PROJECT_NAME}_dev PUBLIC DIM=3)
@@ -265,29 +218,11 @@ target_compile_definitions(${PROJECT_NAME}_dev PUBLIC DIM=3)
 # Ensure that PRId64 is defined
 target_compile_definitions(${PROJECT_NAME}_dev PUBLIC -D__STDC_FORMAT_MACROS)
 
-# Unit tests
-if(IPC_WITH_TESTS)
-  include(CTest)
-  enable_testing()
-  add_subdirectory(tests)
+if(IPC_WITH_RATIONAL_CCD)
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC WITH_RATIONAL_CCD)
 endif()
 
-# MKL Pardiso OSQP linear system solver
-if(IPC_WITH_OSQP_MKL)
-  find_library(MKL_RT_LIBRARY mkl_rt
-               PATHS $ENV{MKLROOT}/lib
-                     $ENV{MKLROOT}/lib/intel64
-                     $ENV{INTEL}/mkl/lib/intel64
-                     /opt/intel/mkl/lib)
-  if(MKL_RT_LIBRARY)
-    message(STATUS "MKL found: enabling OSQP MKL Pardiso linear system solver")
-    target_compile_definitions(${PROJECT_NAME}_dev PUBLIC OSQP_USE_MKL_PARDISO)
-  else()
-    message(WARNING "MKL not found: disabling OSQP MKL Pardiso linear system solver")
-  endif()
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_OSQP)
-endif()
-
+#TODO: Choosing linear solver should not be at compile time but rather at
 # Set the selected linear system solver
 if(IPC_LINSYSSOLVER STREQUAL "CHOLMOD")
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC LINSYSSOLVER_USE_CHOLMOD)
@@ -297,11 +232,22 @@ elseif(NOT (IPC_LINSYSSOLVER STREQUAL "EIGEN"))
   message(WARNING "Invalid linear system solver: ${IPC_LINSYSSOLVER}. Falling back to EIGEN.")
 endif()
 
-# Quiet the viewer
-if(LIBIGL_QUIET_VIEWER)
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC IGL_VIEWER_VIEWER_QUIET)
-endif()
-
 if(IPC_EXIT_UPON_QP_FAIL)
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC EXIT_UPON_QP_FAIL)
+endif()
+
+set(LIB_INSTALL_DIR "libs")
+set(INCLUDE_INSTALL_DIR "include")
+set(BINARY_INSTALL_DIR "bin")
+
+install(DIRECTORY "ipc"
+        DESTINATION ${INCLUDE_INSTALL_DIR}
+        FILES_MATCHING
+        PATTERN "*.h"
+        PATTERN "*.hpp")
+install(TARGETS "EVCTCD" "${PROJECT_NAME}_dev"
+        LIBRARY DESTINATION ${LIB_INSTALL_DIR})
+if(IPC_WITH_MAIN)
+  install(TARGETS "${PROJECT_NAME}_bin"
+          RUNTIME DESTINATION ${BIN_INSTALL_DIR})
 endif()
