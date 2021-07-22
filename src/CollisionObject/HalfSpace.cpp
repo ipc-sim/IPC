@@ -178,12 +178,12 @@ void HalfSpace<dim>::augmentIPHessian(const Mesh<dim>& mesh,
 #endif
         {
             int vI = activeSet[constraintI];
-            if (!mesh.isFixedVert[vI] || !projectDBC) {
-                double constraintVal=0;
+            if (!mesh.isDBCVertex(vI) || !projectDBC) {
+                double constraintVal = 0;
                 evaluateConstraint(mesh, vI, constraintVal);
-                double g_b=0;
+                double g_b = 0;
                 compute_g_b(constraintVal, dHat, g_b);
-                double H_b=0;
+                double H_b = 0;
                 compute_H_b(constraintVal, dHat, H_b);
                 double param = 4.0 * H_b * constraintVal + 2.0 * g_b;
                 if (param > 0.0) {
@@ -254,7 +254,7 @@ void HalfSpace<dim>::largestFeasibleStepSize(const Mesh<dim>& mesh,
         {
             maxStepSizes[svI] = 1.0;
             int vI = mesh.SVI[svI];
-            if (!mesh.isFixedVert[vI]) {
+            if (!mesh.isDBCVertex(vI)) {
                 double coef = normal.dot(searchDir.segment<dim>(vI * dim));
                 if (coef < 0.0) { // if going towards the halfSpace
                     double dist = normal.transpose().dot(mesh.V.row(vI)) + D;
@@ -337,7 +337,7 @@ void HalfSpace<dim>::augmentFrictionHessian(const Mesh<dim>& mesh,
     //TODO: parallelize
     int contactPairI = 0;
     for (const auto& vI : activeSet) {
-        if (projectDBC && mesh.isFixedVert[vI]) {
+        if (projectDBC && mesh.isDBCVertex(vI)) {
             continue;
         }
 

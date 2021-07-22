@@ -56,43 +56,58 @@ AnimScripter<dim>::AnimScripter(AnimScriptType p_animScriptType)
 }
 
 template <int dim>
-void AnimScripter<dim>::setFixedVertices(Mesh<dim>& mesh) const
+void AnimScripter<dim>::setDBCVertices(Mesh<dim>& mesh) const
 {
-    std::set<int> fixedVerts;
+    std::map<int, DirichletBCType> DBCVertices;
 
     // fix codim objects
     for (int compI = 0; compI < mesh.componentCoDim.size(); ++compI) {
         if (mesh.componentCoDim[compI] < 3) {
             for (int i = mesh.componentNodeRange[compI]; i < mesh.componentNodeRange[compI + 1]; ++i) {
-                fixedVerts.insert(i);
+                DBCVertices[i] = DirichletBCType::ZERO;
             }
         }
     }
 
+    // Add the DBC if it is not there otherwise override zero BC with nonzero BC.
+    auto updateType = [&](int vi, DirichletBCType type) {
+        auto search = DBCVertices.find(vi);
+        if (search != DBCVertices.end()) {
+            // Override zero DBC with nonzero
+            search->second = std::max(search->second, type);
+        }
+        else {
+            DBCVertices[vi] = type;
+        }
+    };
+
     // fix objects with scripted linear and angular velocity
     for (const auto& scriptedLVelI : mesh.componentLVels) {
+        DirichletBCType type = scriptedLVelI.second.isZero() ? DirichletBCType::ZERO : DirichletBCType::NONZERO;
         for (int i = scriptedLVelI.first[1]; i < scriptedLVelI.first[2]; ++i) {
-            fixedVerts.insert(i);
+            updateType(i, type);
         }
     }
     for (const auto& scriptedAVelI : mesh.componentAVels) {
+        DirichletBCType type = scriptedAVelI.second.isZero() ? DirichletBCType::ZERO : DirichletBCType::NONZERO;
         for (int i = scriptedAVelI.first[1]; i < scriptedAVelI.first[2]; ++i) {
-            fixedVerts.insert(i);
+            updateType(i, type);
         }
     }
 
     // fix Dirchlet nodes
     if (stepStartTime >= DBCTimeRange[0] && stepStartTime < DBCTimeRange[1]) {
         for (const auto& DBC : mesh.DirichletBCs) {
+            DirichletBCType type = DBC.isZero() ? DirichletBCType::ZERO : DirichletBCType::NONZERO;
             if (stepStartTime >= DBC.timeRange[0] && stepStartTime < DBC.timeRange[1]) {
                 for (const auto& vI : DBC.vertIds) {
-                    fixedVerts.insert(vI);
+                    updateType(vI, type);
                 }
             }
         }
     }
 
-    mesh.resetFixedVert(fixedVerts);
+    mesh.resetDBCVertices(DBCVertices);
 }
 
 template <int dim>
@@ -107,16 +122,16 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
 
     switch (animScriptType) {
     case AST_NULL: {
-        setFixedVertices(mesh);
+        setDBCVertices(mesh);
         break;
     }
 
     case AST_SCALEF: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
         // handleVerts.resize(0);
         // int bI = 0;
         // for(const auto borderI : mesh.borderVerts_primitive) {
-        //     mesh.addFixedVert(borderI);
+        //     mesh.addDBCVertex(borderI, DirichletBCType::NONZERO);
         //     handleVerts.emplace_back(borderI);
         //     bI++;
         // }
@@ -136,14 +151,14 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_HANG:
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
         for (const auto borderI : mesh.borderVerts_primitive) {
-            mesh.addFixedVert(borderI.back());
+            mesh.addDBCVertex(borderI.back(), DirichletBCType::ZERO);
         }
         break;
 
     case AST_HANG2: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
         Eigen::RowVectorXd topRight = mesh.V.colwise().maxCoeff();
@@ -151,7 +166,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
 
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if (mesh.V(vI, 1) > topRight[1] - range[1] * 0.01) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::ZERO);
                 velocity_handleVerts[vI].setZero();
             }
         }
@@ -159,7 +174,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_HANGTOPLEFT: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
         Eigen::RowVectorXd topRight = mesh.V.colwise().maxCoeff();
@@ -167,14 +182,14 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
 
         for (const auto& vI : mesh.borderVerts_primitive[0]) {
             if (mesh.V(vI, 1) > topRight[1] - range[1] * 0.01 && (mesh.V(vI, 2) > topRight[2] - range[2] * 0.01 || mesh.V(vI, 2) < bottomLeft[2] + range[2] * 0.01)) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::ZERO);
             }
         }
         break;
     }
 
     case AST_HANGLEFT: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
         Eigen::RowVectorXd topRight = mesh.V.colwise().maxCoeff();
@@ -182,7 +197,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
 
         for (const auto& vI : mesh.borderVerts_primitive[0]) {
             if ((mesh.V(vI, 2) <= topRight[2]) && (mesh.V(vI, 2) >= bottomLeft[2])) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::ZERO);
             }
         }
         break;
@@ -191,7 +206,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     case AST_SWING: {
         mesh.V.col(1).array() += 1.3 * (mesh.V.col(1).maxCoeff() - mesh.V.col(1).minCoeff());
 
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
         Eigen::RowVectorXd topRight = mesh.V.colwise().maxCoeff();
@@ -199,7 +214,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
 
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if (mesh.V(vI, 0) < bottomLeft[0] + range[0] * 0.05) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::ZERO);
                 velocity_handleVerts[vI].setZero();
             }
         }
@@ -207,12 +222,12 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_STAMP:
-        mesh.resetFixedVert();
-        mesh.addFixedVert(mesh.borderVerts_primitive[0]);
+        mesh.resetDBCVertices();
+        mesh.addDBCVertices(mesh.borderVerts_primitive[0], DirichletBCType::NONZERO);
         break;
 
     case AST_STAMPTOPLEFT: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
         Eigen::RowVectorXd topRight = mesh.V.colwise().maxCoeff();
@@ -220,21 +235,21 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
 
         for (const auto& vI : mesh.borderVerts_primitive[0]) {
             if (mesh.V(vI, 1) > topRight[1] - range[1] * 0.01) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
             }
         }
         break;
     }
 
     case AST_STAMPBOTH:
-        mesh.resetFixedVert();
-        mesh.addFixedVert(mesh.borderVerts_primitive[0]);
-        mesh.addFixedVert(mesh.borderVerts_primitive[1]);
+        mesh.resetDBCVertices();
+        mesh.addDBCVertices(mesh.borderVerts_primitive[0], DirichletBCType::NONZERO);
+        mesh.addDBCVertices(mesh.borderVerts_primitive[1], DirichletBCType::NONZERO);
         break;
 
     case AST_UNDSTAMP:
-        mesh.resetFixedVert();
-        mesh.addFixedVert(mesh.borderVerts_primitive[0]);
+        mesh.resetDBCVertices();
+        mesh.addDBCVertices(mesh.borderVerts_primitive[0], DirichletBCType::NONZERO);
         handleVerts.emplace_back(mesh.borderVerts_primitive[0]);
 
         for (const auto bVI : mesh.borderVerts_primitive[0]) {
@@ -248,7 +263,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         break;
 
     case AST_STAMPINV: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         // fix bottom
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
@@ -256,18 +271,18 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         Eigen::RowVectorXd range = topRight - bottomLeft;
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if (mesh.V(vI, 0) < bottomLeft[0] + range[0] * 0.01) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
             }
         }
 
-        double xOffset = 1.1 * mesh.V(*mesh.fixedVert.begin(), 0);
+        double xOffset = 1.1 * mesh.V(*mesh.DBCVertexIds.begin(), 0);
         mesh.V.col(0) *= -0.1;
         mesh.V.col(0).array() += xOffset;
         break;
     }
 
     case AST_STAND: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         // fix bottom
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
@@ -275,14 +290,14 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         Eigen::RowVectorXd range = topRight - bottomLeft;
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if (mesh.V(vI, 1) < bottomLeft[1] + range[1] * 0.01) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
             }
         }
         break;
     }
 
     case AST_STANDINV: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         // fix bottom
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
@@ -290,18 +305,18 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         Eigen::RowVectorXd range = topRight - bottomLeft;
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if (mesh.V(vI, 1) < bottomLeft[1] + range[1] * 0.01) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
             }
         }
 
-        double yOffset = 1.1 * mesh.V(*mesh.fixedVert.begin(), 1);
+        double yOffset = 1.1 * mesh.V(*mesh.DBCVertexIds.begin(), 1);
         mesh.V.col(1) *= -0.1;
         mesh.V.col(1).array() += yOffset;
         break;
     }
 
     case AST_TOPBOTTOMFIX: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         // grab top, waist, and bottom:
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
@@ -309,10 +324,10 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         Eigen::RowVectorXd range = topRight - bottomLeft;
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if (mesh.V(vI, 1) < bottomLeft[1] + range[1] * 0.02) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
             }
             else if (mesh.V(vI, 1) > topRight[1] - range[1] * 0.02) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
             }
         }
 
@@ -320,7 +335,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_FIXLOWERHALF: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         // grab lower half:
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
@@ -328,7 +343,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         Eigen::RowVectorXd range = topRight - bottomLeft;
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if (mesh.V(vI, 1) < bottomLeft[1] + range[1] * 0.5) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
             }
         }
 
@@ -336,7 +351,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_CORNER: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         // grab top, waist, and bottom:
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
@@ -344,13 +359,13 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         Eigen::RowVectorXd range = topRight - bottomLeft;
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if (mesh.V(vI, 0) < bottomLeft[0] + range[0] * 0.01) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
             }
             else if (mesh.V(vI, 1) < bottomLeft[1] + range[1] * 0.01) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
             }
             else if (mesh.V(vI, 2) < bottomLeft[2] + range[2] * 0.01) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
             }
         }
 
@@ -358,7 +373,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_PUSH: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
         handleVerts.resize(0);
         handleVerts.resize(1);
 
@@ -369,11 +384,11 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         bool turningPointSet = false;
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if (mesh.V(vI, 1) < bottomLeft[1] + range[1] * 0.01) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
                 velocity_handleVerts[vI].setZero();
             }
             else if (mesh.V(vI, 1) > topRight[1] - range[1] * 0.01) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
                 handleVerts[0].emplace_back(vI);
 
                 velocity_handleVerts[vI].setZero();
@@ -389,7 +404,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_TEAR: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
         handleVerts.resize(0);
         handleVerts.resize(1);
 
@@ -400,11 +415,11 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         bool turningPointSet = false;
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if (mesh.V(vI, 1) < bottomLeft[1] + range[1] * 0.01) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
                 velocity_handleVerts[vI].setZero();
             }
             else if (mesh.V(vI, 1) > topRight[1] - range[1] * 0.01) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
                 handleVerts[0].emplace_back(vI);
 
                 velocity_handleVerts[vI].setZero();
@@ -420,11 +435,11 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_UPNDOWN: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         int bI = 0;
         for (const auto borderI : mesh.borderVerts_primitive) {
-            mesh.addFixedVert(borderI);
+            mesh.addDBCVertices(borderI, DirichletBCType::NONZERO);
             handleVerts.emplace_back(borderI);
 
             for (const auto bVI : borderI) {
@@ -442,11 +457,11 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_STRETCH: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
         handleVerts.resize(0);
         int bI = 0;
         for (const auto borderI : mesh.borderVerts_primitive) {
-            mesh.addFixedVert(borderI);
+            mesh.addDBCVertices(borderI, DirichletBCType::NONZERO);
             handleVerts.emplace_back(borderI);
             for (const auto bVI : borderI) {
                 velocity_handleVerts[bVI].setZero();
@@ -458,14 +473,14 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_STRETCHNPAUSE: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
         Eigen::RowVectorXd topRight = mesh.V.colwise().maxCoeff();
         Eigen::RowVectorXd range = topRight - bottomLeft;
         bool turningPointAdded = false;
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if (mesh.V(vI, 0) < bottomLeft[0] + range[0] * 0.01) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
                 velocity_handleVerts[vI].setZero();
                 velocity_handleVerts[vI][0] = -1.0;
                 if (!turningPointAdded) {
@@ -475,7 +490,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
                 }
             }
             else if (mesh.V(vI, 0) > topRight[0] - range[0] * 0.01) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
                 velocity_handleVerts[vI].setZero();
                 velocity_handleVerts[vI][0] = 1.0;
             }
@@ -485,11 +500,11 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_SQUASH: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
         handleVerts.resize(0);
         int bI = 0;
         for (const auto borderI : mesh.borderVerts_primitive) {
-            mesh.addFixedVert(borderI);
+            mesh.addDBCVertices(borderI, DirichletBCType::NONZERO);
             handleVerts.emplace_back(borderI);
             for (const auto bVI : borderI) {
                 velocity_handleVerts[bVI].setZero();
@@ -501,11 +516,11 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_STRETCHNSQUASH: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
         handleVerts.resize(0);
         int bI = 0;
         for (const auto borderI : mesh.borderVerts_primitive) {
-            mesh.addFixedVert(borderI);
+            mesh.addDBCVertices(borderI, DirichletBCType::NONZERO);
             handleVerts.emplace_back(borderI);
             for (const auto bVI : borderI) {
                 velocity_handleVerts[bVI].setZero();
@@ -522,11 +537,11 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_BEND: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
         handleVerts.resize(0);
         int bI = 0;
         for (const auto borderI : mesh.borderVerts_primitive) {
-            mesh.addFixedVert(borderI);
+            mesh.addDBCVertices(borderI, DirichletBCType::NONZERO);
             handleVerts.emplace_back(borderI);
             for (int bVI = 0; bVI + 1 < borderI.size(); bVI++) {
                 angVel_handleVerts[borderI[bVI]] = std::pow(-1.0, bI) * -0.05 * M_PI;
@@ -538,14 +553,14 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_TWIST: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         const Eigen::RowVector3d rotCenter = mesh.bbox.colwise().mean();
 
         handleVerts.resize(0);
         int bI = 0;
         for (const auto borderI : mesh.borderVerts_primitive) {
-            mesh.addFixedVert(borderI);
+            mesh.addDBCVertices(borderI, DirichletBCType::NONZERO);
             handleVerts.emplace_back(borderI);
             for (int bVI = 0; bVI < borderI.size(); bVI++) {
                 angVel_handleVerts[borderI[bVI]] = std::pow(-1.0, bI) * -0.4 * M_PI;
@@ -557,14 +572,14 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_TWISTNSTRETCH: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         const Eigen::RowVector3d rotCenter = mesh.bbox.colwise().mean();
 
         handleVerts.resize(0);
         int bI = 0;
         for (const auto borderI : mesh.borderVerts_primitive) {
-            mesh.addFixedVert(borderI);
+            mesh.addDBCVertices(borderI, DirichletBCType::NONZERO);
             handleVerts.emplace_back(borderI);
             for (int bVI = 0; bVI < borderI.size(); bVI++) {
                 angVel_handleVerts[borderI[bVI]] = std::pow(-1.0, bI) * -0.1 * M_PI;
@@ -580,14 +595,14 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
 
     case AST_TWISTNSNS_OLD:
     case AST_TWISTNSNS: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         const Eigen::RowVector3d rotCenter = mesh.bbox.colwise().mean();
 
         handleVerts.resize(0);
         int bI = 0;
         for (const auto borderI : mesh.borderVerts_primitive) {
-            mesh.addFixedVert(borderI);
+            mesh.addDBCVertices(borderI, DirichletBCType::NONZERO);
             handleVerts.emplace_back(borderI);
             for (int bVI = 0; bVI < borderI.size(); bVI++) {
                 angVel_handleVerts[borderI[bVI]] = std::pow(-1.0, bI) * -0.4 * M_PI;
@@ -616,7 +631,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_RUBBERBANDPULL: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
         handleVerts.resize(0);
         handleVerts.resize(2);
 
@@ -627,19 +642,19 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         bool turningPointSet = false;
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if (mesh.V(vI, 1) < bottomLeft[1] + range[1] * 0.02) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
                 handleVerts[1].emplace_back(vI);
                 velocity_handleVerts[vI].setZero();
                 velocity_handleVerts[vI][1] = -0.2;
             }
             else if (mesh.V(vI, 1) > topRight[1] - range[1] * 0.02) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
                 handleVerts[1].emplace_back(vI);
                 velocity_handleVerts[vI].setZero();
                 velocity_handleVerts[vI][1] = 0.2;
             }
             else if ((mesh.V(vI, 1) < topRight[1] - range[1] * 0.48) && (mesh.V(vI, 1) > bottomLeft[1] + range[1] * 0.48)) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
                 handleVerts[0].emplace_back(vI);
                 velocity_handleVerts[vI].setZero();
                 velocity_handleVerts[vI][0] = -2.5; // previously -2.0
@@ -655,7 +670,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_FOURLEGPULL: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
         handleVerts.resize(0);
         handleVerts.resize(2);
 
@@ -667,20 +682,20 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if ((mesh.V(vI, 1) > topRight[1] - range[1] * 0.129) && ((mesh.V(vI, 0) < bottomLeft[0] + range[0] * 0.16))) {
                 // left top
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
                 handleVerts[1].emplace_back(vI);
                 velocity_handleVerts[vI].setZero();
             }
             else if ((mesh.V(vI, 1) > topRight[1] - range[1] * 0.16) && (mesh.V(vI, 0) > topRight[0] - range[0] * 0.16)) {
                 // right top
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
                 handleVerts[0].emplace_back(vI);
                 velocity_handleVerts[vI].setZero();
                 velocity_handleVerts[vI][0] = 2.5;
             }
             else if ((mesh.V(vI, 1) < bottomLeft[1] + range[1] * 0.02) && (mesh.V(vI, 0) > topRight[0] - range[0] * 0.25)) {
                 // bottom right
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
                 handleVerts[0].emplace_back(vI);
                 velocity_handleVerts[vI].setZero();
                 velocity_handleVerts[vI][0] = 2.5;
@@ -688,7 +703,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
             }
             else if ((mesh.V(vI, 1) < bottomLeft[1] + range[1] * 0.02) && (mesh.V(vI, 0) < bottomLeft[0] + range[0] * 0.25)) {
                 // bottom left
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
                 handleVerts[0].emplace_back(vI);
                 velocity_handleVerts[vI].setZero();
                 velocity_handleVerts[vI][1] = -3.5;
@@ -704,7 +719,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_HEADTAILPULL: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
         handleVerts.resize(0);
         handleVerts.resize(2);
 
@@ -716,7 +731,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if (mesh.V(vI, 2) < bottomLeft[2] + range[2] * 0.02) {
                 // left
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
                 handleVerts[0].emplace_back(vI);
                 velocity_handleVerts[vI].setZero();
                 velocity_handleVerts[vI][0] = 3.5;
@@ -729,14 +744,14 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
             }
             else if (mesh.V(vI, 2) > topRight[2] - range[2] * 0.02) {
                 // right
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
                 handleVerts[0].emplace_back(vI);
                 velocity_handleVerts[vI].setZero();
                 velocity_handleVerts[vI][0] = 3.5;
             }
             else if ((mesh.V(vI, 2) > bottomLeft[2] + range[2] * 0.46) && (mesh.V(vI, 2) < bottomLeft[2] + range[2] * 0.54)) {
                 // bottom right
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
                 handleVerts[1].emplace_back(vI);
                 velocity_handleVerts[vI].setZero();
             }
@@ -763,18 +778,18 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
 
     case AST_FALL: {
         mesh.V.col(1).array() += 0.5 * (mesh.V.colwise().maxCoeff() - mesh.V.colwise().minCoeff()).norm();
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
         break;
     }
 
     case AST_FALL_NOSHIFT: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
         break;
     }
 
     case AST_DRAGDOWN: {
         mesh.V.col(1).array() += 0.5 * (mesh.V.colwise().maxCoeff() - mesh.V.colwise().minCoeff()).norm();
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         // grab bottom:
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
@@ -783,7 +798,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if ((mesh.V(vI, 1) < bottomLeft[1] + range[1] * 0.1) && (mesh.V(vI, 0) < bottomLeft[0] + range[0] * 0.52) && (mesh.V(vI, 0) > bottomLeft[0] + range[0] * 0.42)) {
                 // bottom middle
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
                 velocity_handleVerts[vI].setZero();
                 velocity_handleVerts[vI][1] = -1.5;
             }
@@ -793,7 +808,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
 
     case AST_DRAGRIGHT: {
         mesh.V.col(1).array() += 0.5 * (mesh.V.colwise().maxCoeff() - mesh.V.colwise().minCoeff()).norm();
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         // grab right:
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
@@ -801,7 +816,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         Eigen::RowVectorXd range = topRight - bottomLeft;
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if (mesh.V(vI, 0) > topRight[0] - range[0] * 0.04) { // 0.001 for dolphin rightmost 2 nodes
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
                 velocity_handleVerts[vI].setZero();
                 velocity_handleVerts[vI][0] = 0.5;
             }
@@ -810,7 +825,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_TOGGLETOP: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
         handleVerts.resize(0);
         handleVerts.resize(1);
 
@@ -821,7 +836,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         bool turningPointSet = false;
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if (mesh.V(vI, 1) > topRight[1] - range[1] * 0.02) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
                 handleVerts[0].emplace_back(vI);
                 velocity_handleVerts[vI].setZero();
                 velocity_handleVerts[vI][0] = -0.5;
@@ -838,12 +853,12 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     case AST_LEFTHITRIGHT:
     case AST_DROP:
     case AST_XYROTATE: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
         break;
     }
 
     case AST_CURTAIN: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         // grab top nodes
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
@@ -852,7 +867,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             for (int pinI = 0; pinI < 8; ++pinI) {
                 if (mesh.V(vI, 0) > bottomLeft[0] + range[0] / 7.0 * pinI - range[0] * 0.0025 && mesh.V(vI, 0) < bottomLeft[0] + range[0] / 7.0 * pinI + range[0] * 0.0025 && mesh.V(vI, 1) > topRight[1] - range[1] * 0.005) {
-                    mesh.addFixedVert(vI);
+                    mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
                     velocity_handleVerts[vI].setZero();
                     velocity_handleVerts[vI][0] = 0.04 * (7.0 - pinI) / 7.0;
                     break;
@@ -863,14 +878,14 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_FIXRIGHTMOST1: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
         Eigen::RowVectorXd topRight = mesh.V.colwise().maxCoeff();
         Eigen::RowVectorXd range = topRight - bottomLeft;
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if (mesh.V(vI, 0) > topRight[0] - 1.0e-3 * range[0]) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
                 break;
             }
         }
@@ -878,14 +893,14 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_PUSHRIGHTMOST1: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
         Eigen::RowVectorXd topRight = mesh.V.colwise().maxCoeff();
         Eigen::RowVectorXd range = topRight - bottomLeft;
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if (mesh.V(vI, 0) > topRight[0] - 1.0e-3 * range[0]) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
                 velocity_handleVerts[vI].setZero();
                 velocity_handleVerts[vI][0] = -0.15;
                 break;
@@ -895,7 +910,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_NMFIXBOTTOMDRAGLEFT: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         // grab bottom and top nodes
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
@@ -905,7 +920,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         std::vector<int> NBCVertices;
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if (mesh.V(vI, 1) < bottomLeft[1] + range[1] * 0.05) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
             }
             else if (mesh.V(vI, 1) > topRight[1] - range[1] * 0.05) {
                 NBCVertices.push_back(vI);
@@ -917,7 +932,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_NMFIXBOTTOMDRAGFORWARD: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         // grab bottom and top nodes
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
@@ -927,7 +942,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         std::vector<int> NBCVertices;
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
             if (mesh.V(vI, 1) < bottomLeft[1] + range[1] * 0.05) {
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
             }
             else if (mesh.V(vI, 1) > topRight[1] - range[1] * 0.05) {
                 NBCVertices.push_back(vI);
@@ -939,7 +954,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_ACOSQUASH: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
         ACOVelocity.resize(2);
         ACOVelocity[0].setZero();
         ACOVelocity[0][0] = 1.0;
@@ -949,7 +964,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_ACOSQUASH6: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
         ACOVelocity.resize(6);
 
         ACOVelocity[0].setZero();
@@ -970,7 +985,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_ACOSQUASHSHEAR: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
         ACOVelocity.resize(2);
         ACOVelocity[0].setZero();
         ACOVelocity[0][0] = 1.0;
@@ -980,7 +995,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_MCOSQUASH: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
         MCOVelocity.resize(2);
         MCOVelocity[0].setZero();
         MCOVelocity[0][0] = 1.0;
@@ -990,7 +1005,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_MCOROTSQUASH: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         MCOVelocity.resize(2);
         MCOVelocity[0].setZero();
@@ -1013,7 +1028,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     }
 
     case AST_MCOROTCYLINDERS: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
 
         MCOVelocity.resize(4);
         MCOVelocity[0].setZero();
@@ -1045,17 +1060,17 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     case AST_DCOROTCYLINDERS: {
         assert(mesh.componentNodeRange.size() >= 6);
 
-        mesh.resetFixedVert();
-        std::vector<int> fixedVerts;
+        mesh.resetDBCVertices();
+        std::vector<int> DBCVerts;
         MCORotCenter.resize(4);
         for (int compI = 0; compI < 4; ++compI) {
             for (int i = mesh.componentNodeRange[compI]; i < mesh.componentNodeRange[compI + 1]; ++i) {
-                fixedVerts.emplace_back(i);
+                DBCVerts.emplace_back(i);
             }
 
             MCORotCenter[compI] = 0.5 * (mesh.V.block(mesh.componentNodeRange[compI], 0, mesh.componentNodeRange[compI + 1] - mesh.componentNodeRange[compI], 3).colwise().maxCoeff() + mesh.V.block(mesh.componentNodeRange[compI], 0, mesh.componentNodeRange[compI + 1] - mesh.componentNodeRange[compI], 3).colwise().minCoeff());
         }
-        mesh.addFixedVert(fixedVerts);
+        mesh.addDBCVertices(DBCVerts, DirichletBCType::NONZERO);
 
         MCOAngVel.resize(4);
         MCOAngVel[0].setZero();
@@ -1073,17 +1088,17 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     case AST_DCOVERSCHOORROLLER: {
         assert(mesh.componentNodeRange.size() >= 8);
 
-        mesh.resetFixedVert();
-        std::vector<int> fixedVerts;
+        mesh.resetDBCVertices();
+        std::vector<int> DBCVerts;
         MCORotCenter.resize(6);
         for (int compI = 0; compI < 6; ++compI) {
             for (int i = mesh.componentNodeRange[compI]; i < mesh.componentNodeRange[compI + 1]; ++i) {
-                fixedVerts.emplace_back(i);
+                DBCVerts.emplace_back(i);
             }
 
             MCORotCenter[compI] = 0.5 * (mesh.V.block(mesh.componentNodeRange[compI], 0, mesh.componentNodeRange[compI + 1] - mesh.componentNodeRange[compI], 3).colwise().maxCoeff() + mesh.V.block(mesh.componentNodeRange[compI], 0, mesh.componentNodeRange[compI + 1] - mesh.componentNodeRange[compI], 3).colwise().minCoeff());
         }
-        mesh.addFixedVert(fixedVerts);
+        mesh.addDBCVertices(DBCVerts, DirichletBCType::NONZERO);
 
         MCOAngVel.resize(6);
         MCOAngVel[0].setZero();
@@ -1105,18 +1120,18 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     case AST_DCOHAMMERWALNUT: {
         assert(mesh.componentCoDim.size() >= 2);
 
-        mesh.resetFixedVert();
-        std::vector<int> fixedVerts;
+        mesh.resetDBCVertices();
+        std::vector<int> DBCVerts;
         Eigen::Matrix<double, 1, dim> leftBottom, rightTop;
         leftBottom.setConstant(std::numeric_limits<double>::infinity());
         rightTop.setConstant(-std::numeric_limits<double>::infinity());
         for (int i = mesh.componentNodeRange[1]; i < mesh.componentNodeRange[2]; ++i) {
-            fixedVerts.emplace_back(i);
+            DBCVerts.emplace_back(i);
 
             leftBottom = leftBottom.array().min(mesh.V.row(i).array());
             rightTop = rightTop.array().max(mesh.V.row(i).array());
         }
-        mesh.addFixedVert(fixedVerts);
+        mesh.addDBCVertices(DBCVerts, DirichletBCType::NONZERO);
 
         MCORotCenter.resize(1);
         MCORotCenter[0][0] = rightTop[0];
@@ -1133,18 +1148,18 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     case AST_DCOCUT: {
         assert(mesh.componentCoDim.size() >= 2);
 
-        mesh.resetFixedVert();
-        std::vector<int> fixedVerts;
+        mesh.resetDBCVertices();
+        std::vector<int> DBCVerts;
         Eigen::Matrix<double, 1, dim> leftBottom, rightTop;
         leftBottom.setConstant(std::numeric_limits<double>::infinity());
         rightTop.setConstant(-std::numeric_limits<double>::infinity());
         for (int i = mesh.componentNodeRange[1]; i < mesh.componentNodeRange[2]; ++i) {
-            fixedVerts.emplace_back(i);
+            DBCVerts.emplace_back(i);
 
             leftBottom = leftBottom.array().min(mesh.V.row(i).array());
             rightTop = rightTop.array().max(mesh.V.row(i).array());
         }
-        mesh.addFixedVert(fixedVerts);
+        mesh.addDBCVertices(DBCVerts, DirichletBCType::NONZERO);
 
         MCOVelocity.resize(1);
         MCOVelocity.back()[0] = 0;
@@ -1157,14 +1172,14 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     case AST_DCOSQUASH: {
         assert(mesh.componentNodeRange.size() >= 4);
 
-        mesh.resetFixedVert();
-        std::vector<int> fixedVerts;
+        mesh.resetDBCVertices();
+        std::vector<int> DBCVerts;
         for (int compI = 0; compI < 2; ++compI) {
             for (int i = mesh.componentNodeRange[compI]; i < mesh.componentNodeRange[compI + 1]; ++i) {
-                fixedVerts.emplace_back(i);
+                DBCVerts.emplace_back(i);
             }
         }
-        mesh.addFixedVert(fixedVerts);
+        mesh.addDBCVertices(DBCVerts, DirichletBCType::NONZERO);
 
         MCOVelocity.resize(2);
         MCOVelocity[0].setZero();
@@ -1178,14 +1193,14 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     case AST_DCOSQUASH6: {
         assert(mesh.componentNodeRange.size() >= 8);
 
-        mesh.resetFixedVert();
-        std::vector<int> fixedVerts;
+        mesh.resetDBCVertices();
+        std::vector<int> DBCVerts;
         for (int compI = 0; compI < 6; ++compI) {
             for (int i = mesh.componentNodeRange[compI]; i < mesh.componentNodeRange[compI + 1]; ++i) {
-                fixedVerts.emplace_back(i);
+                DBCVerts.emplace_back(i);
             }
         }
-        mesh.addFixedVert(fixedVerts);
+        mesh.addDBCVertices(DBCVerts, DirichletBCType::NONZERO);
 
         MCOVelocity.resize(6);
         MCOVelocity[0].setZero();
@@ -1207,27 +1222,27 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
     case AST_MESHSEQ_FROMFILE:
     case AST_DCOBALLHITWALL:
     case AST_DCOFIX: {
-        mesh.resetFixedVert();
-        std::vector<int> fixedVerts;
+        mesh.resetDBCVertices();
+        std::vector<int> DBCVerts;
         for (int compI = 0; compI < mesh.componentCoDim.size(); ++compI) {
             if (mesh.componentCoDim[compI] < 3) {
                 for (int i = mesh.componentNodeRange[compI]; i < mesh.componentNodeRange[compI + 1]; ++i) {
-                    fixedVerts.emplace_back(i);
+                    DBCVerts.emplace_back(i);
                 }
             }
         }
-        mesh.addFixedVert(fixedVerts);
+        mesh.addDBCVertices(DBCVerts, DirichletBCType::NONZERO);
 
         break;
     }
 
     case AST_DCOSEGBEDSQUASH: {
-        mesh.resetFixedVert();
-        std::vector<int> fixedVerts;
+        mesh.resetDBCVertices();
+        std::vector<int> DBCVerts;
         for (int compI = 0; compI < mesh.componentCoDim.size(); ++compI) {
             if (mesh.componentCoDim[compI] < 3) {
                 for (int i = mesh.componentNodeRange[compI]; i < mesh.componentNodeRange[compI + 1]; ++i) {
-                    fixedVerts.emplace_back(i);
+                    DBCVerts.emplace_back(i);
                 }
 
                 if (compI >= (mesh.componentCoDim.size() + 1) / 2) {
@@ -1238,18 +1253,18 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
                 }
             }
         }
-        mesh.addFixedVert(fixedVerts);
+        mesh.addDBCVertices(DBCVerts, DirichletBCType::NONZERO);
 
         break;
     }
 
     case AST_DCOSQUEEZEOUT: {
-        mesh.resetFixedVert();
-        std::vector<int> fixedVerts;
+        mesh.resetDBCVertices();
+        std::vector<int> DBCVerts;
         for (int compI = 0; compI < mesh.componentCoDim.size(); ++compI) {
             if (mesh.componentCoDim[compI] < 3) {
                 for (int i = mesh.componentNodeRange[compI]; i < mesh.componentNodeRange[compI + 1]; ++i) {
-                    fixedVerts.emplace_back(i);
+                    DBCVerts.emplace_back(i);
                 }
 
                 if (compI == 0) {
@@ -1260,13 +1275,13 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
                 }
             }
         }
-        mesh.addFixedVert(fixedVerts);
+        mesh.addDBCVertices(DBCVerts, DirichletBCType::NONZERO);
 
         break;
     }
 
     case AST_UTOPIA_COMPARISON: {
-        mesh.resetFixedVert();
+        mesh.resetDBCVertices();
         Eigen::RowVectorXd bottomLeft = mesh.V.colwise().minCoeff();
         Eigen::RowVectorXd topRight = mesh.V.colwise().maxCoeff();
         Eigen::RowVectorXd range = topRight - bottomLeft;
@@ -1278,7 +1293,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
                 NBCVertices.push_back(vI);
             }
             else if (mesh.V(vI, 1) < bottomLeft[1] + range[0] * 1e-4) { // isOnBottom
-                mesh.addFixedVert(vI);
+                mesh.addDBCVertex(vI, DirichletBCType::NONZERO);
             }
         }
         mesh.NeumannBCs = { { NeumannBC(NBCVertices, Eigen::Vector3d(0, -1.5, 0)) } };
@@ -1293,7 +1308,7 @@ void AnimScripter<dim>::initAnimScript(Mesh<dim>& mesh,
         break;
     }
 
-    fixedVertBK = mesh.fixedVert;
+    DBCVertexIdsBK = mesh.DBCVertexIds;
 }
 
 template <int dim>
@@ -1309,7 +1324,7 @@ void AnimScripter<dim>::initVelocity(const Mesh<dim>& mesh,
                 Eigen::Vector3d rotCenter = 0.5 * (mesh.V.block(mesh.componentNodeRange[compI], 0, mesh.componentNodeRange[compI + 1] - mesh.componentNodeRange[compI], 3).colwise().maxCoeff() + mesh.V.block(mesh.componentNodeRange[compI], 0, mesh.componentNodeRange[compI + 1] - mesh.componentNodeRange[compI], 3).colwise().minCoeff());
 
                 for (int vI = initVelInfo.first[1]; vI < initVelInfo.first[2]; ++vI) {
-                    if (!mesh.isFixedVert[vI]) {
+                    if (!mesh.isDBCVertex(vI)) {
                         velocity.template segment<dim>(vI * dim) = initVelInfo.second[0] + initVelInfo.second[1].cross(Eigen::Vector3d(mesh.V.row(vI).transpose()) - rotCenter);
                     }
                 }
@@ -1419,9 +1434,9 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
         }
 
         // move Dirichlet nodes
-        fixedVertBK = mesh.fixedVert;
-        setFixedVertices(mesh);
-        returnFlag = fixedVertBK != mesh.fixedVert;
+        DBCVertexIdsBK = mesh.DBCVertexIds;
+        setDBCVertices(mesh);
+        returnFlag = DBCVertexIdsBK != mesh.DBCVertexIds;
         if (stepStartTime >= DBCTimeRange[0] && stepStartTime < DBCTimeRange[1]) {
             for (const auto& DBC : mesh.DirichletBCs) {
                 if (stepStartTime < DBC.timeRange[0] || stepStartTime >= DBC.timeRange[1]) {
@@ -1604,8 +1619,8 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
                 MCORightMost = maxI;
             }
         }
-        if (mesh.V.col(0).minCoeff() > MCORightMost && mesh.fixedVert.size()) {
-            mesh.resetFixedVert();
+        if (mesh.V.col(0).minCoeff() > MCORightMost && mesh.DBCVertexIds.size()) {
+            mesh.resetDBCVertices();
             for (auto& movingVerts : velocity_handleVerts) {
                 movingVerts.second.setZero();
             }
@@ -1712,7 +1727,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
         if (mesh.V(velocityTurningPoints.first, 0) <= velocityTurningPoints.second(0, 0)) {
             velocityTurningPoints.second(0, 0) = -std::numeric_limits<double>::infinity();
             for (const auto& vI : handleVerts[0]) {
-                mesh.removeFixedVert(vI);
+                mesh.removeDBCVertex(vI);
                 velocity_handleVerts[vI].setZero();
             }
             for (const auto& vI : handleVerts[1]) {
@@ -1730,7 +1745,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
         if (mesh.V(velocityTurningPoints.first, 1) <= velocityTurningPoints.second(0, 1)) {
             velocityTurningPoints.second(0, 1) = -std::numeric_limits<double>::infinity();
             for (const auto& vI : handleVerts[0]) {
-                mesh.removeFixedVert(vI);
+                mesh.removeDBCVertex(vI);
                 velocity_handleVerts[vI].setZero();
             }
             for (const auto& vI : handleVerts[1]) {
@@ -1749,7 +1764,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
         if (mesh.V(velocityTurningPoints.first, 0) >= velocityTurningPoints.second(0, 0)) {
             velocityTurningPoints.second(0, 0) = std::numeric_limits<double>::infinity();
             for (const auto& vI : handleVerts[0]) {
-                mesh.removeFixedVert(vI);
+                mesh.removeDBCVertex(vI);
                 velocity_handleVerts[vI].setZero();
             }
             for (const auto& vI : handleVerts[1]) {
@@ -1780,7 +1795,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
         if (mesh.V(velocityTurningPoints.first, 0) <= velocityTurningPoints.second(0, 0)) {
             velocityTurningPoints.second(0, 0) = -std::numeric_limits<double>::infinity();
             for (const auto& vI : handleVerts[0]) {
-                mesh.removeFixedVert(vI);
+                mesh.removeDBCVertex(vI);
                 velocity_handleVerts[vI].setZero();
             }
             returnFlag = 1;
@@ -2130,7 +2145,7 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
 
     targetPos.clear();
     for (int vI = 0; vI < mesh.V.rows(); ++vI) {
-        if (mesh.isFixedVert[vI] || !searchDir.template segment<dim>(vI * dim).isZero()) {
+        if (mesh.isDBCVertex(vI) || !searchDir.template segment<dim>(vI * dim).isZero()) {
             targetPos[vI].first = mesh.V.row(vI) + searchDir.template segment<dim>(vI * dim).transpose();
             targetPos[vI].second.setZero();
         }

@@ -37,7 +37,6 @@ bool offlineMode = false;
 bool autoSwitch = false;
 bool contactHandling = false;
 bool optimization_on = false;
-bool show_lines = true;
 int iterNum = 0;
 int converged = 0;
 bool outerLoopFinished = false;
@@ -64,9 +63,11 @@ int showDistortion_init = showDistortion;
 Eigen::MatrixXd faceColors_default;
 bool showTexture = true; // show checkerboard
 bool isLighting = true;
-bool showFixedVerts = true;
+bool showZeroDirichletVerts = true;
+bool showNonzeroDirichletVerts = true;
 bool showNeumannVerts = true;
-Eigen::RowVector3d fixedVertsColor;
+Eigen::RowVector3d zeroDirichletVertsColor;
+Eigen::RowVector3d nonzeroDirichletVertsColor;
 Eigen::RowVector3d neumannVertsColor;
 
 std::vector<bool> isSurfNode;
@@ -130,10 +131,10 @@ void proceedOptimization(int proceedNum = 1)
 {
     for (int proceedI = 0; (proceedI < proceedNum) && (!converged); proceedI++) {
         infoName = std::to_string(iterNum);
-        saveInfo(false, false, 3);
+        saveInfo(/*writePNG=*/false, /*writeGIF=*/false, /*writeMesh=*/3);
         if (!offlineMode) {
             // PNG and gif output only works under online rendering mode
-            saveInfo(false, true, false); // save gif
+            saveInfo(/*writePNG=*/false, /*writeGIF=*/true, /*writeMesh=*/false); // save gif
             if (savePNG) {
                 saveScreenshot(outputFolderPath + infoName + ".png",
                     1.0, false, true);
@@ -275,18 +276,21 @@ void updateViewerData(void)
         }
 #endif
 
-        viewer.data().set_points(Eigen::MatrixXd::Zero(0, 3), fixedVertsColor);
-        if (showFixedVerts) {
-            for (const auto& fixedVI : triSoup[viewChannel]->fixedVert) {
-                viewer.data().add_points(UV_vis.row(fixedVI), fixedVertsColor);
+        viewer.data().set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d::Zero());
+        for (const auto& vi : triSoup[viewChannel]->DBCVertexIds) {
+            if (showZeroDirichletVerts && triSoup[viewChannel]->vertexDBCType[vi] == IPC::DirichletBCType::ZERO) {
+                viewer.data().add_points(UV_vis.row(vi), zeroDirichletVertsColor);
+            }
+            else if (showNonzeroDirichletVerts && triSoup[viewChannel]->vertexDBCType[vi] == IPC::DirichletBCType::NONZERO) {
+                viewer.data().add_points(UV_vis.row(vi), nonzeroDirichletVertsColor);
             }
         }
         if (showNeumannVerts && optimizer->getAnimScripter().isNBCActive()) {
             int NBCi = 0;
             for (const auto& NBC : triSoup[viewChannel]->NeumannBCs) {
                 if (optimizer->getAnimScripter().isNBCActive(*(triSoup[viewChannel]), NBCi)) {
-                    for (const auto& neumannVI : NBC.vertIds) {
-                        viewer.data().add_points(UV_vis.row(neumannVI), neumannVertsColor);
+                    for (const auto& vi : NBC.vertIds) {
+                        viewer.data().add_points(UV_vis.row(vi), neumannVertsColor);
                     }
                 }
                 NBCi++;
@@ -298,7 +302,7 @@ void updateViewerData(void)
         for (int ceI = 0; ceI < triSoup[viewChannel]->CE.rows(); ++ceI) {
             viewer.data().add_edges(triSoup[viewChannel]->V.row(triSoup[viewChannel]->CE(ceI, 0)),
                 triSoup[viewChannel]->V.row(triSoup[viewChannel]->CE(ceI, 1)),
-                Eigen::RowVector3d(0.0, 0.0, 0.0));
+                Eigen::RowVector3d::Zero());
         }
     }
     else {
@@ -325,10 +329,13 @@ void updateViewerData(void)
             viewer.core().lighting_factor = 0.0;
         }
 
-        viewer.data().set_points(Eigen::MatrixXd::Zero(0, 3), fixedVertsColor);
-        if (showFixedVerts) {
-            for (const auto& fixedVI : triSoup[viewChannel]->fixedVert) {
-                viewer.data().add_points(V_vis.row(fixedVI), fixedVertsColor);
+        viewer.data().set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d::Zero());
+        for (const auto& vi : triSoup[viewChannel]->DBCVertexIds) {
+            if (showZeroDirichletVerts && triSoup[viewChannel]->vertexDBCType[vi] == IPC::DirichletBCType::ZERO) {
+                viewer.data().add_points(UV_vis.row(vi), zeroDirichletVertsColor);
+            }
+            else if (showNonzeroDirichletVerts && triSoup[viewChannel]->vertexDBCType[vi] == IPC::DirichletBCType::NONZERO) {
+                viewer.data().add_points(UV_vis.row(vi), nonzeroDirichletVertsColor);
             }
         }
         if (showNeumannVerts) {
@@ -503,6 +510,28 @@ void toggleOptimization(void)
 }
 
 #ifdef USE_OPENGL
+void printKeyboardHelp()
+{
+    std::cout << R"IPC_STRING(IPC viewer usage:
+  /             Toggle simulation
+  space         Take a single step
+  ctrl/cmd + s  Save screenshot and mesh of the current iteration
+  L,l           Toggle wireframe
+  T,t           Toggle filled faces
+  +,=           Increase point sizes by 1 pixel (+ shift by 10 pixels)
+  -,_           Decrease point sizes by 1 pixel (+ shift by 10 pixels)
+  O,o           Toggle orthographic/perspective projection
+  Z             Snap to canonical view
+  0             Show initial mesh
+  1             Show resulting mesh
+  U,u           Toggle UV
+  D,d           Toggle Distortion
+  A,a           Check gradient
+  H,h           Print this help menu
+  esc           Exit
+)IPC_STRING";
+}
+
 bool key_down(igl::opengl::glfw::Viewer& viewer, unsigned char key, int modifier)
 {
     if ((key >= '0') && (key <= '9')) {
@@ -511,7 +540,13 @@ bool key_down(igl::opengl::glfw::Viewer& viewer, unsigned char key, int modifier
             viewChannel = changeToChannel;
         }
     }
-    else {
+    else if ((key == 's' || key == 'S') && modifier & (IGL_MOD_CONTROL | IGL_MOD_SUPER)) {
+        infoName = std::to_string(iterNum);
+        saveInfo(/*writePNG=*/true, /*writeGIF=*/false, /*writeMesh=*/true);
+        spdlog::info("Saved screenshot to {}{}.png", outputFolderPath, infoName);
+        spdlog::info("Saved mesh to {}{}_mesh{}", outputFolderPath, infoName, (DIM == 2) ? ".obj" : ".msh");
+    }
+    else if (modifier == 0) {
         switch (key) {
         case ' ': {
             proceedOptimization();
@@ -521,13 +556,6 @@ bool key_down(igl::opengl::glfw::Viewer& viewer, unsigned char key, int modifier
 
         case '/': {
             toggleOptimization();
-            break;
-        }
-
-        case 'l':
-        case 'L': {
-            show_lines = !show_lines;
-            viewer.data().show_lines = show_lines;
             break;
         }
 
@@ -546,16 +574,15 @@ bool key_down(igl::opengl::glfw::Viewer& viewer, unsigned char key, int modifier
             break;
         }
 
-        case 'o':
-        case 'O': {
-            infoName = std::to_string(iterNum);
-            saveInfo(true, false, true);
-            break;
-        }
-
         case 'a':
         case 'A': {
             optimizer->checkGradient();
+            break;
+        }
+
+        case 'h':
+        case 'H': {
+            printKeyboardHelp();
             break;
         }
 
@@ -606,7 +633,7 @@ bool postDrawFunc()
 
     if (saveInfo_postDraw) {
         saveInfo_postDraw = false;
-        saveInfo(outerLoopFinished, true, outerLoopFinished);
+        saveInfo(/*writePNG=*/outerLoopFinished, /*writeGIF=*/true, /*writeMesh=*/outerLoopFinished);
         // Note that the content saved in the screenshots are depends on where updateViewerData() is called
         if (outerLoopFinished) {
             //            triSoup[channel_result]->saveAsMesh(outputFolderPath + infoName + "_mesh_01UV.obj", true);
@@ -724,7 +751,8 @@ void init_cli_app(CLI::App& app, CLIArgs& args)
 int main(int argc, char* argv[])
 {
     // initialize colors
-    igl::colormap(igl::COLOR_MAP_TYPE_VIRIDIS, 1.0 / 3.0, fixedVertsColor.data());
+    igl::colormap(igl::COLOR_MAP_TYPE_VIRIDIS, 2.0 / 9.0, zeroDirichletVertsColor.data());
+    igl::colormap(igl::COLOR_MAP_TYPE_VIRIDIS, 4.0 / 9.0, nonzeroDirichletVertsColor.data());
     igl::colormap(igl::COLOR_MAP_TYPE_VIRIDIS, 2.0 / 3.0, neumannVertsColor.data());
 
 #if defined(USE_TBB) && defined(TBB_NUM_THREADS)

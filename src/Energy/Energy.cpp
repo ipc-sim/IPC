@@ -116,8 +116,8 @@ void Energy<dim>::checkGradient(const Mesh<dim>& data) const
             std::cout << vI + 1 << "/" << data.V.rows() << " vertices computed" << std::endl;
         }
     }
-    for (const auto fixedVI : data.fixedVert) {
-        gradient_finiteDiff.segment<dim>(dim * fixedVI).setZero();
+    for (const auto vI : data.DBCVertexIds) {
+        gradient_finiteDiff.segment<dim>(dim * vI).setZero();
     }
 
     Eigen::VectorXd gradient_symbolic;
@@ -151,7 +151,7 @@ void Energy<dim>::checkHessian(const Mesh<dim>& data, bool triplet) const
     Eigen::SparseMatrix<double> hessian_finiteDiff;
     hessian_finiteDiff.resize(data.V.rows() * dim, data.V.rows() * dim);
     for (int vI = 0; vI < data.V.rows(); vI++) {
-        if (data.fixedVert.find(vI) != data.fixedVert.end()) {
+        if (data.DBCVertexIds.find(vI) != data.DBCVertexIds.end()) {
             hessian_finiteDiff.insert(vI * dim, vI * dim) = 1.0;
             hessian_finiteDiff.insert(vI * dim + 1, vI * dim + 1) = 1.0;
             if constexpr (dim == 3) {
@@ -168,7 +168,7 @@ void Energy<dim>::checkHessian(const Mesh<dim>& data, bool triplet) const
             Eigen::VectorXd hessian_colI = (gradient_perturbed - gradient0) / h;
             int colI = vI * dim + dimI;
             for (int rowI = 0; rowI < data.V.rows() * dim; rowI++) {
-                if ((data.fixedVert.find(rowI / dim) == data.fixedVert.end()) && (hessian_colI[rowI] != 0.0)) {
+                if (data.DBCVertexIds.find(rowI / dim) == data.DBCVertexIds.end() && hessian_colI[rowI] != 0.0) {
                     hessian_finiteDiff.insert(rowI, colI) = hessian_colI[rowI];
                 }
             }
@@ -189,7 +189,7 @@ void Energy<dim>::checkHessian(const Mesh<dim>& data, bool triplet) const
 #else
     linSysSolver = new EigenLibSolver<Eigen::VectorXi, Eigen::VectorXd>();
 #endif
-    linSysSolver->set_pattern(data.vNeighbor, data.fixedVert);
+    linSysSolver->set_pattern(data.vNeighbor, data.DBCVertexIds);
     linSysSolver->setZero();
     computeHessianByPK(data, true, svd, F, 1.0, linSysSolver, false);
     linSysSolver->getCoeffMtr(hessian_symbolicPK);
@@ -294,8 +294,8 @@ void Energy<dim>::computeGradientByPK(const Mesh<dim>& data, bool redoSVD,
 #endif
 
     if (projectDBC) {
-        for (const auto fixedVI : data.fixedVert) {
-            gradient.segment<dim>(dim * fixedVI).setZero();
+        for (const auto vI : data.DBCVertexIds) {
+            gradient.segment<dim>(dim * vI).setZero();
         }
     }
 }
@@ -411,11 +411,11 @@ void Energy<dim>::computeHessianByPK(const Mesh<dim>& data,
     IglUtils::dF_div_dx_mult<dim * dim>(wdP_div_dF.transpose(), A, wdP_div_dx, false);
     IglUtils::dF_div_dx_mult<dim*(dim + 1)>(wdP_div_dx.transpose(), A, hessian, true);
 
-    vInd[0] = ((data.isFixedVert[triVInd[0]] && projectDBC) ? (-triVInd[0] - 1) : triVInd[0]);
-    vInd[1] = ((data.isFixedVert[triVInd[1]] && projectDBC) ? (-triVInd[1] - 1) : triVInd[1]);
-    vInd[2] = ((data.isFixedVert[triVInd[2]] && projectDBC) ? (-triVInd[2] - 1) : triVInd[2]);
+    vInd[0] = data.isProjectDBCVertex(triVInd[0], projectDBC) ? (-triVInd[0] - 1) : triVInd[0];
+    vInd[1] = data.isProjectDBCVertex(triVInd[1], projectDBC) ? (-triVInd[1] - 1) : triVInd[1];
+    vInd[2] = data.isProjectDBCVertex(triVInd[2], projectDBC) ? (-triVInd[2] - 1) : triVInd[2];
     if constexpr (dim == 3) {
-        vInd[3] = ((data.isFixedVert[triVInd[3]] && projectDBC) ? (-triVInd[3] - 1) : triVInd[3]);
+        vInd[3] = data.isProjectDBCVertex(triVInd[3], projectDBC) ? (-triVInd[3] - 1) : triVInd[3];
     }
 }
 

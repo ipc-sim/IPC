@@ -413,14 +413,14 @@ void Mesh<dim>::computeMassMatrix(const igl::MassMatrixType type)
 }
 
 template <int dim>
-void Mesh<dim>::computeFeatures(bool multiComp, bool resetFixedV)
+void Mesh<dim>::computeFeatures(bool multiComp, bool resetDBCV)
 {
-    if (resetFixedV) {
-        fixedVert.clear();
-        fixedVert.insert(0);
-        isFixedVert.resize(0);
-        isFixedVert.resize(V.rows(), false);
-        isFixedVert[0] = true;
+    if (resetDBCV) {
+        DBCVertexIds.clear();
+        DBCVertexIds.insert(0);
+        vertexDBCType.clear();
+        vertexDBCType.resize(V.rows(), DirichletBCType::NOT_DBC);
+        vertexDBCType[0] = DirichletBCType::NOT_DBC;
     }
 
     restTriInv.resize(F.rows());
@@ -539,41 +539,55 @@ void Mesh<dim>::computeFeatures(bool multiComp, bool resetFixedV)
 }
 
 template <int dim>
-void Mesh<dim>::resetFixedVert(const std::set<int>& p_fixedVert)
+void Mesh<dim>::resetDBCVertices(const std::map<int, DirichletBCType>& p_DBCVert)
 {
-    isFixedVert.resize(0);
-    isFixedVert.resize(V.rows(), false);
-    for (const auto& vI : p_fixedVert) {
+    DBCVertexIds.clear();
+    vertexDBCType.clear();
+    vertexDBCType.resize(V.rows(), DirichletBCType::NOT_DBC);
+    for (const auto& [vI, type] : p_DBCVert) {
         assert(vI < V.rows());
-        isFixedVert[vI] = true;
+        vertexDBCType[vI] = type;
+        if (type != DirichletBCType::NOT_DBC) {
+            DBCVertexIds.insert(vI);
+        }
     }
-
-    fixedVert = p_fixedVert;
 }
+
 template <int dim>
-void Mesh<dim>::addFixedVert(int vI)
+void Mesh<dim>::addDBCVertex(int vI, DirichletBCType type)
 {
     assert(vI < V.rows());
-    fixedVert.insert(vI);
-    isFixedVert[vI] = true;
-}
-template <int dim>
-void Mesh<dim>::addFixedVert(const std::vector<int>& p_fixedVert)
-{
-    for (const auto& vI : p_fixedVert) {
-        assert(vI < V.rows());
-        isFixedVert[vI] = true;
+    vertexDBCType[vI] = type;
+    if (type == DirichletBCType::NOT_DBC) {
+        DBCVertexIds.erase(vI);
     }
-
-    fixedVert.insert(p_fixedVert.begin(), p_fixedVert.end());
+    else {
+        DBCVertexIds.insert(vI);
+    }
 }
 
 template <int dim>
-void Mesh<dim>::removeFixedVert(int vI)
+void Mesh<dim>::addDBCVertices(const std::vector<std::pair<int, DirichletBCType>>& p_DBCVert)
+{
+    for (const auto& [vI, type] : p_DBCVert) {
+        addDBCVertex(vI, type);
+    }
+}
+
+template <int dim>
+void Mesh<dim>::addDBCVertices(const std::vector<int>& p_DBCVert, DirichletBCType type)
+{
+    for (const auto& vI : p_DBCVert) {
+        addDBCVertex(vI, type);
+    }
+}
+
+template <int dim>
+void Mesh<dim>::removeDBCVertex(int vI)
 {
     assert(vI < V.rows());
-    fixedVert.erase(vI);
-    isFixedVert[vI] = false;
+    DBCVertexIds.erase(vI);
+    vertexDBCType[vI] = DirichletBCType::NOT_DBC;
 }
 
 template <int dim>
@@ -849,8 +863,8 @@ void Mesh<dim>::saveBCNodes(const std::string& filePath) const
 {
     FILE* out = fopen(filePath.c_str(), "w");
     assert(out);
-    for (const auto& fixedVI : fixedVert) {
-        fprintf(out, "%d\n", fixedVI);
+    for (const auto& vI : DBCVertexIds) {
+        fprintf(out, "%d\n", vI);
     }
 
     std::map<int, Eigen::Vector3d> vertexToNBC;

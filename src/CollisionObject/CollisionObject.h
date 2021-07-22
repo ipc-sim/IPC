@@ -322,7 +322,7 @@ public:
 #endif
             {
                 int vI = mesh.SVI[svI];
-                if (!mesh.isFixedVert[vI] && mesh.vICoDim(vI) == 3) {
+                if (!mesh.isDBCVertex(vI) && mesh.vICoDim(vI) == 3) {
                     double d = 0;
                     evaluateConstraint(mesh, vI, d);
                     if (d < dHat) {
@@ -382,7 +382,7 @@ public:
         Eigen::VectorXd constraint_vals;
         this->evaluateConstraints_all(mesh, constraint_vals, 1.0);
         for (int vI = 0; vI < mesh.V.rows(); ++vI) {
-            if (mesh.vICoDim(vI) == dim && !mesh.isFixedVert[vI]) {
+            if (mesh.vICoDim(vI) == dim && !mesh.isDBCVertex(vI)) {
                 if (constraint_vals[vI] <= 0.0) {
                     return true;
                 }

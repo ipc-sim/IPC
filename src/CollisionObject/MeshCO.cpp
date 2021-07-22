@@ -428,8 +428,8 @@ void MeshCO<dim>::augmentIPHessian(const Mesh<dim>& mesh,
                     IPHessian[cI] = ((coef * H_b) * g) * g.transpose() + (coef * g_b) * H;
                     IglUtils::makePD(IPHessian[cI]);
 
-                    rowIStart[cI][0] = (mesh.isFixedVert[MMCVIDI[0]] && projectDBC) ? -1 : (MMCVIDI[0] * dim);
-                    rowIStart[cI][1] = (mesh.isFixedVert[MMCVIDI[1]] && projectDBC) ? -1 : (MMCVIDI[1] * dim);
+                    rowIStart[cI][0] = mesh.isProjectDBCVertex(MMCVIDI[0], projectDBC) ? -1 : (MMCVIDI[0] * dim);
+                    rowIStart[cI][1] = mesh.isProjectDBCVertex(MMCVIDI[1], projectDBC) ? -1 : (MMCVIDI[1] * dim);
                     rowIStart[cI][2] = -1;
                     rowIStart[cI][3] = -1;
                 }
@@ -489,7 +489,7 @@ void MeshCO<dim>::augmentIPHessian(const Mesh<dim>& mesh,
                             IPHessian[cI] = ((coef * H_b) * g) * g.transpose() + (coef * g_b) * H;
                             IglUtils::makePD(IPHessian[cI]);
                         }
-                        rowIStart[cI][0] = (mesh.isFixedVert[v0I] && projectDBC) ? -1 : (v0I * dim);
+                        rowIStart[cI][0] = mesh.isProjectDBCVertex(v0I, projectDBC) ? -1 : (v0I * dim);
                         rowIStart[cI][1] = -1;
                         rowIStart[cI][2] = -1;
                         rowIStart[cI][3] = -1;
@@ -512,9 +512,9 @@ void MeshCO<dim>::augmentIPHessian(const Mesh<dim>& mesh,
                             IglUtils::makePD(IPHessian[cI]);
 
                             rowIStart[cI][0] = -1;
-                            rowIStart[cI][1] = (mesh.isFixedVert[-MMCVIDI[0] - 1] && projectDBC) ? -1 : ((-MMCVIDI[0] - 1) * dim);
-                            rowIStart[cI][2] = (mesh.isFixedVert[-MMCVIDI[1] - 1] && projectDBC) ? -1 : ((-MMCVIDI[1] - 1) * dim);
-                            rowIStart[cI][3] = (mesh.isFixedVert[-MMCVIDI[2] - 1] && projectDBC) ? -1 : ((-MMCVIDI[2] - 1) * dim);
+                            rowIStart[cI][1] = mesh.isProjectDBCVertex(-MMCVIDI[0] - 1, projectDBC) ? -1 : ((-MMCVIDI[0] - 1) * dim);
+                            rowIStart[cI][2] = mesh.isProjectDBCVertex(-MMCVIDI[1] - 1, projectDBC) ? -1 : ((-MMCVIDI[1] - 1) * dim);
+                            rowIStart[cI][3] = mesh.isProjectDBCVertex(-MMCVIDI[2] - 1, projectDBC) ? -1 : ((-MMCVIDI[2] - 1) * dim);
                         }
                         else {
                             // edge-point
@@ -535,8 +535,8 @@ void MeshCO<dim>::augmentIPHessian(const Mesh<dim>& mesh,
                             IPHessian[cI].template block<dim * 2, dim * 2>(dim, dim) = HessianBlock.template block<dim * 2, dim * 2>(dim, dim);
 
                             rowIStart[cI][0] = -1;
-                            rowIStart[cI][1] = (mesh.isFixedVert[-MMCVIDI[0] - 1] && projectDBC) ? -1 : ((-MMCVIDI[0] - 1) * dim);
-                            rowIStart[cI][2] = (mesh.isFixedVert[-MMCVIDI[1] - 1] && projectDBC) ? -1 : ((-MMCVIDI[1] - 1) * dim);
+                            rowIStart[cI][1] = mesh.isProjectDBCVertex(-MMCVIDI[0] - 1, projectDBC) ? -1 : ((-MMCVIDI[0] - 1) * dim);
+                            rowIStart[cI][2] = mesh.isProjectDBCVertex(-MMCVIDI[1] - 1, projectDBC) ? -1 : ((-MMCVIDI[1] - 1) * dim);
                             rowIStart[cI][3] = -1;
                         }
                     }
@@ -2305,8 +2305,8 @@ void MeshCO<dim>::augmentParaEEHessian(const Mesh<dim>& mesh,
                     g_EE(mesh.V.row(MMCVIDI[0]), mesh.V.row(MMCVIDI[1]), Base::V.row(MMCVIDI[2]), Base::V.row(MMCVIDI[3]), grad_d);
                     H_EE(mesh.V.row(MMCVIDI[0]), mesh.V.row(MMCVIDI[1]), Base::V.row(MMCVIDI[2]), Base::V.row(MMCVIDI[3]), H_d);
 
-                    rowIStart[cI][0] = (mesh.isFixedVert[MMCVIDI[0]] && projectDBC) ? -1 : (MMCVIDI[0] * dim);
-                    rowIStart[cI][1] = (mesh.isFixedVert[MMCVIDI[1]] && projectDBC) ? -1 : (MMCVIDI[1] * dim);
+                    rowIStart[cI][0] = mesh.isProjectDBCVertex(MMCVIDI[0], projectDBC) ? -1 : (MMCVIDI[0] * dim);
+                    rowIStart[cI][1] = mesh.isProjectDBCVertex(MMCVIDI[1], projectDBC) ? -1 : (MMCVIDI[1] * dim);
                     rowIStart[cI][2] = -1;
                     rowIStart[cI][3] = -1;
                 }
@@ -2324,8 +2324,8 @@ void MeshCO<dim>::augmentParaEEHessian(const Mesh<dim>& mesh,
                     compute_e_g(mesh.V.row(eI.first), mesh.V.row(eI.second), Base::V.row(eJ.first), Base::V.row(eJ.second), eps_x, e_g);
                     compute_e_H(mesh.V.row(eI.first), mesh.V.row(eI.second), Base::V.row(eJ.first), Base::V.row(eJ.second), eps_x, e_H);
 
-                    rowIStart[cI][0] = (mesh.isFixedVert[eI.first] && projectDBC) ? -1 : (eI.first * dim);
-                    rowIStart[cI][1] = (mesh.isFixedVert[eI.second] && projectDBC) ? -1 : (eI.second * dim);
+                    rowIStart[cI][0] = mesh.isProjectDBCVertex(eI.first, projectDBC) ? -1 : (eI.first * dim);
+                    rowIStart[cI][1] = mesh.isProjectDBCVertex(eI.second, projectDBC) ? -1 : (eI.second * dim);
                     rowIStart[cI][2] = -1;
                     rowIStart[cI][3] = -1;
 

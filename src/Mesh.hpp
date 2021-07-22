@@ -27,10 +27,21 @@ struct DirichletBC {
         const std::array<double, 2>& timeRange = { 0.0, std::numeric_limits<double>::infinity() })
         : vertIds(vertIds), linearVelocity(linearVelocity), angularVelocity(angularVelocity), timeRange(timeRange) {}
 
+    bool isZero() const
+    {
+        return linearVelocity.isZero() && angularVelocity.isZero();
+    }
+
     std::vector<int> vertIds;
     Eigen::Vector3d linearVelocity;
     Eigen::Vector3d angularVelocity;
     std::array<double, 2> timeRange = { 0.0, std::numeric_limits<double>::infinity() };
+};
+
+enum class DirichletBCType {
+    NOT_DBC = 0,
+    ZERO = 1,
+    NONZERO = 2
 };
 
 struct NeumannBC {
@@ -74,8 +85,8 @@ public: // owned features
     Eigen::VectorXd u, lambda;
     Eigen::VectorXd triArea; // triangle rest area
     double avgEdgeLen;
-    std::set<int> fixedVert; // for linear solve
-    std::vector<bool> isFixedVert;
+    std::set<int> DBCVertexIds; // for linear solve
+    std::vector<DirichletBCType> vertexDBCType;
     Eigen::Matrix<double, 2, 3> bbox;
     std::vector<std::vector<int>> borderVerts_primitive;
     std::vector<Eigen::Matrix<double, dim, dim>> restTriInv;
@@ -112,11 +123,21 @@ public: // constructor
 
 public: // API
     void computeMassMatrix(const igl::MassMatrixType type = igl::MASSMATRIX_TYPE_VORONOI);
-    void computeFeatures(bool multiComp = false, bool resetFixedV = false);
-    void resetFixedVert(const std::set<int>& p_fixedVert = std::set<int>());
-    void addFixedVert(int vI);
-    void addFixedVert(const std::vector<int>& p_fixedVert);
-    void removeFixedVert(int vI);
+    void computeFeatures(bool multiComp = false, bool resetDBCV = false);
+
+    void resetDBCVertices(const std::map<int, DirichletBCType>& p_DBCVert = std::map<int, DirichletBCType>());
+    void addDBCVertex(int vI, DirichletBCType type);
+    void addDBCVertices(const std::vector<int>& p_DBCVert, DirichletBCType type);
+    void addDBCVertices(const std::vector<std::pair<int, DirichletBCType>>& p_DBCVert);
+    void removeDBCVertex(int vI);
+
+    bool isDBCVertex(int vI) const { return vertexDBCType[vI] != DirichletBCType::NOT_DBC; }
+    bool isProjectDBCVertex(int vI, bool projectDBC) const
+    {
+        assert(vI < vertexDBCType.size());
+        return vertexDBCType[vI] == DirichletBCType::ZERO
+            || (vertexDBCType[vI] == DirichletBCType::NONZERO && projectDBC);
+    }
 
     double avgNodeMass(int coDim = -1) const;
     double matSpaceBBoxSize2(int coDim = -1) const;

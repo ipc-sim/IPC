@@ -123,7 +123,7 @@ protected:
     double stepStartTime = 0, stepEndTime = 0;
     std::array<double, 2> DBCTimeRange = { 0.0, std::numeric_limits<double>::infinity() };
     std::array<double, 2> NBCTimeRange = { 0.0, std::numeric_limits<double>::infinity() };
-    std::set<int> fixedVertBK;
+    std::set<int> DBCVertexIdsBK;
 
 protected:
     static const std::vector<std::string> animScriptTypeStrs;
@@ -168,7 +168,7 @@ public:
     static std::string getStrByAnimScriptType(AnimScriptType animScriptType);
 
 protected:
-    void setFixedVertices(Mesh<dim>& mesh) const;
+    void setDBCVertices(Mesh<dim>& mesh) const;
 };
 
 } // namespace IPC
