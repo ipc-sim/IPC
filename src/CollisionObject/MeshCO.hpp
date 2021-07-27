@@ -122,6 +122,11 @@ public:
         double slackness,
         const std::vector<std::pair<int, int>>& constraintSet,
         double& stepSize) override;
+    void largestFeasibleStepSize_CCD(const Mesh<dim>& mesh,
+        const SpatialHash<dim>& sh, const Eigen::VectorXd& searchDir,
+        double slackness, double& stepSize) override;
+
+#ifdef IPC_WITH_TIGHT_INCLUSION
     void largestFeasibleStepSize_TightInclusion(
         const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh,
@@ -129,21 +134,19 @@ public:
         double tolerance,
         const std::vector<std::pair<int, int>>& constraintSet,
         double& stepSize) override;
-    void largestFeasibleStepSize_exact(const Mesh<dim>& mesh,
-        const SpatialHash<dim>& sh,
-        const Eigen::VectorXd& searchDir,
-        const ccd::CCDMethod method,
-        const std::vector<std::pair<int, int>>& constraintSet,
-        double& stepSize) override;
-
-    void largestFeasibleStepSize_CCD(const Mesh<dim>& mesh,
-        const SpatialHash<dim>& sh, const Eigen::VectorXd& searchDir,
-        double slackness, double& stepSize) override;
     void largestFeasibleStepSize_CCD_TightInclusion(
         const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh,
         const Eigen::VectorXd& searchDir,
         double tolerance,
+        double& stepSize) override;
+#endif
+
+    void largestFeasibleStepSize_exact(const Mesh<dim>& mesh,
+        const SpatialHash<dim>& sh,
+        const Eigen::VectorXd& searchDir,
+        const ccd::CCDMethod method,
+        const std::vector<std::pair<int, int>>& constraintSet,
         double& stepSize) override;
     void largestFeasibleStepSize_CCD_exact(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh, const Eigen::VectorXd& searchDir,

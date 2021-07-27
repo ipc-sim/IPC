@@ -8,11 +8,15 @@
 #include "SelfCollisionHandler.hpp"
 #include "FrictionUtils.hpp"
 
+#include <stdexcept>
+
 #include <tbb/mutex.h>
 
 // Etienne Vouga's CCD using a root finder in floating points
 #include <CTCD.h>
+#ifdef IPC_WITH_TIGHT_INCLUSION
 #include <tight_inclusion/inclusion_ccd.hpp>
+#endif
 #include "CCDUtils.hpp"
 
 #include "get_feasible_steps.hpp"
@@ -678,6 +682,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize(const Mesh<dim>& mesh,
 #endif
 }
 
+#ifdef IPC_WITH_TIGHT_INCLUSION
 template <int dim>
 void SelfCollisionHandler<dim>::largestFeasibleStepSize_TightInclusion(
     const Mesh<dim>& mesh,
@@ -847,6 +852,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_TightInclusion(
     largestFeasibleStepSize_CCD(mesh, sh, searchDir, tolerance, candidates, stepSize);
 #endif
 }
+#endif // IPC_WITH_TIGHT_INCLUSION
 
 template <int dim>
 void SelfCollisionHandler<dim>::largestFeasibleStepSize_exact(const Mesh<dim>& mesh,
@@ -1347,6 +1353,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD(const Mesh<dim>& mes
     timer_temp3.stop();
 }
 
+#ifdef IPC_WITH_TIGHT_INCLUSION
 template <int dim>
 void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_TightInclusion(
     const Mesh<dim>& mesh,
@@ -1598,6 +1605,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_TightInclusion(
 #endif
     timer_temp3.stop();
 }
+#endif // IPC_WITH_TIGHT_INCLUSION
 
 template <int dim>
 void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(const Mesh<dim>& mesh,
@@ -1928,6 +1936,7 @@ bool SelfCollisionHandler<dim>::updateActiveSet_QP(
                 break;
             }
             case ccd::CCDMethod::TIGHT_INCLUSION: {
+#ifdef IPC_WITH_TIGHT_INCLUSION
                 double output_tolerance;
                 intersects = inclusion_ccd::vertexFaceCCD_double(
                     mesh.V_prev.row(vI).transpose(),
@@ -1947,6 +1956,10 @@ bool SelfCollisionHandler<dim>::updateActiveSet_QP(
                     output_tolerance,
                     /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE);
                 break;
+#else
+                spdlog::error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+                throw std::runtime_error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+#endif
             }
             default:
                 intersects = vertexFaceToIBisection(
@@ -2023,6 +2036,7 @@ bool SelfCollisionHandler<dim>::updateActiveSet_QP(
                     toi);
                 break;
             case ccd::CCDMethod::TIGHT_INCLUSION: {
+#ifdef IPC_WITH_TIGHT_INCLUSION
                 double output_tolerance;
                 intersects = inclusion_ccd::edgeEdgeCCD_double(
                     mesh.V_prev.row(edge1.first).transpose(),
@@ -2042,6 +2056,10 @@ bool SelfCollisionHandler<dim>::updateActiveSet_QP(
                     output_tolerance,
                     /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE);
                 break;
+#else
+                spdlog::error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+                throw std::runtime_error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+#endif
             }
             default:
                 intersects = edgeEdgeToIBisection(

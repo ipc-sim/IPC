@@ -9,17 +9,22 @@
 #include <CollisionObject/CollisionObject.h>
 #include <Mesh.hpp>
 
+#ifdef IPC_WITH_TIGHT_INCLUSION
 #define TIGHT_INCLUSION_MAX_ITER 1e6
 #define TIGHT_INCLUSION_CCD_TYPE 1
 #define TIGHT_INCLUSION_DIST_P 0.2
 #define TIGHT_INCLUSION_MIN_DIST tolerance
+#endif
 
 namespace IPC {
 
+#ifdef IPC_WITH_TIGHT_INCLUSION
 extern std::array<double, 3> tight_inclusion_vf_err, tight_inclusion_ee_err;
+#endif
 
 extern Eigen::Vector3d invShift;
 
+#ifdef IPC_WITH_TIGHT_INCLUSION
 template <int dim>
 void computeTightInclusionError(
     Mesh<dim>& mesh,
@@ -31,7 +36,9 @@ void computeTightInclusionError(
     std::vector<std::shared_ptr<CollisionObject<dim>>>& meshCollisionObjects,
     const Eigen::Vector3d& world_min,
     const Eigen::Vector3d& world_max);
+#endif
 
+#ifdef IPC_WITH_FPRP_CCD
 template <int dim>
 Eigen::Vector3d shiftVertices(
     Mesh<dim>& mesh,
@@ -43,6 +50,7 @@ Eigen::Vector3d shiftVertices(
     std::vector<std::shared_ptr<CollisionObject<dim>>>& meshCollisionObjects,
     const Eigen::Vector3d& world_min,
     const Eigen::Vector3d& world_max);
+#endif
 
 bool vertexFaceToIBisection(
     const Eigen::Vector3d& v_t0,

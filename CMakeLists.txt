@@ -1,14 +1,34 @@
-cmake_minimum_required(VERSION 3.9)
-project(IPC)
+# Detects whether this is a top-level project
+get_directory_property(HAS_PARENT PARENT_DIRECTORY)
+if(HAS_PARENT)
+  set(IPC_TOPLEVEL_PROJECT OFF)
+else()
+  set(IPC_TOPLEVEL_PROJECT ON)
+endif()
+
+# Check required CMake version
+set(REQUIRED_CMAKE_VERSION "3.9")
+if(IPC_TOPLEVEL_PROJECT)
+  cmake_minimum_required(VERSION ${REQUIRED_CMAKE_VERSION})
+else()
+  # Don't use cmake_minimum_required here to avoid implicitly overriding parent policies
+  if(${CMAKE_VERSION} VERSION_LESS ${REQUIRED_CMAKE_VERSION})
+    message(FATAL_ERROR "CMake required version to build IPC is ${REQUIRED_CMAKE_VERSION}")
+  endif()
+endif()
+
+# Include user-provided default options if available. We do that before the main
+# `project()` so that we can define the C/C++ compilers from the option file.
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/IPCOptions.cmake)
+  message(STATUS "Using local options file: ${CMAKE_CURRENT_SOURCE_DIR}/IPCOptions.cmake")
+  include(${CMAKE_CURRENT_SOURCE_DIR}/IPCOptions.cmake)
+endif()
 
 ################################################################################
 
-# Detects whether this is a top-level project
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-    set(IPC_TOPLEVEL_PROJECT ON)
-else()
-    set(IPC_TOPLEVEL_PROJECT OFF)
-endif()
+project(IPC DESCRIPTION "Incremental Potential Contact (IPC)" LANGUAGES CXX)
+
+################################################################################
 
 # Project options
 option(IPC_WITH_OPENGL "Use libgil viewer for preview and output" ON)
@@ -153,7 +173,10 @@ if(IPC_WITH_EXACT_CCD)
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_EXACT_CCD)
 endif()
 if(IPC_WITH_FPRP)
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_FPRP_CCD)
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC IPC_WITH_FPRP_CCD)
+endif()
+if(CCD_WRAPPER_WITH_TIGHT_INCLUSION)
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC IPC_WITH_TIGHT_INCLUSION)
 endif()
 
 # tbb

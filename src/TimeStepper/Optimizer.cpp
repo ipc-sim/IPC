@@ -40,6 +40,7 @@
 #include <iostream>
 #include <string>
 #include <numeric>
+#include <stdexcept>
 
 #include <sys/stat.h> // for mkdir
 
@@ -862,7 +863,7 @@ bool Optimizer<dim>::solveQP(
             P, gradient, A, b, gurobiQPSolver, searchDir, dual);
 #else
         spdlog::error("Gurobi QP solve is disabled. Set IPC_WITH_GUROBI=ON in cmake to enable.");
-        throw "Gurobi QP solve is disabled. Set IPC_WITH_GUROBI=ON in cmake to enable.";
+        throw std::runtime_error("Gurobi QP solve is disabled. Set IPC_WITH_GUROBI=ON in cmake to enable.");
 #endif
     }
 
@@ -1245,9 +1246,14 @@ void Optimizer<dim>::initX(int option, std::vector<std::vector<int>>& p_activeSe
                     break;
 
                 case ccd::CCDMethod::TIGHT_INCLUSION:
+#ifdef IPC_WITH_TIGHT_INCLUSION
                     animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_CCD_TightInclusion(
                         result, sh, searchDir, animConfig.ccdTolerance, stepSize);
                     break;
+#else
+                    spdlog::error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+                    throw std::runtime_error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+#endif
 
                 default:
                     animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_CCD_exact(
@@ -1264,9 +1270,14 @@ void Optimizer<dim>::initX(int option, std::vector<std::vector<int>>& p_activeSe
                     break;
 
                 case ccd::CCDMethod::TIGHT_INCLUSION:
+#ifdef IPC_WITH_TIGHT_INCLUSION
                     SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                         result, sh, searchDir, animConfig.ccdTolerance, newCandidates, stepSize);
                     break;
+#else
+                    spdlog::error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+                    throw std::runtime_error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+#endif
 
                 default:
                     SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(
@@ -1993,9 +2004,14 @@ bool Optimizer<dim>::solveSub_IP(double kappa, std::vector<std::vector<int>>& AH
                 break;
 
             case ccd::CCDMethod::TIGHT_INCLUSION:
+#ifdef IPC_WITH_TIGHT_INCLUSION
                 animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_TightInclusion(
                     result, sh, searchDir, animConfig.ccdTolerance, MMActiveSet_CCD[coI], alpha);
                 break;
+#else
+                spdlog::error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+                throw std::runtime_error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+#endif
 
             default:
                 animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_exact(
@@ -2012,9 +2028,14 @@ bool Optimizer<dim>::solveSub_IP(double kappa, std::vector<std::vector<int>>& AH
                 break;
 
             case ccd::CCDMethod::TIGHT_INCLUSION:
+#ifdef IPC_WITH_TIGHT_INCLUSION
                 SelfCollisionHandler<dim>::largestFeasibleStepSize_TightInclusion(
                     result, sh, searchDir, animConfig.ccdTolerance, MMActiveSet_CCD.back(), newCandidates, alpha);
                 break;
+#else
+                spdlog::error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+                throw std::runtime_error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+#endif
 
             default:
                 SelfCollisionHandler<dim>::largestFeasibleStepSize_exact(
@@ -2052,9 +2073,14 @@ bool Optimizer<dim>::solveSub_IP(double kappa, std::vector<std::vector<int>>& AH
                             break;
 
                         case ccd::CCDMethod::TIGHT_INCLUSION:
+#ifdef IPC_WITH_TIGHT_INCLUSION
                             animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_CCD_TightInclusion(
                                 result, sh, searchDir, animConfig.ccdTolerance, alpha);
                             break;
+#else
+                            spdlog::error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+                            throw std::runtime_error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+#endif
 
                         default:
                             animConfig.meshCollisionObjects[coI]->largestFeasibleStepSize_CCD_exact(
@@ -2070,9 +2096,14 @@ bool Optimizer<dim>::solveSub_IP(double kappa, std::vector<std::vector<int>>& AH
                             break;
 
                         case ccd::CCDMethod::TIGHT_INCLUSION:
+#ifdef IPC_WITH_TIGHT_INCLUSION
                             SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                                 result, sh, searchDir, animConfig.ccdTolerance, newCandidates, alpha);
                             break;
+#else
+                            spdlog::error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+                            throw std::runtime_error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+#endif
 
                         default:
                             SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(

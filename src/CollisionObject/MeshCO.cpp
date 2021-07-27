@@ -7,9 +7,13 @@
 
 #include "MeshCO.hpp"
 
+#include <stdexcept>
+
 // Etienne Vouga's CCD using a root finder in floating points
 #include <CTCD.h>
+#ifdef IPC_WITH_TIGHT_INCLUSION
 #include <tight_inclusion/inclusion_ccd.hpp>
+#endif
 #include "CCDUtils.hpp"
 
 #include "get_feasible_steps.hpp"
@@ -728,6 +732,7 @@ void MeshCO<dim>::largestFeasibleStepSize(const Mesh<dim>& mesh,
     largestFeasibleStepSize_CCD(mesh, sh, searchDir, slackness, stepSize);
 }
 
+#ifdef IPC_WITH_TIGHT_INCLUSION
 template <int dim>
 void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
     const Mesh<dim>& mesh,
@@ -954,6 +959,7 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
     largestFeasibleStepSize_CCD(mesh, sh, searchDir, tolerance, stepSize);
 #endif
 }
+#endif // IPC_WITH_TIGHT_INCLUSION
 
 template <int dim>
 void MeshCO<dim>::largestFeasibleStepSize_exact(const Mesh<dim>& mesh,
@@ -1355,6 +1361,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD(const Mesh<dim>& mesh,
     stepSize = std::min(stepSize, largestAlphaEE.minCoeff());
 }
 
+#ifdef IPC_WITH_TIGHT_INCLUSION
 template <int dim>
 void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
     const Mesh<dim>& mesh,
@@ -1617,6 +1624,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
     );
 #endif
 }
+#endif // IPC_WITH_TIGHT_INCLUSION
 
 template <int dim>
 void MeshCO<dim>::largestFeasibleStepSize_CCD_exact(const Mesh<dim>& mesh,
@@ -2829,6 +2837,7 @@ bool MeshCO<dim>::updateActiveSet_QP(
                 break;
             }
             case ccd::CCDMethod::TIGHT_INCLUSION: {
+#ifdef IPC_WITH_TIGHT_INCLUSION
                 double output_tolerance;
                 intersects = inclusion_ccd::vertexFaceCCD_double(
                     mesh.V_prev.row(vI).transpose(),
@@ -2848,6 +2857,10 @@ bool MeshCO<dim>::updateActiveSet_QP(
                     output_tolerance,
                     /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
                 break;
+#else
+                spdlog::error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+                throw std::runtime_error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+#endif
             }
             default:
                 intersects = vertexFaceToIBisection(
@@ -2910,6 +2923,7 @@ bool MeshCO<dim>::updateActiveSet_QP(
                     toi);
                 break;
             case ccd::CCDMethod::TIGHT_INCLUSION: {
+#ifdef IPC_WITH_TIGHT_INCLUSION
                 double output_tolerance;
                 intersects = inclusion_ccd::vertexFaceCCD_double(
                     Base::V.row(vI).transpose(),
@@ -2929,6 +2943,10 @@ bool MeshCO<dim>::updateActiveSet_QP(
                     output_tolerance,
                     /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
                 break;
+#else
+                spdlog::error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+                throw std::runtime_error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+#endif
             }
             default:
                 intersects = vertexFaceToIBisection(
@@ -3026,6 +3044,7 @@ bool MeshCO<dim>::updateActiveSet_QP(
                     toi);
                 break;
             case ccd::CCDMethod::TIGHT_INCLUSION: {
+#ifdef IPC_WITH_TIGHT_INCLUSION
                 double output_tolerance;
                 intersects = inclusion_ccd::edgeEdgeCCD_double(
                     mesh.V_prev.row(mesh_edge.first).transpose(),
@@ -3045,6 +3064,10 @@ bool MeshCO<dim>::updateActiveSet_QP(
                     output_tolerance,
                     /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
                 break;
+#else
+                spdlog::error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+                throw std::runtime_error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+#endif
             }
             default:
                 intersects = edgeEdgeToIBisection(

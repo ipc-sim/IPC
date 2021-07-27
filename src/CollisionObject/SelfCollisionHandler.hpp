@@ -109,6 +109,13 @@ public:
         const std::vector<std::pair<int, int>>& constraintSet,
         std::vector<std::pair<int, int>>& candidates,
         double& stepSize);
+    // CCD based
+    static void largestFeasibleStepSize_CCD(const Mesh<dim>& mesh,
+        const SpatialHash<dim>& sh, const Eigen::VectorXd& searchDir,
+        double slackness, std::vector<std::pair<int, int>>& candidates,
+        double& stepSize);
+
+#ifdef IPC_WITH_TIGHT_INCLUSION
     static void largestFeasibleStepSize_TightInclusion(
         const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh,
@@ -117,23 +124,20 @@ public:
         const std::vector<std::pair<int, int>>& constraintSet,
         std::vector<std::pair<int, int>>& candidates,
         double& stepSize);
-    static void largestFeasibleStepSize_exact(const Mesh<dim>& mesh,
-        const SpatialHash<dim>& sh,
-        const Eigen::VectorXd& searchDir,
-        const ccd::CCDMethod method,
-        const std::vector<std::pair<int, int>>& constraintSet,
-        double& stepSize);
-    // CCD based
-    static void largestFeasibleStepSize_CCD(const Mesh<dim>& mesh,
-        const SpatialHash<dim>& sh, const Eigen::VectorXd& searchDir,
-        double slackness, std::vector<std::pair<int, int>>& candidates,
-        double& stepSize);
     static void largestFeasibleStepSize_CCD_TightInclusion(
         const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh,
         const Eigen::VectorXd& searchDir,
         double tolerance,
         std::vector<std::pair<int, int>>& candidates,
+        double& stepSize);
+#endif
+
+    static void largestFeasibleStepSize_exact(const Mesh<dim>& mesh,
+        const SpatialHash<dim>& sh,
+        const Eigen::VectorXd& searchDir,
+        const ccd::CCDMethod method,
+        const std::vector<std::pair<int, int>>& constraintSet,
         double& stepSize);
     static void largestFeasibleStepSize_CCD_exact(const Mesh<dim>& mesh,
         const SpatialHash<dim>& sh, const Eigen::VectorXd& searchDir,

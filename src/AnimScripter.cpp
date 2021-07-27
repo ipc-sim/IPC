@@ -1608,6 +1608,11 @@ int AnimScripter<dim>::stepAnimScript(Mesh<dim>& mesh,
                 searchDir.segment<dim>(movingVerts.first * dim) = movingVerts.second * dt;
             }
         }
+        else {
+            for (const auto& vI : mesh.DBCVertexIds) {
+                mesh.vertexDBCType[vI] = DirichletBCType::ZERO;
+            }
+        }
         break;
     }
 

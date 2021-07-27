@@ -1133,11 +1133,16 @@ int main(int argc, char* argv[])
     triSoup.emplace_back(temp);
 
     if (config.ccdMethod == ccd::CCDMethod::TIGHT_INCLUSION) {
+#ifdef IPC_WITH_TIGHT_INCLUSION
         // Compute a conservative error for the tight inclusion CCD
         computeTightInclusionError(*temp, config.meshCollisionObjects);
+#else
+        spdlog::error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
+        exit(1);
+#endif
     }
     else if (config.ccdMethod == ccd::CCDMethod::FLOATING_POINT_ROOT_PARITY) {
-#ifdef USE_FPRP_CCD
+#ifdef IPC_WITH_FPRP_CCD
         // shift entire mesh so the CCD will be exact in doubles
         IPC::invShift = shiftVertices(*temp, config.meshCollisionObjects);
 #else

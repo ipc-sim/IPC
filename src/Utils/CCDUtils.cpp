@@ -1,17 +1,21 @@
 #include <CCDUtils.hpp>
 
-#ifdef USE_FPRP_CCD
+#ifdef IPC_WITH_FPRP_CCD
 #include <doubleCCD/doubleccd.hpp>
 #endif
 
+#ifdef IPC_WITH_TIGHT_INCLUSION
 #include <tight_inclusion/interval_root_finder.hpp>
+#endif
 
 #include <spdlog/spdlog.h>
 
 namespace IPC {
 
+#ifdef IPC_WITH_TIGHT_INCLUSION
 std::array<double, 3> tight_inclusion_vf_err = { -1, -1, -1 };
 std::array<double, 3> tight_inclusion_ee_err = { -1, -1, -1 };
+#endif
 Eigen::Vector3d invShift = Eigen::Vector3d::Zero();
 
 template <int dim>
@@ -47,6 +51,7 @@ void computeConservativeWorldBBox(Mesh<dim>& mesh,
         world_max.x(), world_max.y(), world_max.z());
 }
 
+#ifdef IPC_WITH_TIGHT_INCLUSION
 template <int dim>
 void computeTightInclusionError(
     Mesh<dim>& mesh,
@@ -80,7 +85,9 @@ void computeTightInclusionError(
     tight_inclusion_ee_err = inclusion_ccd::get_numerical_error(
         bbox_vertices, /*check_vf=*/false, /*using_minimum_separation=*/true);
 }
+#endif
 
+#ifdef IPC_WITH_FPRP_CCD
 template <int dim>
 Eigen::Vector3d shiftVertices(
     Mesh<dim>& mesh,
@@ -101,7 +108,6 @@ Eigen::Vector3d shiftVertices(
 {
     assert(dim == 3);
 
-#ifdef USE_FPRP_CCD
     // Stack all vertices to shift by the same amount
     size_t num_vertices = mesh.V.rows();
     for (std::shared_ptr<CollisionObject<dim>> meshCO : meshCollisionObjects) {
@@ -132,10 +138,8 @@ Eigen::Vector3d shiftVertices(
     mesh.V = all_vertices.bottomRows(mesh.V.rows());
 
     return invShift;
-#else
-    throw "FPRP disabled, unable to shift vertices";
-#endif
 }
+#endif
 
 bool vertexFaceToIBisection(
     const Eigen::Vector3d& v_t0,
@@ -242,6 +246,7 @@ bool edgeEdgeToIBisection(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#ifdef IPC_WITH_TIGHT_INCLUSION
 template void computeTightInclusionError(
     Mesh<2>& mesh,
     std::vector<std::shared_ptr<CollisionObject<2>>>& meshCollisionObjects);
@@ -250,15 +255,20 @@ template void computeTightInclusionError(
     std::vector<std::shared_ptr<CollisionObject<2>>>& meshCollisionObjects,
     const Eigen::Vector3d& world_min,
     const Eigen::Vector3d& world_max);
-template Eigen::Vector3d shiftVertices(
-    Mesh<2>& mesh,
-    std::vector<std::shared_ptr<CollisionObject<2>>>& meshCollisionObjects);
-template Eigen::Vector3d shiftVertices(
-    Mesh<2>& mesh,
-    std::vector<std::shared_ptr<CollisionObject<2>>>& meshCollisionObjects,
-    const Eigen::Vector3d& world_min,
-    const Eigen::Vector3d& world_max);
+#endif
 
+#ifdef IPC_WITH_FPRP_CCD
+template Eigen::Vector3d shiftVertices(
+    Mesh<2>& mesh,
+    std::vector<std::shared_ptr<CollisionObject<2>>>& meshCollisionObjects);
+template Eigen::Vector3d shiftVertices(
+    Mesh<2>& mesh,
+    std::vector<std::shared_ptr<CollisionObject<2>>>& meshCollisionObjects,
+    const Eigen::Vector3d& world_min,
+    const Eigen::Vector3d& world_max);
+#endif
+
+#ifdef IPC_WITH_TIGHT_INCLUSION
 template void computeTightInclusionError(
     Mesh<3>& mesh,
     std::vector<std::shared_ptr<CollisionObject<3>>>& meshCollisionObjects);
@@ -267,6 +277,9 @@ template void computeTightInclusionError(
     std::vector<std::shared_ptr<CollisionObject<3>>>& meshCollisionObjects,
     const Eigen::Vector3d& world_min,
     const Eigen::Vector3d& world_max);
+#endif
+
+#ifdef IPC_WITH_FPRP_CCD
 template Eigen::Vector3d shiftVertices(
     Mesh<3>& mesh,
     std::vector<std::shared_ptr<CollisionObject<3>>>& meshCollisionObjects);
@@ -275,5 +288,6 @@ template Eigen::Vector3d shiftVertices(
     std::vector<std::shared_ptr<CollisionObject<3>>>& meshCollisionObjects,
     const Eigen::Vector3d& world_min,
     const Eigen::Vector3d& world_max);
+#endif
 
 } // namespace IPC
