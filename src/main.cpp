@@ -14,6 +14,7 @@
 #include <igl/opengl/glfw/Viewer.h>
 #include <igl/png/writePNG.h>
 #endif
+#include <igl/colormap.h>
 
 #include <sys/stat.h> // for mkdir
 
