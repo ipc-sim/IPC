@@ -77,7 +77,7 @@ void SelfCollisionHandler<dim>::leftMultiplyConstraintJacobianT(const Mesh<dim>&
     double coef)
 {
     //TODO: parallelize
-    {  // Note: it was if constexpr (dim == 3) {
+    { // Note: it was if constexpr (dim == 3) {
         int constraintI = 0;
         for (const auto& MMCVIDI : activeSet) {
             if (MMCVIDI[0] >= 0) {
@@ -140,7 +140,7 @@ void SelfCollisionHandler<dim>::evaluateConstraintQP(
     const CollisionConstraintType constraintType, double toi,
     double& val, double coef)
 {
-    {  // Note: it was if constexpr (dim == 3) {
+    { // Note: it was if constexpr (dim == 3) {
         if (MMCVIDI[0] >= 0) {
             // edge-edge ++++
             compute_collision_constraint(
@@ -238,7 +238,7 @@ void SelfCollisionHandler<dim>::leftMultiplyConstraintJacobianTQP(
     double coef)
 {
     //TODO: parallelize
-    {  // Note: it was if constexpr (dim == 3) {
+    { // Note: it was if constexpr (dim == 3) {
         int constraintI = 0;
         for (const auto& MMCVIDI : activeSet) {
             Eigen::Matrix<double, dim * 4, 1> grad;
@@ -401,7 +401,7 @@ void SelfCollisionHandler<dim>::augmentIPHessian(const Mesh<dim>& mesh,
     LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* mtr_incremental,
     double dHat, double coef, bool projectDBC)
 {
-    {  // Note: it was if constexpr (dim == 3) {
+    { // Note: it was if constexpr (dim == 3) {
         std::vector<Eigen::Matrix<double, 4 * dim, 4 * dim>> IPHessian(activeSet.size());
         std::vector<Eigen::Matrix<int, 4, 1>> rowIStart(activeSet.size());
 #ifdef USE_TBB
@@ -428,10 +428,10 @@ void SelfCollisionHandler<dim>::augmentIPHessian(const Mesh<dim>& mesh,
                     IPHessian[cI] = ((coef * H_b) * g) * g.transpose() + (coef * g_b) * H;
                     IglUtils::makePD(IPHessian[cI]);
 
-                    rowIStart[cI][0] = (mesh.isFixedVert[MMCVIDI[0]] && projectDBC) ? -1 : (MMCVIDI[0] * dim);
-                    rowIStart[cI][1] = (mesh.isFixedVert[MMCVIDI[1]] && projectDBC) ? -1 : (MMCVIDI[1] * dim);
-                    rowIStart[cI][2] = (mesh.isFixedVert[MMCVIDI[2]] && projectDBC) ? -1 : (MMCVIDI[2] * dim);
-                    rowIStart[cI][3] = (mesh.isFixedVert[MMCVIDI[3]] && projectDBC) ? -1 : (MMCVIDI[3] * dim);
+                    rowIStart[cI][0] = mesh.isProjectDBCVertex(MMCVIDI[0], projectDBC) ? -1 : (MMCVIDI[0] * dim);
+                    rowIStart[cI][1] = mesh.isProjectDBCVertex(MMCVIDI[1], projectDBC) ? -1 : (MMCVIDI[1] * dim);
+                    rowIStart[cI][2] = mesh.isProjectDBCVertex(MMCVIDI[2], projectDBC) ? -1 : (MMCVIDI[2] * dim);
+                    rowIStart[cI][3] = mesh.isProjectDBCVertex(MMCVIDI[3], projectDBC) ? -1 : (MMCVIDI[3] * dim);
                 }
                 else {
                     // point-triangle and degenerate edge-edge
@@ -456,8 +456,8 @@ void SelfCollisionHandler<dim>::augmentIPHessian(const Mesh<dim>& mesh,
                         IglUtils::makePD(HessianBlock);
                         IPHessian[cI].template block<dim * 2, dim * 2>(0, 0) = HessianBlock;
 
-                        rowIStart[cI][0] = (mesh.isFixedVert[v0I] && projectDBC) ? -1 : (v0I * dim);
-                        rowIStart[cI][1] = (mesh.isFixedVert[MMCVIDI[1]] && projectDBC) ? -1 : (MMCVIDI[1] * dim);
+                        rowIStart[cI][0] = mesh.isProjectDBCVertex(v0I, projectDBC) ? -1 : (v0I * dim);
+                        rowIStart[cI][1] = mesh.isProjectDBCVertex(MMCVIDI[1], projectDBC) ? -1 : (MMCVIDI[1] * dim);
                         rowIStart[cI][2] = -1;
                         rowIStart[cI][3] = -1;
                     }
@@ -479,9 +479,9 @@ void SelfCollisionHandler<dim>::augmentIPHessian(const Mesh<dim>& mesh,
                         IglUtils::makePD(HessianBlock);
                         IPHessian[cI].block(0, 0, dim * 3, dim * 3) = HessianBlock;
 
-                        rowIStart[cI][0] = (mesh.isFixedVert[v0I] && projectDBC) ? -1 : (v0I * dim);
-                        rowIStart[cI][1] = (mesh.isFixedVert[MMCVIDI[1]] && projectDBC) ? -1 : (MMCVIDI[1] * dim);
-                        rowIStart[cI][2] = (mesh.isFixedVert[MMCVIDI[2]] && projectDBC) ? -1 : (MMCVIDI[2] * dim);
+                        rowIStart[cI][0] = mesh.isProjectDBCVertex(v0I, projectDBC) ? -1 : (v0I * dim);
+                        rowIStart[cI][1] = mesh.isProjectDBCVertex(MMCVIDI[1], projectDBC) ? -1 : (MMCVIDI[1] * dim);
+                        rowIStart[cI][2] = mesh.isProjectDBCVertex(MMCVIDI[2], projectDBC) ? -1 : (MMCVIDI[2] * dim);
                         rowIStart[cI][3] = -1;
                     }
                     else {
@@ -500,10 +500,10 @@ void SelfCollisionHandler<dim>::augmentIPHessian(const Mesh<dim>& mesh,
                         IPHessian[cI] = ((coef * H_b) * g) * g.transpose() + (coef * g_b) * H;
                         IglUtils::makePD(IPHessian[cI]);
 
-                        rowIStart[cI][0] = (mesh.isFixedVert[v0I] && projectDBC) ? -1 : (v0I * dim);
-                        rowIStart[cI][1] = (mesh.isFixedVert[MMCVIDI[1]] && projectDBC) ? -1 : (MMCVIDI[1] * dim);
-                        rowIStart[cI][2] = (mesh.isFixedVert[MMCVIDI[2]] && projectDBC) ? -1 : (MMCVIDI[2] * dim);
-                        rowIStart[cI][3] = (mesh.isFixedVert[MMCVIDI[3]] && projectDBC) ? -1 : (MMCVIDI[3] * dim);
+                        rowIStart[cI][0] = mesh.isProjectDBCVertex(v0I, projectDBC) ? -1 : (v0I * dim);
+                        rowIStart[cI][1] = mesh.isProjectDBCVertex(MMCVIDI[1], projectDBC) ? -1 : (MMCVIDI[1] * dim);
+                        rowIStart[cI][2] = mesh.isProjectDBCVertex(MMCVIDI[2], projectDBC) ? -1 : (MMCVIDI[2] * dim);
+                        rowIStart[cI][3] = mesh.isProjectDBCVertex(MMCVIDI[3], projectDBC) ? -1 : (MMCVIDI[3] * dim);
                     }
                 }
             }
@@ -523,7 +523,7 @@ void SelfCollisionHandler<dim>::augmentIPHessian(const Mesh<dim>& mesh,
                             mtr_incremental->addCoeff(rowIStartI, colIStartI + 1, IPHessian[cI](i * dim, j * dim + 1));
                             mtr_incremental->addCoeff(rowIStartI + 1, colIStartI, IPHessian[cI](i * dim + 1, j * dim));
                             mtr_incremental->addCoeff(rowIStartI + 1, colIStartI + 1, IPHessian[cI](i * dim + 1, j * dim + 1));
-                            {  // Note: it was if constexpr (dim == 3) {
+                            { // Note: it was if constexpr (dim == 3) {
                                 mtr_incremental->addCoeff(rowIStartI, colIStartI + 2, IPHessian[cI](i * dim, j * dim + 2));
                                 mtr_incremental->addCoeff(rowIStartI + 1, colIStartI + 2, IPHessian[cI](i * dim + 1, j * dim + 2));
 
@@ -818,7 +818,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD(const Mesh<dim>& mes
         for (int svJ = svI + 1; svJ < mesh.SVI.size(); ++svJ) {
 #endif
                 int vJ = mesh.SVI[svJ];
-                if ((vICoDim < 3 && mesh.vICoDim(vJ) < 3) || (mesh.isFixedVert[vI] && mesh.isFixedVert[vJ])) {
+                if ((vICoDim < 3 && mesh.vICoDim(vJ) < 3) || (mesh.isDBCVertex(vI) && mesh.isDBCVertex(vJ))) {
                     continue;
                 }
 
@@ -855,7 +855,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD(const Mesh<dim>& mes
         for (const auto& meshEI : mesh.SFEdges) {
 #endif
                 if (!(meshEI.first == vI || meshEI.second == vI)) {
-                    if ((vICoDim < 3 && mesh.vICoDim(meshEI.first) < 3) || (mesh.isFixedVert[vI] && mesh.isFixedVert[meshEI.first] && mesh.isFixedVert[meshEI.second])) {
+                    if ((vICoDim < 3 && mesh.vICoDim(meshEI.first) < 3) || (mesh.isDBCVertex(vI) && mesh.isDBCVertex(meshEI.first) && mesh.isDBCVertex(meshEI.second))) {
                         continue;
                     }
 
@@ -901,7 +901,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD(const Mesh<dim>& mes
             {
                 const RowVector3i& sfVInd = mesh.SF.row(sfI);
                 if (!(vI == sfVInd[0] || vI == sfVInd[1] || vI == sfVInd[2])) {
-                    if ((vICoDim < 3 && mesh.sfICoDim(sfI) < 3) || (mesh.isFixedVert[vI] && mesh.isFixedVert[sfVInd[0]] && mesh.isFixedVert[sfVInd[1]] && mesh.isFixedVert[sfVInd[2]])) {
+                    if ((vICoDim < 3 && mesh.sfICoDim(sfI) < 3) || (mesh.isDBCVertex(vI) && mesh.isDBCVertex(sfVInd[0]) && mesh.isDBCVertex(sfVInd[1]) && mesh.isDBCVertex(sfVInd[2]))) {
                         continue;
                     }
 
@@ -1033,7 +1033,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD(const Mesh<dim>& mes
             const auto& meshEJ = mesh.SFEdges[eJ];
 #endif
                 if (!(meshEI.first == meshEJ.first || meshEI.first == meshEJ.second || meshEI.second == meshEJ.first || meshEI.second == meshEJ.second || eI > eJ)) {
-                    if ((eICoDim < 3 && mesh.vICoDim(meshEJ.first) < 3) || (mesh.isFixedVert[meshEI.first] && mesh.isFixedVert[meshEI.second] && mesh.isFixedVert[meshEJ.first] && mesh.isFixedVert[meshEJ.second])) {
+                    if ((eICoDim < 3 && mesh.vICoDim(meshEJ.first) < 3) || (mesh.isDBCVertex(meshEI.first) && mesh.isDBCVertex(meshEI.second) && mesh.isDBCVertex(meshEJ.first) && mesh.isDBCVertex(meshEJ.second))) {
                         continue;
                     }
 
@@ -1202,7 +1202,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(const Mesh<dim
             {
                 const RowVector3i& sfVInd = mesh.SF.row(sfI);
                 if (!(vI == sfVInd[0] || vI == sfVInd[1] || vI == sfVInd[2])) {
-                    if ((vICoDim < 3 && mesh.sfICoDim(sfI) < 3) || (mesh.isFixedVert[vI] && mesh.isFixedVert[sfVInd[0]] && mesh.isFixedVert[sfVInd[1]] && mesh.isFixedVert[sfVInd[2]])) {
+                    if ((vICoDim < 3 && mesh.sfICoDim(sfI) < 3) || (mesh.isDBCVertex(vI) && mesh.isDBCVertex(sfVInd[0]) && mesh.isDBCVertex(sfVInd[1]) && mesh.isDBCVertex(sfVInd[2]))) {
                         continue;
                     }
 
@@ -1280,7 +1280,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(const Mesh<dim
             const auto& meshEJ = mesh.SFEdges[eJ];
 #endif
                 if (!(meshEI.first == meshEJ.first || meshEI.first == meshEJ.second || meshEI.second == meshEJ.first || meshEI.second == meshEJ.second) || (eI > eJ)) {
-                    if ((eICoDim < 3 && mesh.vICoDim(meshEJ.first) < 3) || (mesh.isFixedVert[meshEI.first] && mesh.isFixedVert[meshEI.second] && mesh.isFixedVert[meshEJ.first] && mesh.isFixedVert[meshEJ.second])) {
+                    if ((eICoDim < 3 && mesh.vICoDim(meshEJ.first) < 3) || (mesh.isDBCVertex(meshEI.first) && mesh.isDBCVertex(meshEI.second) && mesh.isDBCVertex(meshEJ.first) && mesh.isDBCVertex(meshEJ.second))) {
                         continue;
                     }
 
@@ -1332,7 +1332,7 @@ void SelfCollisionHandler<dim>::updateConstraints_QP(
     const std::unordered_map<MMCVID, double, MMCVIDHash>& mmcvid_to_toi,
     std::vector<Eigen::Triplet<double>>& A_triplet, Eigen::VectorXd& l)
 {
-    {  // Note: it was if constexpr (dim == 3) {
+    { // Note: it was if constexpr (dim == 3) {
         A_triplet.reserve(A_triplet.size() + activeSet.size() * 4 * dim);
         int constraintI = l.size();
         for (const auto& MMCVIDI : activeSet) {
@@ -1438,11 +1438,11 @@ bool SelfCollisionHandler<dim>::updateActiveSet_QP(
     std::unordered_set<MMCVID, MMCVIDHash> prevActiveSet;
     for (const auto& mmcvid : activeSet) {
         prevActiveSet.insert(mmcvid);
-//#if __cplusplus >= 201703L
+        //#if __cplusplus >= 201703L
         mmcvid_to_toi.insert_or_assign(mmcvid, std::numeric_limits<double>::infinity());
-//#else
-//        mmcvid_to_toi[mmcvid] = std::numeric_limits<double>::infinity();
-//#endif
+        //#else
+        //        mmcvid_to_toi[mmcvid] = std::numeric_limits<double>::infinity();
+        //#endif
     }
     // Verschoor does not clear the previous active set every iteration.
     // At the start of the time-step, make sure to clear the active set.
@@ -1496,12 +1496,12 @@ bool SelfCollisionHandler<dim>::updateActiveSet_QP(
             MMCVID mmcvid(
                 -vI - 1, // mesh point
                 sfVInd[0], sfVInd[2], sfVInd[1]); // mesh triangle
-//#if __cplusplus >= 201703L
+            //#if __cplusplus >= 201703L
             mmcvid_to_toi.insert_or_assign(mmcvid,
                 intersects ? toi : std::numeric_limits<double>::infinity());
-//#else
-//            mmcvid_to_toi[mmcvid] = intersects ? toi : std::numeric_limits<double>::infinity();
-//#endif
+            //#else
+            //            mmcvid_to_toi[mmcvid] = intersects ? toi : std::numeric_limits<double>::infinity();
+            //#endif
             bool isNewConstraint = prevActiveSet.find(mmcvid) == prevActiveSet.end();
             if (intersects && (wasActiveSetCleared || isNewConstraint)) {
                 newConstraintsAdded |= isNewConstraint;
@@ -1584,12 +1584,12 @@ bool SelfCollisionHandler<dim>::updateActiveSet_QP(
                     edge1.second, edge1.first,
                     edge2.first, edge2.second);
             }
-//#if __cplusplus >= 201703L
+            //#if __cplusplus >= 201703L
             mmcvid_to_toi.insert_or_assign(mmcvid,
                 intersects ? toi : std::numeric_limits<double>::infinity());
-//#else
-//            mmcvid_to_toi[mmcvid] = intersects ? toi : std::numeric_limits<double>::infinity();
-//#endif
+            //#else
+            //            mmcvid_to_toi[mmcvid] = intersects ? toi : std::numeric_limits<double>::infinity();
+            //#endif
             bool isNewConstraint = prevActiveSet.find(mmcvid) == prevActiveSet.end();
             if (intersects && (wasActiveSetCleared || isNewConstraint)) {
                 newConstraintsAdded |= isNewConstraint;
@@ -1639,7 +1639,7 @@ void SelfCollisionHandler<dim>::computeConstraintSet(const Mesh<dim>& mesh,
             {
                 const RowVector3i& sfVInd = mesh.SF.row(sfI);
                 if (!(vI == sfVInd[0] || vI == sfVInd[1] || vI == sfVInd[2])) {
-                    if ((vICoDim < 3 && mesh.sfICoDim(sfI) < 3) || (mesh.isFixedVert[vI] && mesh.isFixedVert[sfVInd[0]] && mesh.isFixedVert[sfVInd[1]] && mesh.isFixedVert[sfVInd[2]])) {
+                    if ((vICoDim < 3 && mesh.sfICoDim(sfI) < 3) || (mesh.isDBCVertex(vI) && mesh.isDBCVertex(sfVInd[0]) && mesh.isDBCVertex(sfVInd[1]) && mesh.isDBCVertex(sfVInd[2]))) {
                         continue;
                     }
 
@@ -1750,7 +1750,7 @@ void SelfCollisionHandler<dim>::computeConstraintSet(const Mesh<dim>& mesh,
                 const auto& meshEJ = mesh.SFEdges[eJ];
                 timer_mt.stop();
                 if (!(meshEI.first == meshEJ.first || meshEI.first == meshEJ.second || meshEI.second == meshEJ.first || meshEI.second == meshEJ.second || eI > eJ)) {
-                    if ((eICoDim < 3 && mesh.vICoDim(meshEJ.first) < 3) || (mesh.isFixedVert[meshEI.first] && mesh.isFixedVert[meshEI.second] && mesh.isFixedVert[meshEJ.first] && mesh.isFixedVert[meshEJ.second])) {
+                    if ((eICoDim < 3 && mesh.vICoDim(meshEJ.first) < 3) || (mesh.isDBCVertex(meshEI.first) && mesh.isDBCVertex(meshEI.second) && mesh.isDBCVertex(meshEJ.first) && mesh.isDBCVertex(meshEJ.second))) {
                         continue;
                     }
 
@@ -2246,10 +2246,10 @@ void SelfCollisionHandler<dim>::augmentFrictionHessian(const Mesh<dim>& mesh,
                     }
                 }
 
-                rowIStart[cI][0] = (mesh.isFixedVert[MMCVIDI[0]] && projectDBC) ? -1 : (MMCVIDI[0] * dim);
-                rowIStart[cI][1] = (mesh.isFixedVert[MMCVIDI[1]] && projectDBC) ? -1 : (MMCVIDI[1] * dim);
-                rowIStart[cI][2] = (mesh.isFixedVert[MMCVIDI[2]] && projectDBC) ? -1 : (MMCVIDI[2] * dim);
-                rowIStart[cI][3] = (mesh.isFixedVert[MMCVIDI[3]] && projectDBC) ? -1 : (MMCVIDI[3] * dim);
+                rowIStart[cI][0] = mesh.isProjectDBCVertex(MMCVIDI[0], projectDBC) ? -1 : (MMCVIDI[0] * dim);
+                rowIStart[cI][1] = mesh.isProjectDBCVertex(MMCVIDI[1], projectDBC) ? -1 : (MMCVIDI[1] * dim);
+                rowIStart[cI][2] = mesh.isProjectDBCVertex(MMCVIDI[2], projectDBC) ? -1 : (MMCVIDI[2] * dim);
+                rowIStart[cI][3] = mesh.isProjectDBCVertex(MMCVIDI[3], projectDBC) ? -1 : (MMCVIDI[3] * dim);
             }
             else {
                 // point-triangle and degenerate edge-edge
@@ -2295,8 +2295,8 @@ void SelfCollisionHandler<dim>::augmentFrictionHessian(const Mesh<dim>& mesh,
                     }
                     IPHessian[cI].template block<6, 6>(0, 0) = HessianBlock;
 
-                    rowIStart[cI][0] = (mesh.isFixedVert[v0I] && projectDBC) ? -1 : (v0I * dim);
-                    rowIStart[cI][1] = (mesh.isFixedVert[MMCVIDI[1]] && projectDBC) ? -1 : (MMCVIDI[1] * dim);
+                    rowIStart[cI][0] = mesh.isProjectDBCVertex(v0I, projectDBC) ? -1 : (v0I * dim);
+                    rowIStart[cI][1] = mesh.isProjectDBCVertex(MMCVIDI[1], projectDBC) ? -1 : (MMCVIDI[1] * dim);
                     rowIStart[cI][2] = -1;
                     rowIStart[cI][3] = -1;
                 }
@@ -2342,9 +2342,9 @@ void SelfCollisionHandler<dim>::augmentFrictionHessian(const Mesh<dim>& mesh,
                     }
                     IPHessian[cI].template block<9, 9>(0, 0) = HessianBlock;
 
-                    rowIStart[cI][0] = (mesh.isFixedVert[v0I] && projectDBC) ? -1 : (v0I * dim);
-                    rowIStart[cI][1] = (mesh.isFixedVert[MMCVIDI[1]] && projectDBC) ? -1 : (MMCVIDI[1] * dim);
-                    rowIStart[cI][2] = (mesh.isFixedVert[MMCVIDI[2]] && projectDBC) ? -1 : (MMCVIDI[2] * dim);
+                    rowIStart[cI][0] = mesh.isProjectDBCVertex(v0I, projectDBC) ? -1 : (v0I * dim);
+                    rowIStart[cI][1] = mesh.isProjectDBCVertex(MMCVIDI[1], projectDBC) ? -1 : (MMCVIDI[1] * dim);
+                    rowIStart[cI][2] = mesh.isProjectDBCVertex(MMCVIDI[2], projectDBC) ? -1 : (MMCVIDI[2] * dim);
                     rowIStart[cI][3] = -1;
                 }
                 else {
@@ -2389,10 +2389,10 @@ void SelfCollisionHandler<dim>::augmentFrictionHessian(const Mesh<dim>& mesh,
                         }
                     }
 
-                    rowIStart[cI][0] = (mesh.isFixedVert[v0I] && projectDBC) ? -1 : (v0I * dim);
-                    rowIStart[cI][1] = (mesh.isFixedVert[MMCVIDI[1]] && projectDBC) ? -1 : (MMCVIDI[1] * dim);
-                    rowIStart[cI][2] = (mesh.isFixedVert[MMCVIDI[2]] && projectDBC) ? -1 : (MMCVIDI[2] * dim);
-                    rowIStart[cI][3] = (mesh.isFixedVert[MMCVIDI[3]] && projectDBC) ? -1 : (MMCVIDI[3] * dim);
+                    rowIStart[cI][0] = mesh.isProjectDBCVertex(v0I, projectDBC) ? -1 : (v0I * dim);
+                    rowIStart[cI][1] = mesh.isProjectDBCVertex(MMCVIDI[1], projectDBC) ? -1 : (MMCVIDI[1] * dim);
+                    rowIStart[cI][2] = mesh.isProjectDBCVertex(MMCVIDI[2], projectDBC) ? -1 : (MMCVIDI[2] * dim);
+                    rowIStart[cI][3] = mesh.isProjectDBCVertex(MMCVIDI[3], projectDBC) ? -1 : (MMCVIDI[3] * dim);
                 }
             }
         }
@@ -2412,7 +2412,7 @@ void SelfCollisionHandler<dim>::augmentFrictionHessian(const Mesh<dim>& mesh,
                         mtr_incremental->addCoeff(rowIStartI, colIStartI + 1, IPHessian[cI](i * dim, j * dim + 1));
                         mtr_incremental->addCoeff(rowIStartI + 1, colIStartI, IPHessian[cI](i * dim + 1, j * dim));
                         mtr_incremental->addCoeff(rowIStartI + 1, colIStartI + 1, IPHessian[cI](i * dim + 1, j * dim + 1));
-                        {  // Note: it was if constexpr (dim == 3) {
+                        { // Note: it was if constexpr (dim == 3) {
                             mtr_incremental->addCoeff(rowIStartI, colIStartI + 2, IPHessian[cI](i * dim, j * dim + 2));
                             mtr_incremental->addCoeff(rowIStartI + 1, colIStartI + 2, IPHessian[cI](i * dim + 1, j * dim + 2));
 
@@ -2483,7 +2483,7 @@ void SelfCollisionHandler<dim>::augmentParaEEHessian(const Mesh<dim>& mesh,
     LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* H_inc,
     double dHat, double coef, bool projectDBC)
 {
-    {  // Note: it was if constexpr (dim == 3) {
+    { // Note: it was if constexpr (dim == 3) {
         std::vector<Eigen::Matrix<double, 4 * dim, 4 * dim>> PEEHessian(paraEEMMCVIDSet.size());
         std::vector<Eigen::Matrix<int, 4, 1>> rowIStart(paraEEMMCVIDSet.size());
 #ifdef USE_TBB
@@ -2519,10 +2519,10 @@ void SelfCollisionHandler<dim>::augmentParaEEHessian(const Mesh<dim>& mesh,
                     g_EE(mesh.V.row(MMCVIDI[0]), mesh.V.row(MMCVIDI[1]), mesh.V.row(MMCVIDI[2]), mesh.V.row(MMCVIDI[3]), grad_d);
                     H_EE(mesh.V.row(MMCVIDI[0]), mesh.V.row(MMCVIDI[1]), mesh.V.row(MMCVIDI[2]), mesh.V.row(MMCVIDI[3]), H_d);
 
-                    rowIStart[cI][0] = (mesh.isFixedVert[MMCVIDI[0]] && projectDBC) ? -1 : (MMCVIDI[0] * dim);
-                    rowIStart[cI][1] = (mesh.isFixedVert[MMCVIDI[1]] && projectDBC) ? -1 : (MMCVIDI[1] * dim);
-                    rowIStart[cI][2] = (mesh.isFixedVert[MMCVIDI[2]] && projectDBC) ? -1 : (MMCVIDI[2] * dim);
-                    rowIStart[cI][3] = (mesh.isFixedVert[MMCVIDI[3]] && projectDBC) ? -1 : (MMCVIDI[3] * dim);
+                    rowIStart[cI][0] = mesh.isProjectDBCVertex(MMCVIDI[0], projectDBC) ? -1 : (MMCVIDI[0] * dim);
+                    rowIStart[cI][1] = mesh.isProjectDBCVertex(MMCVIDI[1], projectDBC) ? -1 : (MMCVIDI[1] * dim);
+                    rowIStart[cI][2] = mesh.isProjectDBCVertex(MMCVIDI[2], projectDBC) ? -1 : (MMCVIDI[2] * dim);
+                    rowIStart[cI][3] = mesh.isProjectDBCVertex(MMCVIDI[3], projectDBC) ? -1 : (MMCVIDI[3] * dim);
                 }
                 else {
                     // PP or PE
@@ -2538,10 +2538,10 @@ void SelfCollisionHandler<dim>::augmentParaEEHessian(const Mesh<dim>& mesh,
                     compute_e_g(mesh.V.row(eI.first), mesh.V.row(eI.second), mesh.V.row(eJ.first), mesh.V.row(eJ.second), eps_x, e_g);
                     compute_e_H(mesh.V.row(eI.first), mesh.V.row(eI.second), mesh.V.row(eJ.first), mesh.V.row(eJ.second), eps_x, e_H);
 
-                    rowIStart[cI][0] = (mesh.isFixedVert[eI.first] && projectDBC) ? -1 : (eI.first * dim);
-                    rowIStart[cI][1] = (mesh.isFixedVert[eI.second] && projectDBC) ? -1 : (eI.second * dim);
-                    rowIStart[cI][2] = (mesh.isFixedVert[eJ.first] && projectDBC) ? -1 : (eJ.first * dim);
-                    rowIStart[cI][3] = (mesh.isFixedVert[eJ.second] && projectDBC) ? -1 : (eJ.second * dim);
+                    rowIStart[cI][0] = mesh.isProjectDBCVertex(eI.first, projectDBC) ? -1 : (eI.first * dim);
+                    rowIStart[cI][1] = mesh.isProjectDBCVertex(eI.second, projectDBC) ? -1 : (eI.second * dim);
+                    rowIStart[cI][2] = mesh.isProjectDBCVertex(eJ.first, projectDBC) ? -1 : (eJ.first * dim);
+                    rowIStart[cI][3] = mesh.isProjectDBCVertex(eJ.second, projectDBC) ? -1 : (eJ.second * dim);
 
                     int v0I = -MMCVIDI[0] - 1;
                     if (MMCVIDI[2] >= 0) {
@@ -2626,7 +2626,7 @@ void SelfCollisionHandler<dim>::augmentParaEEHessian(const Mesh<dim>& mesh,
                             H_inc->addCoeff(rowIStartI, colIStartI + 1, PEEHessian[cI](i * dim, j * dim + 1));
                             H_inc->addCoeff(rowIStartI + 1, colIStartI, PEEHessian[cI](i * dim + 1, j * dim));
                             H_inc->addCoeff(rowIStartI + 1, colIStartI + 1, PEEHessian[cI](i * dim + 1, j * dim + 1));
-                            {  // Note: it was if constexpr (dim == 3) {
+                            { // Note: it was if constexpr (dim == 3) {
                                 H_inc->addCoeff(rowIStartI, colIStartI + 2, PEEHessian[cI](i * dim, j * dim + 2));
                                 H_inc->addCoeff(rowIStartI + 1, colIStartI + 2, PEEHessian[cI](i * dim + 1, j * dim + 2));
 
@@ -2723,7 +2723,7 @@ bool SelfCollisionHandler<dim>::checkEdgeTriIntersectionIfAny(const Mesh<dim>& m
                 }
 
                 int coDim_eI = mesh.vICoDim(meshEI.first);
-                if ((coDim_sfI < 3 && coDim_eI < 3) || (mesh.isFixedVert[meshEI.first] && mesh.isFixedVert[meshEI.second] && mesh.isFixedVert[sfVInd[0]] && mesh.isFixedVert[sfVInd[1]] && mesh.isFixedVert[sfVInd[2]])) {
+                if ((coDim_sfI < 3 && coDim_eI < 3) || (mesh.isDBCVertex(meshEI.first) && mesh.isDBCVertex(meshEI.second) && mesh.isDBCVertex(sfVInd[0]) && mesh.isDBCVertex(sfVInd[1]) && mesh.isDBCVertex(sfVInd[2]))) {
                     continue;
                 }
 

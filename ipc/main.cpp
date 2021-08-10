@@ -13,6 +13,7 @@
 #include <igl/opengl/glfw/Viewer.h>
 #include <igl/png/writePNG.h>
 #endif
+#include <igl/colormap.h>
 
 #include <sys/stat.h> // for mkdir
 
@@ -57,7 +58,6 @@ bool offlineMode = true;
 bool autoSwitch = false;
 bool contactHandling = false;
 bool optimization_on = false;
-bool show_lines = true;
 int iterNum = 0;
 int converged = 0;
 bool outerLoopFinished = false;
@@ -84,7 +84,12 @@ int showDistortion_init = showDistortion;
 Eigen::MatrixXd faceColors_default;
 bool showTexture = true; // show checkerboard
 bool isLighting = true;
-bool showFixedVerts = true;
+bool showZeroDirichletVerts = true;
+bool showNonzeroDirichletVerts = true;
+bool showNeumannVerts = true;
+Eigen::RowVector3d zeroDirichletVertsColor;
+Eigen::RowVector3d nonzeroDirichletVertsColor;
+Eigen::RowVector3d neumannVertsColor;
 
 std::vector<bool> isSurfNode;
 std::vector<int> tetIndToSurf;
@@ -124,10 +129,10 @@ void proceedOptimization(int proceedNum = 1)
 {
     for (int proceedI = 0; (proceedI < proceedNum) && (!converged); proceedI++) {
         infoName = std::to_string(iterNum);
-        saveInfo(false, false, 3);
+        saveInfo(/*writePNG=*/false, /*writeGIF=*/false, /*writeMesh=*/3);
         if (!offlineMode) {
             // PNG and gif output only works under online rendering mode
-            saveInfo(false, true, false); // save gif
+            saveInfo(/*writePNG=*/false, /*writeGIF=*/true, /*writeMesh=*/false); // save gif
             if (savePNG) {
                 saveScreenshot(outputFolderPath + infoName + ".png",
                     1.0, false, true);
@@ -267,10 +272,18 @@ void updateViewerData(void)
         }
 #endif
 
-        viewer.data().set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d(0.0, 0.0, 0.0));
-        if (showFixedVerts) {
-            for (const auto& fixedVI : triSoup[viewChannel]->fixedVert) {
-                viewer.data().add_points(UV_vis.row(fixedVI), Eigen::RowVector3d(0.0, 0.0, 0.0));
+        viewer.data().set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d::Zero());
+        for (const auto& vi : triSoup[viewChannel]->DBCVertexIds) {
+            if (showZeroDirichletVerts && triSoup[viewChannel]->vertexDBCType[vi] == IPC::DirichletBCType::ZERO) {
+                viewer.data().add_points(UV_vis.row(vi), zeroDirichletVertsColor);
+            }
+            else if (showNonzeroDirichletVerts && triSoup[viewChannel]->vertexDBCType[vi] == IPC::DirichletBCType::NONZERO) {
+                viewer.data().add_points(UV_vis.row(vi), nonzeroDirichletVertsColor);
+            }
+        }
+        if (showNeumannVerts && optimizer->getAnimScripter().isNBCActive()) {
+            for (const auto& [vi, force] : triSoup[viewChannel]->NeumannBC) {
+                viewer.data().add_points(UV_vis.row(vi), neumannVertsColor);
             }
         }
 
@@ -279,7 +292,7 @@ void updateViewerData(void)
         for (int ceI = 0; ceI < triSoup[viewChannel]->CE.rows(); ++ceI) {
             viewer.data().add_edges(triSoup[viewChannel]->V.row(triSoup[viewChannel]->CE(ceI, 0)),
                 triSoup[viewChannel]->V.row(triSoup[viewChannel]->CE(ceI, 1)),
-                Eigen::RowVector3d(0.0, 0.0, 0.0));
+                Eigen::RowVector3d::Zero());
         }
     }
     else {
@@ -306,10 +319,18 @@ void updateViewerData(void)
             viewer.core().lighting_factor = 0.0;
         }
 
-        viewer.data().set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d(0.0, 0.0, 0.0));
-        if (showFixedVerts) {
-            for (const auto& fixedVI : triSoup[viewChannel]->fixedVert) {
-                viewer.data().add_points(V_vis.row(fixedVI), Eigen::RowVector3d(0.0, 0.0, 0.0));
+        viewer.data().set_points(Eigen::MatrixXd::Zero(0, 3), Eigen::RowVector3d::Zero());
+        for (const auto& vi : triSoup[viewChannel]->DBCVertexIds) {
+            if (showZeroDirichletVerts && triSoup[viewChannel]->vertexDBCType[vi] == IPC::DirichletBCType::ZERO) {
+                viewer.data().add_points(UV_vis.row(vi), zeroDirichletVertsColor);
+            }
+            else if (showNonzeroDirichletVerts && triSoup[viewChannel]->vertexDBCType[vi] == IPC::DirichletBCType::NONZERO) {
+                viewer.data().add_points(UV_vis.row(vi), nonzeroDirichletVertsColor);
+            }
+        }
+        if (showNeumannVerts && optimizer->getAnimScripter().isNBCActive()) {
+            for (const auto& [vi, force] : triSoup[viewChannel]->NeumannBC) {
+                viewer.data().add_points(UV_vis.row(vi), neumannVertsColor);
             }
         }
     }
@@ -559,7 +580,7 @@ bool postDrawFunc()
 
     if (saveInfo_postDraw) {
         saveInfo_postDraw = false;
-        saveInfo(outerLoopFinished, true, outerLoopFinished);
+        saveInfo(/*writePNG=*/outerLoopFinished, /*writeGIF=*/true, /*writeMesh=*/outerLoopFinished);
         // Note that the content saved in the screenshots are depends on where updateViewerData() is called
         if (outerLoopFinished) {
             //            triSoup[channel_result]->saveAsMesh(outputFolderPath + infoName + "_mesh_01UV.obj", true);
@@ -675,10 +696,13 @@ void init_cli_app(CLI::App& app, CLIArgs& args)
 
 int main(int argc, char* argv[])
 {
-#ifdef USE_TBB
-#ifdef TBB_NUM_THREADS
+    // initialize colors
+    igl::colormap(igl::COLOR_MAP_TYPE_VIRIDIS, 2.0 / 9.0, zeroDirichletVertsColor.data());
+    igl::colormap(igl::COLOR_MAP_TYPE_VIRIDIS, 4.0 / 9.0, nonzeroDirichletVertsColor.data());
+    igl::colormap(igl::COLOR_MAP_TYPE_VIRIDIS, 2.0 / 3.0, neumannVertsColor.data());
+
+#if defined(USE_TBB) && defined(TBB_NUM_THREADS)
     tbb::task_scheduler_init init(TBB_NUM_THREADS);
-#endif
 #endif
 
     CLI::App app{ "IPC" };
@@ -980,7 +1004,7 @@ int main(int argc, char* argv[])
                 for (int vI = 0; vI < UV.rows(); ++vI)
 #endif
                     {
-                        {  // Note: it was if constexpr (DIM == 3) {
+                        { // Note: it was if constexpr (DIM == 3) {
                             UV.row(vI) = (rotMtr * (UV.row(vI) - center).transpose()).transpose() + center;
                         }
                         //else {

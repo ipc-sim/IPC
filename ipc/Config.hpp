@@ -56,8 +56,8 @@ public:
     AnimScriptType animScriptType = AST_NULL;
     double handleRatio = 0.01;
     std::string meshSeqFolderPath;
-    double DBCTimeRange[2] = { 0, __DBL_MAX__ };
-    double NBCTimeRange[2] = { 0, __DBL_MAX__ };
+    std::array<double, 2> DBCTimeRange = { 0, std::numeric_limits<double>::infinity() };
+    std::array<double, 2> NBCTimeRange = { 0, std::numeric_limits<double>::infinity() };
 
     double rho = 1000.0;
     bool withGravity = true;

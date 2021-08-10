@@ -33,7 +33,6 @@ namespace internal {
 std::string g_cwd = "";
 }
 
-
 namespace IPC {
 
 const std::vector<std::string> Config::energyTypeStrs = {
@@ -46,9 +45,11 @@ const std::vector<std::string> Config::constraintSolverTypeStrs = {
     "QP", "SQP", "interiorPoint"
 };
 const std::vector<std::string> Config::exactCCDTypeStrs = {
-    "none", "rootParity", "BSC"
+    "none",
+    "rootParity",
+    "BSC",
 #ifdef WITH_RATIONAL_CCD
-    , "rationalRootParity"
+    "rationalRootParity",
 #endif
 };
 const std::vector<std::string> Config::constraintTypeStrs = {
@@ -69,9 +70,6 @@ Config::Config(void)
 
 Config::~Config(void)
 {
-    for (auto& coI : collisionObjects) {
-        delete coI;
-    }
 }
 
 // C++ 17 cannot be correctly parsed in when clang++-8 is used with CMake
@@ -85,7 +83,8 @@ Config::~Config(void)
 
 // Separate path components:
 // /tmp/arbitrary_dir/file_name.txt -> {tmp, arbitrary_dir, file_name.txt}
-bool SeparatePathComps(const std::string& in, std::vector<std::string>* out) {
+bool SeparatePathComps(const std::string& in, std::vector<std::string>* out)
+{
     if (in[0] != '/') return false;
     out->clear();
     std::string token;
@@ -93,12 +92,14 @@ bool SeparatePathComps(const std::string& in, std::vector<std::string>* out) {
         if (c == '/' && !token.empty()) {
             if (token == "intput" || token == "output") {
                 break;
-            } else {
+            }
+            else {
                 std::cerr << "token: " << token;
                 out->push_back(token);
                 token.clear();
             }
-        } else if (c != '/') {
+        }
+        else if (c != '/') {
             token.push_back(c);
         }
     }
@@ -106,7 +107,8 @@ bool SeparatePathComps(const std::string& in, std::vector<std::string>* out) {
 }
 
 // Not thread safe
-std::string GetCwd(const std::string& in) {
+std::string GetCwd(const std::string& in)
+{
     if (internal::g_cwd.empty()) {
         std::cerr << "init cwd" << std::endl;
         std::vector<std::string> comps;
@@ -169,7 +171,8 @@ int Config::loadFromFile(const std::string& p_filePath)
                 std::string type;
                 ss >> type;
                 energyType = getEnergyTypeByStr(type);
-            } else if (token == "minBarrierStiffnessScale") {
+            }
+            else if (token == "minBarrierStiffnessScale") {
                 ss >> minBarrierStiffnessScale;
             }
             else if (token == "timeIntegration") {
@@ -440,11 +443,11 @@ int Config::loadFromFile(const std::string& p_filePath)
             else if (token == "halfSpace") {
                 Eigen::Matrix<double, DIM, 1> origin, normal;
                 ss >> origin[0] >> origin[1];
-                {  // Note: it was if constexpr (DIM == 3) {
+                { // Note: it was if constexpr (DIM == 3) {
                     ss >> origin[2];
                 }
                 ss >> normal[0] >> normal[1];
-                {  // Note: it was if constexpr (DIM == 3) {
+                { // Note: it was if constexpr (DIM == 3) {
                     ss >> normal[2];
                 }
                 normal.normalize();
@@ -460,7 +463,7 @@ int Config::loadFromFile(const std::string& p_filePath)
 
                 Eigen::Matrix<double, DIM, 1> origin;
                 ss >> origin[0] >> origin[1];
-                {  // Note: it was if constexpr (DIM == 3) {
+                { // Note: it was if constexpr (DIM == 3) {
                     ss >> origin[2];
                 }
 

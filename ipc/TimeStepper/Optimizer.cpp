@@ -197,7 +197,7 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
                 assert(dim_in == result.V.cols());
                 for (int vI = 0; vI < posRows; ++vI) {
                     in >> result.V(vI, 0) >> result.V(vI, 1);
-                    {  // Note: it was if constexpr (dim == 3) {
+                    { // Note: it was if constexpr (dim == 3) {
                         in >> result.V(vI, 2);
                     }
                 }
@@ -221,7 +221,7 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
                 dx_Elastic.setZero(result.V.rows(), dim);
                 for (int vI = 0; vI < dxERows; ++vI) {
                     in >> dx_Elastic(vI, 0) >> dx_Elastic(vI, 1);
-                    {  // Note: it was if constexpr (dim == 3) {
+                    { // Note: it was if constexpr (dim == 3) {
                         in >> dx_Elastic(vI, 2);
                     }
                 }
@@ -428,9 +428,9 @@ void Optimizer<dim>::precompute(void)
 {
     spdlog::info("precompute: start");
     if (!mute) { timer_step.start(1); }
-    linSysSolver->set_pattern(result.vNeighbor, result.fixedVert);
+    linSysSolver->set_pattern(result.vNeighbor, result.DBCVertexIds);
     if (animConfig.dampingStiff) {
-        dampingMtr->set_pattern(result.vNeighbor, result.fixedVert);
+        dampingMtr->set_pattern(result.vNeighbor, result.DBCVertexIds);
     }
     if (!mute) { timer_step.stop(); }
     spdlog::info("precompute: sparse matrix allocated");
@@ -576,9 +576,9 @@ void Optimizer<dim>::updatePrecondMtrAndFactorize(void)
     }
 
     if (!mute) { timer_step.start(1); }
-    linSysSolver->set_pattern(solveIP ? vNeighbor_IP : result.vNeighbor, result.fixedVert);
+    linSysSolver->set_pattern(solveIP ? vNeighbor_IP : result.vNeighbor, result.DBCVertexIds);
     if (animConfig.dampingStiff) {
-        dampingMtr->set_pattern(solveIP ? vNeighbor_IP : result.vNeighbor, result.fixedVert);
+        dampingMtr->set_pattern(solveIP ? vNeighbor_IP : result.vNeighbor, result.DBCVertexIds);
     }
     if (!mute) { timer_step.start(2); }
     linSysSolver->analyze_pattern();
@@ -913,7 +913,7 @@ void Optimizer<dim>::initX(int option, std::vector<std::vector<int>>& p_activeSe
         for (int vI = 0; vI < result.V.rows(); vI++)
 #endif
             {
-                if (result.isFixedVert[vI]) {
+                if (result.isDBCVertex(vI)) {
                     searchDir.segment<dim>(vI * dim).setZero();
                 }
                 else {
@@ -935,7 +935,7 @@ void Optimizer<dim>::initX(int option, std::vector<std::vector<int>>& p_activeSe
             for (int vI = 0; vI < result.V.rows(); vI++)
 #endif
                 {
-                    if (result.isFixedVert[vI]) {
+                    if (result.isDBCVertex(vI)) {
                         searchDir.segment<dim>(vI * dim).setZero();
                     }
                     else {
@@ -955,7 +955,7 @@ void Optimizer<dim>::initX(int option, std::vector<std::vector<int>>& p_activeSe
             for (int vI = 0; vI < result.V.rows(); vI++)
 #endif
                 {
-                    if (result.isFixedVert[vI]) {
+                    if (result.isDBCVertex(vI)) {
                         searchDir.segment<dim>(vI * dim).setZero();
                     }
                     else {
@@ -979,7 +979,7 @@ void Optimizer<dim>::initX(int option, std::vector<std::vector<int>>& p_activeSe
             for (int vI = 0; vI < result.V.rows(); vI++)
 #endif
                 {
-                    if (result.isFixedVert[vI]) {
+                    if (result.isDBCVertex(vI)) {
                         searchDir.segment<dim>(vI * dim).setZero();
                     }
                     else {
@@ -999,7 +999,7 @@ void Optimizer<dim>::initX(int option, std::vector<std::vector<int>>& p_activeSe
             for (int vI = 0; vI < result.V.rows(); vI++)
 #endif
                 {
-                    if (result.isFixedVert[vI]) {
+                    if (result.isDBCVertex(vI)) {
                         searchDir.segment<dim>(vI * dim).setZero();
                     }
                     else {
@@ -1024,7 +1024,7 @@ void Optimizer<dim>::initX(int option, std::vector<std::vector<int>>& p_activeSe
             for (int vI = 0; vI < result.V.rows(); vI++)
 #endif
                 {
-                    if (result.isFixedVert[vI]) {
+                    if (result.isDBCVertex(vI)) {
                         searchDir.segment<dim>(vI * dim).setZero();
                     }
                     else {
@@ -1044,7 +1044,7 @@ void Optimizer<dim>::initX(int option, std::vector<std::vector<int>>& p_activeSe
             for (int vI = 0; vI < result.V.rows(); vI++)
 #endif
                 {
-                    if (result.isFixedVert[vI]) {
+                    if (result.isDBCVertex(vI)) {
                         searchDir.segment<dim>(vI * dim).setZero();
                     }
                     else {
@@ -1074,7 +1074,7 @@ void Optimizer<dim>::initX(int option, std::vector<std::vector<int>>& p_activeSe
         for (int vI = 0; vI < result.V.rows(); vI++)
 #endif
             {
-                if (result.isFixedVert[vI]) {
+                if (result.isDBCVertex(vI)) {
                     searchDir.segment<dim>(vI * dim).setZero();
                 }
                 else {
@@ -1198,7 +1198,7 @@ void Optimizer<dim>::computeXTilta(void)
         for (int vI = 0; vI < result.V.rows(); vI++)
 #endif
             {
-                if (result.isFixedVert[vI]) {
+                if (result.isDBCVertex(vI)) {
                     xTilta.row(vI) = result.V_prev.row(vI);
                 }
                 else {
@@ -1218,7 +1218,7 @@ void Optimizer<dim>::computeXTilta(void)
         for (int vI = 0; vI < result.V.rows(); vI++)
 #endif
             {
-                if (result.isFixedVert[vI]) {
+                if (result.isDBCVertex(vI)) {
                     xTilta.row(vI) = result.V_prev.row(vI);
                 }
                 else {
@@ -2143,8 +2143,8 @@ void Optimizer<dim>::initMu_IP(double& mu)
             SelfCollisionHandler<dim>::leftMultiplyConstraintJacobianT(result, MMActiveSet.back(),
                 constraintVal.segment(startCI, MMActiveSet.back().size()), g_c);
         }
-        for (const auto& fixedVI : result.fixedVert) {
-            g_c.segment<dim>(fixedVI * dim).setZero();
+        for (const auto& vI : result.DBCVertexIds) {
+            g_c.segment<dim>(vI * dim).setZero();
         }
 
         // balance current gradient at constrained DOF
@@ -2867,7 +2867,7 @@ void Optimizer<dim>::saveStatus(const std::string& appendStr)
     for (int vI = 0; vI < result.V.rows(); ++vI) {
         fprintf(out, "%le %le", result.V(vI, 0),
             result.V(vI, 1));
-        {  // Note: it was if constexpr (dim == 3) {
+        { // Note: it was if constexpr (dim == 3) {
             fprintf(out, " %le\n", result.V(vI, 2));
         }
     }
@@ -2881,7 +2881,7 @@ void Optimizer<dim>::saveStatus(const std::string& appendStr)
     for (int velI = 0; velI < dx_Elastic.rows(); ++velI) {
         fprintf(out, "%le %le", dx_Elastic(velI, 0),
             dx_Elastic(velI, 1));
-        {  // Note: it was if constexpr (dim == 3) {
+        { // Note: it was if constexpr (dim == 3) {
             fprintf(out, " %le\n", dx_Elastic(velI, 2));
         }
     }
@@ -3009,10 +3009,8 @@ void Optimizer<dim>::computeEnergyVal(const Mesh<dim>& data, int redoSVD, double
     energyVal += energyVals.sum();
 
     if (animScripter.isNBCActive()) {
-        for (const auto& NMI : data.NeumannBC) {
-            if (!data.isFixedVert[NMI.first]) {
-                energyVal -= dtSq * data.massMatrix.coeff(NMI.first, NMI.first) * data.V.row(NMI.first).dot(NMI.second);
-            }
+        for (const auto& [vI, force] : data.NeumannBC) {
+            energyVal -= dtSq * data.massMatrix.coeff(vI, vI) * data.V.row(vI).dot(force.transpose());
         }
     }
 
@@ -3159,8 +3157,8 @@ void Optimizer<dim>::computeEnergyVal(const Mesh<dim>& data, int redoSVD, double
 #ifdef USE_TBB
         );
 #endif
-        for (const auto& fixedVI : data.fixedVert) {
-            displacement.segment<dim>(fixedVI * dim).setZero();
+        for (const auto& vI : data.DBCVertexIds) {
+            displacement.segment<dim>(vI * dim).setZero();
         }
 
         dampingMtr->multiply(displacement, Adx);
@@ -3210,7 +3208,7 @@ void Optimizer<dim>::computeGradient(const Mesh<dim>& data,
     for (int vI = 0; vI < data.V.rows(); vI++)
 #endif
         {
-            if (!data.isFixedVert[vI] || !projectDBC) {
+            if (!data.isProjectDBCVertex(vI, projectDBC)) {
                 gradient.segment<dim>(vI * dim) += (data.massMatrix.coeff(vI, vI) * (data.V.row(vI) - xTilta.row(vI)).transpose());
             }
         }
@@ -3219,10 +3217,8 @@ void Optimizer<dim>::computeGradient(const Mesh<dim>& data,
 #endif
 
     if (animScripter.isNBCActive()) {
-        for (const auto& NMI : data.NeumannBC) {
-            if (!data.isFixedVert[NMI.first]) {
-                gradient.template segment<dim>(NMI.first * dim) -= dtSq * data.massMatrix.coeff(NMI.first, NMI.first) * NMI.second.transpose();
-            }
+        for (const auto& [vI, force] : data.NeumannBC) {
+            gradient.template segment<dim>(vI * dim) -= dtSq * data.massMatrix.coeff(vI, vI) * force;
         }
     }
 
@@ -3272,9 +3268,9 @@ void Optimizer<dim>::computeGradient(const Mesh<dim>& data,
                     MMLambda_lastH.back(), MMDistCoord.back(), MMTanBasis.back(), gradient, fricDHat, animConfig.selfFric);
             }
         }
-        if (projectDBC) {
-            for (const auto& fixedVI : data.fixedVert) {
-                gradient.segment<dim>(fixedVI * dim).setZero();
+        for (const auto& vI : data.DBCVertexIds) {
+            if (data.isProjectDBCVertex(vI, projectDBC)) {
+                gradient.segment<dim>(vI * dim).setZero();
             }
         }
     }
@@ -3293,9 +3289,9 @@ void Optimizer<dim>::computeGradient(const Mesh<dim>& data,
 #ifdef USE_TBB
         );
 #endif
-        if (projectDBC) {
-            for (const auto& fixedVI : data.fixedVert) {
-                displacement.segment<dim>(fixedVI * dim).setZero();
+        for (const auto& vI : data.DBCVertexIds) {
+            if (data.isProjectDBCVertex(vI, projectDBC)) {
+                displacement.segment<dim>(vI * dim).setZero();
             }
         }
 
@@ -3335,7 +3331,7 @@ void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
                 timer_mt.start(8);
                 vNeighbor_IP = vNeighbor_IP_new;
                 timer_mt.start(9);
-                p_linSysSolver->set_pattern(vNeighbor_IP, data.fixedVert);
+                p_linSysSolver->set_pattern(vNeighbor_IP, data.DBCVertexIds);
                 timer_mt.stop();
 
                 timer_step.start(2);
@@ -3348,7 +3344,7 @@ void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
             timer_mt.start(8);
             vNeighbor_IP = data.vNeighbor;
             timer_mt.start(9);
-            p_linSysSolver->set_pattern(vNeighbor_IP, data.fixedVert);
+            p_linSysSolver->set_pattern(vNeighbor_IP, data.DBCVertexIds);
             timer_mt.stop();
 
             timer_step.start(2);
@@ -3405,13 +3401,13 @@ void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
     for (int vI = 0; vI < data.V.rows(); vI++)
 #endif
         {
-            if (!data.isFixedVert[vI] || !projectDBC) {
+            if (!data.isProjectDBCVertex(vI, projectDBC)) {
                 double massI = data.massMatrix.coeff(vI, vI);
                 int ind0 = vI * dim;
                 int ind1 = ind0 + 1;
                 p_linSysSolver->addCoeff(ind0, ind0, massI);
                 p_linSysSolver->addCoeff(ind1, ind1, massI);
-                {  // Note: it was if constexpr (dim == 3) {
+                { // Note: it was if constexpr (dim == 3) {
                     int ind2 = ind0 + 2;
                     p_linSysSolver->addCoeff(ind2, ind2, massI);
                 }
@@ -3422,7 +3418,7 @@ void Optimizer<dim>::computePrecondMtr(const Mesh<dim>& data,
                 int ind1 = ind0 + 1;
                 p_linSysSolver->setCoeff(ind0, ind0, 1.0);
                 p_linSysSolver->setCoeff(ind1, ind1, 1.0);
-                {  // Note: it was if constexpr (dim == 3) {
+                { // Note: it was if constexpr (dim == 3) {
                     int ind2 = ind0 + 2;
                     p_linSysSolver->setCoeff(ind2, ind2, 1.0);
                 }
@@ -3503,7 +3499,7 @@ void Optimizer<dim>::setupDampingMtr(const Mesh<dim>& data,
     bool redoSVD,
     LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* p_dampingMtr)
 {
-    dampingMtr->set_pattern(data.vNeighbor, data.fixedVert);
+    dampingMtr->set_pattern(data.vNeighbor, data.DBCVertexIds);
     computeDampingMtr(data, redoSVD, p_dampingMtr);
 }
 
@@ -3532,7 +3528,7 @@ void Optimizer<dim>::computeSystemEnergy(std::vector<double>& sysE,
             Eigen::Matrix<double, 1, dim> p = result.massMatrix.coeff(vI, vI) / dt * (result.V.row(vI) - result.V_prev.row(vI));
             sysM[compI] += p;
 
-            {  // Note: it was if constexpr (dim == 3) {
+            { // Note: it was if constexpr (dim == 3) {
                 sysL[compI] += Eigen::Matrix<double, 1, dim>(result.V.row(vI)).cross(p);
             }
             //else {
@@ -3569,8 +3565,8 @@ void Optimizer<dim>::checkGradient(void)
             spdlog::info("{:d}/{:d} vertices computed", vI + 1, result.V.rows());
         }
     }
-    for (const auto fixedVI : result.fixedVert) {
-        gradient_finiteDiff.segment<dim>(dim * fixedVI).setZero();
+    for (const auto vI : result.DBCVertexIds) {
+        gradient_finiteDiff.segment<dim>(dim * vI).setZero();
     }
 
     Eigen::VectorXd gradient_symbolic;
@@ -3604,10 +3600,10 @@ void Optimizer<dim>::checkHessian(void)
     Eigen::SparseMatrix<double> hessian_finiteDiff;
     hessian_finiteDiff.resize(result.V.rows() * dim, result.V.rows() * dim);
     for (int vI = 0; vI < result.V.rows(); vI++) {
-        if (result.fixedVert.find(vI) != result.fixedVert.end()) {
+        if (result.DBCVertexIds.find(vI) != result.DBCVertexIds.end()) {
             hessian_finiteDiff.insert(vI * dim, vI * dim) = 1.0;
             hessian_finiteDiff.insert(vI * dim + 1, vI * dim + 1) = 1.0;
-            {  // Note: it was if constexpr (dim == 3) {
+            { // Note: it was if constexpr (dim == 3) {
                 hessian_finiteDiff.insert(vI * dim + 2, vI * dim + 2) = 1.0;
             }
             continue;
@@ -3622,7 +3618,7 @@ void Optimizer<dim>::checkHessian(void)
             Eigen::VectorXd hessian_colI = (gradient_perturbed - gradient0) / h;
             int colI = vI * dim + dimI;
             for (int rowI = 0; rowI < result.V.rows() * dim; rowI++) {
-                if ((result.fixedVert.find(rowI / dim) == result.fixedVert.end()) && (hessian_colI[rowI] != 0.0)) {
+                if (result.DBCVertexIds.find(rowI / dim) == result.DBCVertexIds.end() && hessian_colI[rowI] != 0.0) {
                     hessian_finiteDiff.insert(rowI, colI) = hessian_colI[rowI];
                 }
             }
@@ -3642,7 +3638,7 @@ void Optimizer<dim>::checkHessian(void)
 #else
     linSysSolver = new EigenLibSolver<Eigen::VectorXi, Eigen::VectorXd>();
 #endif
-    linSysSolver->set_pattern(result.vNeighbor, result.fixedVert);
+    linSysSolver->set_pattern(result.vNeighbor, result.DBCVertexIds);
     computeConstraintSets(result);
     computePrecondMtr(result, true, linSysSolver);
     linSysSolver->getCoeffMtr(hessian_symbolicPK);
