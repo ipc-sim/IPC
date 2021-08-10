@@ -58,10 +58,10 @@ installed at a system level
     * Requires [Boost](https://www.boost.org/) to be installed at a system level
         * Ubuntu: `sudo apt-get install libboost-all-dev`
         * macOS: ` brew install boost`
-<!-- * [GMP LIB](https://gmplib.org/): `sudo apt install libgmp-dev` on Ubuntu. -->
 * [Catch2](https://github.com/catchorg/Catch2): downloaded and built through CMake
     * Used for unit-tests.
     * Enabled by default iff IPC is being built as the top-level project.
+<!-- * [GMP LIB](https://gmplib.org/): `sudo apt install libgmp-dev` on Ubuntu. -->
 
 ### Without OpenGL
 
