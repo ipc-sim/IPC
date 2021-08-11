@@ -48,7 +48,7 @@ public:
             rowStart = -rowStart - dim;
             linSysSolver->setCoeff(rowStart, rowStart, 1.0);
             linSysSolver->setCoeff(rowStart + 1, rowStart + 1, 1.0);
-            {  // Note: it was if constexpr (dim == 3) {
+            { // Note: it was if constexpr (dim == 3) {
                 linSysSolver->setCoeff(rowStart + 2, rowStart + 2, 1.0);
             }
             return;
@@ -60,7 +60,7 @@ public:
             linSysSolver->addCoeff(rowStart, _dimIndex0 + 1, block(0, 1));
             linSysSolver->addCoeff(rowStart + 1, _dimIndex0, block(1, 0));
             linSysSolver->addCoeff(rowStart + 1, _dimIndex0 + 1, block(1, 1));
-            {  // Note: it was if constexpr (dim == 3) {
+            { // Note: it was if constexpr (dim == 3) {
                 linSysSolver->addCoeff(rowStart, _dimIndex0 + 2, block(0, 2));
                 linSysSolver->addCoeff(rowStart + 1, _dimIndex0 + 2, block(1, 2));
                 linSysSolver->addCoeff(rowStart + 2, _dimIndex0, block(2, 0));
@@ -75,7 +75,7 @@ public:
             linSysSolver->addCoeff(rowStart, _dimIndex1 + 1, block(0, dim + 1));
             linSysSolver->addCoeff(rowStart + 1, _dimIndex1, block(1, dim));
             linSysSolver->addCoeff(rowStart + 1, _dimIndex1 + 1, block(1, dim + 1));
-            {  // Note: it was if constexpr (dim == 3) {
+            { // Note: it was if constexpr (dim == 3) {
                 linSysSolver->addCoeff(rowStart, _dimIndex1 + 2, block(0, dim + 2));
                 linSysSolver->addCoeff(rowStart + 1, _dimIndex1 + 2, block(1, dim + 2));
                 linSysSolver->addCoeff(rowStart + 2, _dimIndex1, block(2, dim));
@@ -91,7 +91,7 @@ public:
             linSysSolver->addCoeff(rowStart, _dimIndex2 + 1, block(0, _2dim + 1));
             linSysSolver->addCoeff(rowStart + 1, _dimIndex2, block(1, _2dim));
             linSysSolver->addCoeff(rowStart + 1, _dimIndex2 + 1, block(1, _2dim + 1));
-            {  // Note: it was if constexpr (dim == 3) {
+            { // Note: it was if constexpr (dim == 3) {
                 linSysSolver->addCoeff(rowStart, _dimIndex2 + 2, block(0, _2dim + 2));
                 linSysSolver->addCoeff(rowStart + 1, _dimIndex2 + 2, block(1, _2dim + 2));
                 linSysSolver->addCoeff(rowStart + 2, _dimIndex2, block(2, _2dim));
@@ -100,7 +100,7 @@ public:
             }
         }
 
-        {  // Note: it was if constexpr (dim == 3) {
+        { // Note: it was if constexpr (dim == 3) {
             if (index[3] >= 0) {
                 int _3dim = 3 * dim;
                 int _dimIndex3 = index[3] * dim;
@@ -462,9 +462,11 @@ public:
         std::vector<std::vector<int>>& borderVerts,
         double ratio);
 
-    static void Init_Dirichlet(Eigen::MatrixXd& X,
+    static void Init_Dirichlet(
+        const Eigen::MatrixXd& X,
         const Eigen::Vector3d& relBoxMin,
         const Eigen::Vector3d& relBoxMax,
+        const std::vector<bool>& isNodeOnBoundary,
         std::vector<int>& selectedVerts);
 }; // namespace IPC
 

@@ -15,6 +15,8 @@
 #endif
 
 #include <set>
+#include <unordered_map>
+
 #include <spdlog/spdlog.h>
 
 extern Timer timer_temp, timer_temp2;
@@ -199,7 +201,7 @@ double Signed2DTriArea(const Eigen::RowVector2d& a, const Eigen::RowVector2d& b,
 void IglUtils::findSurfaceTris(const Eigen::MatrixXi& TT, Eigen::MatrixXi& F)
 {
     //TODO: merge with below
-    std::map<Triplet, int> tri2Tet;
+    std::unordered_map<Triplet, int> tri2Tet(4 * TT.rows());
     for (int elemI = 0; elemI < TT.rows(); elemI++) {
         const Eigen::RowVector4i& elemVInd = TT.row(elemI);
         tri2Tet[Triplet(elemVInd[0], elemVInd[2], elemVInd[1])] = elemI;
@@ -209,24 +211,22 @@ void IglUtils::findSurfaceTris(const Eigen::MatrixXi& TT, Eigen::MatrixXi& F)
     }
 
     //TODO: parallelize
-    F.conservativeResize(0, 3);
+    std::vector<Eigen::RowVector3i> tmpF;
     for (const auto& triI : tri2Tet) {
-        const int* triVInd = triI.first.key;
+        const Triplet& triVInd = triI.first;
         // find dual triangle with reversed indices:
-        auto finder = tri2Tet.find(Triplet(triVInd[2], triVInd[1], triVInd[0]));
-        if (finder == tri2Tet.end()) {
-            finder = tri2Tet.find(Triplet(triVInd[1], triVInd[0], triVInd[2]));
-            if (finder == tri2Tet.end()) {
-                finder = tri2Tet.find(Triplet(triVInd[0], triVInd[2], triVInd[1]));
-                if (finder == tri2Tet.end()) {
-                    int oldSize = F.rows();
-                    F.conservativeResize(oldSize + 1, 3);
-                    F(oldSize, 0) = triVInd[0];
-                    F(oldSize, 1) = triVInd[1];
-                    F(oldSize, 2) = triVInd[2];
-                }
-            }
+        bool isSurfaceTriangle = //
+            tri2Tet.find(Triplet(triVInd[2], triVInd[1], triVInd[0])) == tri2Tet.end()
+            && tri2Tet.find(Triplet(triVInd[1], triVInd[0], triVInd[2])) == tri2Tet.end()
+            && tri2Tet.find(Triplet(triVInd[0], triVInd[2], triVInd[1])) == tri2Tet.end();
+        if (isSurfaceTriangle) {
+            tmpF.emplace_back(triVInd[0], triVInd[1], triVInd[2]);
         }
+    }
+
+    F.resize(tmpF.size(), 3);
+    for (int i = 0; i < F.rows(); i++) {
+        F.row(i) = tmpF[i];
     }
 }
 void IglUtils::buildSTri2Tet(const Eigen::MatrixXi& F, const Eigen::MatrixXi& SF,
@@ -539,9 +539,11 @@ void IglUtils::findBorderVerts(const Eigen::MatrixXd& V,
     }
 }
 
-void IglUtils::Init_Dirichlet(Eigen::MatrixXd& X,
+void IglUtils::Init_Dirichlet(
+    const Eigen::MatrixXd& X,
     const Eigen::Vector3d& relBoxMin,
     const Eigen::Vector3d& relBoxMax,
+    const std::vector<bool>& isNodeOnBoundary,
     std::vector<int>& selectedVerts)
 {
     if (!X.rows()) {
@@ -578,6 +580,10 @@ void IglUtils::Init_Dirichlet(Eigen::MatrixXd& X,
     }
 
     for (int id = 0; id < X.rows(); ++id) {
+        if (!isNodeOnBoundary[id]) {
+            continue;
+        }
+
         const Eigen::Vector3d x = X.row(id);
         if (x(0) >= rangeMin(0) && x(0) <= rangeMax(0) && x(1) >= rangeMin(1) && x(1) <= rangeMax(1) && x(2) >= rangeMin(2) && x(2) <= rangeMax(2)) {
             selectedVerts.emplace_back(id);

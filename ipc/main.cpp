@@ -923,11 +923,18 @@ int main(int argc, char* argv[])
                         componentInitVels.emplace_back(startToEnd, config.inputShapeInitVels[i]);
                     }
 
+                    std::vector<bool> isNodeOnBoundary(newV.rows(), newSF.rows() == 0);
+                    for (int sfi = 0; sfi < newSF.rows(); sfi++) {
+                        for (int sfj = 0; sfj < newSF.cols(); sfj++) {
+                            isNodeOnBoundary[newSF(sfi, sfj)] = true;
+                        }
+                    }
+
                     while (DBCI < config.inputShapeDBC.size() && config.inputShapeDBC[DBCI].first == i) {
                         // vertex selection
                         std::vector<int> selectedVerts;
                         IPC::IglUtils::Init_Dirichlet(newV, config.inputShapeDBC[DBCI].second[0],
-                            config.inputShapeDBC[DBCI].second[1], selectedVerts);
+                            config.inputShapeDBC[DBCI].second[1], isNodeOnBoundary, selectedVerts);
                         for (auto& i : selectedVerts) {
                             i += V.rows();
                         }
@@ -941,7 +948,7 @@ int main(int argc, char* argv[])
                         // vertex selection
                         std::vector<int> selectedVerts;
                         IPC::IglUtils::Init_Dirichlet(newV, config.inputShapeNBC[NBCI].second[0],
-                            config.inputShapeNBC[NBCI].second[1], selectedVerts);
+                            config.inputShapeNBC[NBCI].second[1], isNodeOnBoundary, selectedVerts);
                         for (const auto& vI : selectedVerts) {
                             NBCInfo[vI + V.rows()] = config.inputShapeNBC[NBCI].second[2].template segment<DIM>(0).transpose();
                         }
