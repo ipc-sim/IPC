@@ -202,14 +202,8 @@ double Signed2DTriArea(const Eigen::RowVector2d& a, const Eigen::RowVector2d& b,
 
 void IglUtils::findSurfaceTris(const Eigen::MatrixXi& TT, Eigen::MatrixXi& F)
 {
-    int nVertices = TT.maxCoeff();
-
-    auto triangle_hash = [&](const Triplet& tri) {
-        return nVertices * (nVertices * tri[0] + tri[1]) + tri[2];
-    };
-
     //TODO: merge with below
-    std::unordered_map<Triplet, int, decltype(triangle_hash)> tri2Tet(4 * TT.rows(), triangle_hash);
+    std::unordered_map<Triplet, int> tri2Tet(4 * TT.rows());
     for (int elemI = 0; elemI < TT.rows(); elemI++) {
         const Eigen::RowVector4i& elemVInd = TT.row(elemI);
         tri2Tet[Triplet(elemVInd[0], elemVInd[2], elemVInd[1])] = elemI;

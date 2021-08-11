@@ -12,11 +12,13 @@
 
 #include <iostream>
 
+#include <boost/functional/hash.hpp>
+
 namespace IPC {
 
 class Triplet {
 public:
-    int key[3];
+    std::array<int, 3> key;
 
     Triplet(const int* p_key)
     {
@@ -62,6 +64,16 @@ public:
 };
 
 } // namespace IPC
+
+namespace std {
+template <>
+struct hash<IPC::Triplet> {
+    size_t operator()(IPC::Triplet const& triplet) const noexcept
+    {
+        return boost::hash_range(triplet.key.begin(), triplet.key.end());
+    }
+};
+}
 
 inline std::ostream& operator<<(std::ostream& os, const IPC::Triplet& t)
 {
