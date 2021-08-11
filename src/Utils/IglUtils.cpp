@@ -688,9 +688,11 @@ void IglUtils::findBorderVerts(const Eigen::MatrixXd& V,
     }
 }
 
-void IglUtils::Init_Dirichlet(Eigen::MatrixXd& X,
+void IglUtils::Init_Dirichlet(
+    const Eigen::MatrixXd& X,
     const Eigen::Vector3d& relBoxMin,
     const Eigen::Vector3d& relBoxMax,
+    const std::vector<bool>& isNodeOnBoundary,
     std::vector<int>& selectedVerts)
 {
     if (!X.rows()) {
@@ -704,6 +706,10 @@ void IglUtils::Init_Dirichlet(Eigen::MatrixXd& X,
     Eigen::Array3d rangeMax = (bboxMax - bboxMin) * relBoxMax.array() + bboxMin;
 
     for (int id = 0; id < X.rows(); ++id) {
+        if (!isNodeOnBoundary[id]) {
+            continue;
+        }
+
         const Eigen::Array3d x = X.row(id).array();
         if ((x >= rangeMin).all() && (x <= rangeMax).all()) {
             selectedVerts.emplace_back(id);

@@ -467,9 +467,11 @@ public:
         std::vector<std::vector<int>>& borderVerts,
         double ratio);
 
-    static void Init_Dirichlet(Eigen::MatrixXd& X,
+    static void Init_Dirichlet(
+        const Eigen::MatrixXd& X,
         const Eigen::Vector3d& relBoxMin,
         const Eigen::Vector3d& relBoxMax,
+        const std::vector<bool>& isNodeOnBoundary,
         std::vector<int>& selectedVerts);
 }; // namespace IPC
 
