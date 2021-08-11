@@ -183,7 +183,7 @@ int Config::loadFromFile(const std::string& p_filePath)
                 inputShapeTranslates.push_back(Eigen::Vector3d::Zero());
                 inputShapeRotates.push_back(Eigen::Matrix3d::Identity());
                 inputShapeScales.push_back(Eigen::Vector3d::Ones());
-                inputShapeMaterials.push_back(Eigen::Vector3d::Constant(-1));
+                inputShapeMaterials.push_back(Eigen::Vector3d::Constant(NAN));
                 inputShapeLVels.emplace_back(NAN, NAN, NAN);
                 inputShapeAVels.emplace_back(NAN, NAN, NAN);
                 inputShapeInitVels.push_back(
@@ -220,7 +220,7 @@ int Config::loadFromFile(const std::string& p_filePath)
                     ss_shapes >> x >> y >> z;
                     inputShapeScales.push_back(Eigen::Vector3d(x, y, z));
 
-                    double density = -1, E = -1, nu = -1;
+                    double density = NAN, E = NAN, nu = NAN;
                     double vx = NAN, vy = NAN, vz = NAN, avx = NAN, avy = NAN, avz = NAN;
                     double initLV[3] = { NAN, NAN, NAN }, initAV[3] = { NAN, NAN, NAN };
                     std::string extra;
@@ -350,7 +350,7 @@ int Config::loadFromFile(const std::string& p_filePath)
                 Eigen::Vector3d scale(x, y, z);
 
                 Eigen::Vector3d material;
-                material.setConstant(-1.0);
+                material.setConstant(NAN);
                 std::string extra;
                 ss_shapes >> extra;
                 if (extra == "material") {

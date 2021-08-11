@@ -160,7 +160,7 @@ See our [quick start guide](https://github.com/ipc-sim/IPC/wiki) for detailed ex
     * density of the mesh in Kg/m³, 1000 by default
 * `stiffness <young-modulus> <poisson-ratio>`
     * Young's modulus (E) in Pa, 1e5 by default
-    * Poisson's ratio (ν), 0.4 by default, must be inside `[0, 0.5)`
+    * Poisson's ratio (ν), 0.4 by default
 * `turnOffGravity`
     * no gravity if specified
 * `shapes input <num-of-shapes>`

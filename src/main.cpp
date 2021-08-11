@@ -861,24 +861,36 @@ int main(int argc, char* argv[])
                         }
                         newE.resize(0, 2);
 
-                        if (config.inputShapeMaterials[i][0] > 0.0 && config.inputShapeMaterials[i][1] > 0.0 && config.inputShapeMaterials[i][2] > 0.0) {
-                            Eigen::Vector3i startToEnd;
-                            startToEnd[0] = i;
-                            startToEnd[1] = F.rows();
-                            startToEnd[2] = F.rows() + newF.rows();
-                            componentMaterial.emplace_back(startToEnd, config.inputShapeMaterials[i]);
+                        if (std::isfinite(config.inputShapeMaterials[i][0]) && std::isfinite(config.inputShapeMaterials[i][1]) && std::isfinite(config.inputShapeMaterials[i][2])) {
+                            if (config.inputShapeMaterials[i][0] > 0 && config.inputShapeMaterials[i][1] > 0) {
+                                Eigen::Vector3i startToEnd;
+                                startToEnd[0] = i;
+                                startToEnd[1] = F.rows();
+                                startToEnd[2] = F.rows() + newF.rows();
+                                componentMaterial.emplace_back(startToEnd, config.inputShapeMaterials[i]);
+                            }
+                            else {
+                                spdlog::warn("Invalid material parameters provided for {} (density={:g}, Young's modulus={:g}, and Poisson's ratio={:g})), using default material.",
+                                    inputShapePathStr, config.inputShapeMaterials[i][0], config.inputShapeMaterials[i][1], config.inputShapeMaterials[i][2]);
+                            }
                         }
                     }
                     else if (meshFileSuffix == ".ele") {
                         IPC::IglUtils::readNodeEle(inputShapePathNoSuffix, newV, newF, newSF);
                         newE.resize(0, 2);
 
-                        if (config.inputShapeMaterials[i][0] > 0.0 && config.inputShapeMaterials[i][1] > 0.0 && config.inputShapeMaterials[i][2] > 0.0) {
-                            Eigen::Vector3i startToEnd;
-                            startToEnd[0] = i;
-                            startToEnd[1] = F.rows();
-                            startToEnd[2] = F.rows() + newF.rows();
-                            componentMaterial.emplace_back(startToEnd, config.inputShapeMaterials[i]);
+                        if (std::isfinite(config.inputShapeMaterials[i][0]) && std::isfinite(config.inputShapeMaterials[i][1]) && std::isfinite(config.inputShapeMaterials[i][2])) {
+                            if (config.inputShapeMaterials[i][0] > 0 && config.inputShapeMaterials[i][1] > 0) {
+                                Eigen::Vector3i startToEnd;
+                                startToEnd[0] = i;
+                                startToEnd[1] = F.rows();
+                                startToEnd[2] = F.rows() + newF.rows();
+                                componentMaterial.emplace_back(startToEnd, config.inputShapeMaterials[i]);
+                            }
+                            else {
+                                spdlog::warn("Invalid material parameters provided for {} (density={:g}, Young's modulus={:g}, and Poisson's ratio={:g})), using default material.",
+                                    inputShapePathStr, config.inputShapeMaterials[i][0], config.inputShapeMaterials[i][1], config.inputShapeMaterials[i][2]);
+                            }
                         }
                     }
                     else if (meshFileSuffix == ".obj") {
