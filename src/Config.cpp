@@ -195,7 +195,7 @@ int Config::loadFromFile(const std::string& p_filePath)
                 ss >> type;
                 int shapeNum;
                 ss >> shapeNum;
-                for (int shapeI = 0; shapeNum; shapeNum--, ++shapeI) {
+                for (int shapeI = 0; shapeI < shapeNum; ++shapeI) {
                     std::string line_shapes;
                     std::getline(file, line_shapes);
                     std::stringstream ss_shapes(line_shapes);
@@ -203,7 +203,7 @@ int Config::loadFromFile(const std::string& p_filePath)
                     std::string path;
                     ss_shapes >> path;
                     if (path.empty() || path[0] == '#') {
-                        shapeNum++; // This increase will be canceled out
+                        shapeI--; // This decrease will be canceled out
                         continue;
                     }
                     path = resolvePath(path, p_filePath);
