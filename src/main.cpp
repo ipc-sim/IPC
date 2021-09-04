@@ -467,14 +467,16 @@ void saveInfoForPresent(const std::string fileName, double save_dt)
 
 void saveStats(void)
 {
-    FILE* out = fopen("output/resultsStats.txt", "a+");
-    assert(out);
-
-    fprintf(out, "%s %lf %lf\n", outputFolderPath.c_str(),
-        double(optimizer->getInnerIterAmt()) / iterNum,
-        timer.timing(1) / iterNum);
-
-    fclose(out);
+    FILE* out = fopen("resultsStats.txt", "a+");
+    if (out) {
+        fprintf(out, "%s %lf %lf\n", outputFolderPath.c_str(),
+            double(optimizer->getInnerIterAmt()) / iterNum,
+            timer.timing(1) / iterNum);
+        fclose(out);
+    }
+    else {
+        spdlog::error("Unable to save stats to `resultsStats.txt`!");
+    }
 }
 
 void toggleOptimization(void)

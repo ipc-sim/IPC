@@ -22,6 +22,8 @@
 
 #include <fstream>
 
+// #define EXPORT_FRICTION_DATA
+
 namespace IPC {
 
 // a class for solving an optimization problem
@@ -100,6 +102,10 @@ protected: // owned data
 
     int numOfLineSearch;
 
+#ifdef EXPORT_FRICTION_DATA
+    Eigen::MatrixXd savedFrictionLaggedVertices;
+#endif
+
 protected: // dynamic information
     Eigen::VectorXd velocity;
     Eigen::MatrixXd xTilta, dx_Elastic, acceleration;
@@ -149,6 +155,9 @@ public: // API
 
     virtual void saveStatus(const std::string& appendStr = "");
     virtual void outputCollStats(std::ostream& out);
+#ifdef EXPORT_FRICTION_DATA
+    virtual void saveFrictionData(const Mesh<dim>& mesh) const;
+#endif
 
     virtual void checkGradient(void);
     virtual void checkHessian(void);

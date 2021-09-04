@@ -207,6 +207,14 @@ public:
         LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* H_inc,
         double eps2, double coef, bool projectDBC);
 
+    static void augmentFrictionHessian(const Mesh<dim>& mesh,
+        const Eigen::MatrixXd& Vt, const std::vector<MMCVID>& constraintSet,
+        const Eigen::VectorXd& multipliers,
+        const std::vector<Eigen::Vector2d>& MMDistCoord,
+        const std::vector<Eigen::Matrix<double, 3, 2>>& MMTanBasis,
+        const std::function<void(size_t, size_t, double)>& addCoeff,
+        double eps2, double coef, bool projectDBC);
+
     static void augmentParaEEGradient(const Mesh<dim>& mesh,
         const std::vector<MMCVID>& paraEEMMCVIDSet,
         const std::vector<std::pair<int, int>>& paraEEeIeJSet,

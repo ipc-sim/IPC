@@ -2476,6 +2476,7 @@ void SelfCollisionHandler<dim>::computeDistCoordAndTanBasis(
             assert(MMCVIDI[1] >= 0);
             if (MMCVIDI[2] < 0) {
                 // PP
+                MMDistCoord[cI].setZero(); // Store something instead of random memory
                 computeTangentBasis_PP(mesh.V.row(-MMCVIDI[0] - 1), mesh.V.row(MMCVIDI[1]),
                     MMTanBasis[cI]);
             }
@@ -2483,6 +2484,7 @@ void SelfCollisionHandler<dim>::computeDistCoordAndTanBasis(
                 // PE
                 computeClosestPoint_PE(mesh.V.row(-MMCVIDI[0] - 1),
                     mesh.V.row(MMCVIDI[1]), mesh.V.row(MMCVIDI[2]), MMDistCoord[cI][0]);
+                MMDistCoord[cI][1] = 0; // Store something instead of random memory
                 computeTangentBasis_PE(mesh.V.row(-MMCVIDI[0] - 1),
                     mesh.V.row(MMCVIDI[1]), mesh.V.row(MMCVIDI[2]), MMTanBasis[cI]);
             }
@@ -2707,6 +2709,23 @@ void SelfCollisionHandler<dim>::augmentFrictionHessian(const Mesh<dim>& mesh,
     LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* mtr_incremental,
     double eps2, double coef, bool projectDBC)
 {
+    augmentFrictionHessian(
+        mesh, Vt, constraintSet, multipliers, MMDistCoord, MMTanBasis,
+        [&mtr_incremental](size_t row, size_t col, double val) {
+            mtr_incremental->addCoeff(row, col, val);
+        },
+        eps2, coef, projectDBC);
+}
+
+template <int dim>
+void SelfCollisionHandler<dim>::augmentFrictionHessian(const Mesh<dim>& mesh,
+    const Eigen::MatrixXd& Vt, const std::vector<MMCVID>& constraintSet,
+    const Eigen::VectorXd& multipliers,
+    const std::vector<Eigen::Vector2d>& MMDistCoord,
+    const std::vector<Eigen::Matrix<double, 3, 2>>& MMTanBasis,
+    const std::function<void(size_t, size_t, double)>& addCoeff,
+    double eps2, double coef, bool projectDBC)
+{
     double eps = std::sqrt(eps2);
 
     std::vector<Eigen::Matrix<double, 12, 12>> IPHessian(constraintSet.size());
@@ -2923,17 +2942,17 @@ void SelfCollisionHandler<dim>::augmentFrictionHessian(const Mesh<dim>& mesh,
                 for (int j = 0; j < rowIStart[cI].size(); ++j) {
                     int colIStartI = rowIStart[cI][j];
                     if (colIStartI >= 0) {
-                        mtr_incremental->addCoeff(rowIStartI, colIStartI, IPHessian[cI](i * dim, j * dim));
-                        mtr_incremental->addCoeff(rowIStartI, colIStartI + 1, IPHessian[cI](i * dim, j * dim + 1));
-                        mtr_incremental->addCoeff(rowIStartI + 1, colIStartI, IPHessian[cI](i * dim + 1, j * dim));
-                        mtr_incremental->addCoeff(rowIStartI + 1, colIStartI + 1, IPHessian[cI](i * dim + 1, j * dim + 1));
+                        addCoeff(rowIStartI, colIStartI, IPHessian[cI](i * dim, j * dim));
+                        addCoeff(rowIStartI, colIStartI + 1, IPHessian[cI](i * dim, j * dim + 1));
+                        addCoeff(rowIStartI + 1, colIStartI, IPHessian[cI](i * dim + 1, j * dim));
+                        addCoeff(rowIStartI + 1, colIStartI + 1, IPHessian[cI](i * dim + 1, j * dim + 1));
                         if constexpr (dim == 3) {
-                            mtr_incremental->addCoeff(rowIStartI, colIStartI + 2, IPHessian[cI](i * dim, j * dim + 2));
-                            mtr_incremental->addCoeff(rowIStartI + 1, colIStartI + 2, IPHessian[cI](i * dim + 1, j * dim + 2));
+                            addCoeff(rowIStartI, colIStartI + 2, IPHessian[cI](i * dim, j * dim + 2));
+                            addCoeff(rowIStartI + 1, colIStartI + 2, IPHessian[cI](i * dim + 1, j * dim + 2));
 
-                            mtr_incremental->addCoeff(rowIStartI + 2, colIStartI, IPHessian[cI](i * dim + 2, j * dim));
-                            mtr_incremental->addCoeff(rowIStartI + 2, colIStartI + 1, IPHessian[cI](i * dim + 2, j * dim + 1));
-                            mtr_incremental->addCoeff(rowIStartI + 2, colIStartI + 2, IPHessian[cI](i * dim + 2, j * dim + 2));
+                            addCoeff(rowIStartI + 2, colIStartI, IPHessian[cI](i * dim + 2, j * dim));
+                            addCoeff(rowIStartI + 2, colIStartI + 1, IPHessian[cI](i * dim + 2, j * dim + 1));
+                            addCoeff(rowIStartI + 2, colIStartI + 2, IPHessian[cI](i * dim + 2, j * dim + 2));
                         }
                     }
                 }
