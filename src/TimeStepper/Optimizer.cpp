@@ -3180,7 +3180,7 @@ void Optimizer<dim>::saveFrictionData(const Mesh<dim>& mesh) const
         [&friction_hessian_triplets](size_t row, size_t col, double val) {
             friction_hessian_triplets.emplace_back(row, col, val);
         },
-        fricDHat, animConfig.selfFric, /*projectDBC=*/true);
+        fricDHat, animConfig.selfFric, /*projectDBC=*/false);
     Eigen::SparseMatrix<double> friction_hessian(ndof, ndof);
     friction_hessian.setFromTriplets(
         friction_hessian_triplets.begin(), friction_hessian_triplets.end());

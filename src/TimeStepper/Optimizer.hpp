@@ -22,8 +22,6 @@
 
 #include <fstream>
 
-// #define EXPORT_FRICTION_DATA
-
 namespace IPC {
 
 // a class for solving an optimization problem

@@ -38,6 +38,10 @@
 #define SFCLAMPING_ORDER 1 // 0: C0 clamping, 1: C1, 2: C2
 // #define CHECK_FRIC_TANGENT
 
+// Export friction data
+// WARNING: Enabling this will disable the always project zero DBC in Mesh::isProjectDBCVertex
+// #define EXPORT_FRICTION_DATA
+
 #include "Triplet.hpp"
 
 #ifdef USE_TBB

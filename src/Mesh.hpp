@@ -135,8 +135,12 @@ public: // API
     bool isProjectDBCVertex(int vI, bool projectDBC) const
     {
         assert(vI < vertexDBCType.size());
+#ifdef EXPORT_FRICTION_DATA
+        return vertexDBCType[vI] != DirichletBCType::NOT_DBC && projectDBC;
+#else
         return vertexDBCType[vI] == DirichletBCType::ZERO
             || (vertexDBCType[vI] == DirichletBCType::NONZERO && projectDBC);
+#endif
     }
 
     double avgNodeMass(int coDim = -1) const;
