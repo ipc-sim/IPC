@@ -52,7 +52,7 @@ endfunction()
 function(download_spdlog)
     custom_download_project(spdlog
        GIT_REPOSITORY https://github.com/gabime/spdlog.git
-       GIT_TAG        v1.8.5
+       GIT_TAG        v1.9.2
     )
 endfunction()
 
@@ -84,7 +84,7 @@ endfunction()
 function(download_cli11)
     custom_download_project(cli11
         GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
-        GIT_TAG        b979d3a37098da7ad6291d9bd3c4fdec3a705043
+        GIT_TAG        v2.0.0
     )
 endfunction()
 

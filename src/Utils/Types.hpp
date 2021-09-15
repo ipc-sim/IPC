@@ -13,7 +13,11 @@
 //#define OSQP_USE_MKL_PARDISO
 
 #define USE_TBB
-#define TBB_NUM_THREADS tbb::task_scheduler_init::automatic
+#ifdef USE_TBB
+#include <tbb/tbb.h>
+#include <tbb/task_scheduler_init.h>
+#define TBB_NUM_THREADS (tbb::task_scheduler_init::default_num_threads())
+#endif
 
 #define USE_IQRSVD
 
@@ -43,9 +47,5 @@
 // #define EXPORT_FRICTION_DATA
 
 #include "Triplet.hpp"
-
-#ifdef USE_TBB
-#include <tbb/tbb.h>
-#endif
 
 #endif /* Types_hpp */

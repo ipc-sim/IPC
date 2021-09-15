@@ -26,6 +26,11 @@
 #include <spdlog/spdlog.h>
 #include <CLI/CLI.hpp>
 
+#ifdef USE_TBB
+#include <tbb/global_control.h>
+#include <tbb/task_scheduler_init.h>
+#endif
+
 // optimization/simulation
 IPC::Config config;
 std::vector<const IPC::Mesh<DIM>*> triSoup;
@@ -722,34 +727,86 @@ bool preDrawFunc()
 
 struct CLIArgs {
     int progMode = 10;
-    std::string inputFileName;
-    std::string folderTail = "";
-    std::string outputDir = "";
-    int logLevel = 0; // trace (all logs)
-    bool noProgressBar = false;
-};
+    const std::vector<std::pair<std::string, int>>
+        PROG_MODE_NAMES_TO_PROG_MODE = {
+            { "gui", 0 },
+            { "gui_play", 10 },
+            { "gui_play_save_png", 11 },
+            { "offline", 100 },
+        };
 
-void init_cli_app(CLI::App& app, CLIArgs& args)
-{
-    app.add_set("progMode", args.progMode, { 0, 10, 11, 100 },
-           "program mode 0=optimization, 10=auto-switch, "
-           "11=auto-switch (save png), 100=offline",
-           true)
-        ->required();
-    app.add_option(
-           "inputFileName", args.inputFileName, "input file name")
-        ->required();
-    app.add_option(
-        "folderTail", args.folderTail, "output folder name tail/suffix", true);
-    app.add_option(
-        "-o,--output", args.outputDir, "output folder name");
-    app.add_set("--logLevel,--log", args.logLevel, { 0, 1, 2, 3, 4, 5, 6 },
-        "set log level (0=trace, 1=debug, 2=info, 3=warn, 4=error, 5=critical,"
-        " 6=off)",
-        true);
-    app.add_flag("--noProgressBar,--noPBar", args.noProgressBar,
-        "disable printing a progress bar");
-}
+    std::string inputFileName;
+    std::string outputDir = "";
+    std::string folderTail = "";
+
+    spdlog::level::level_enum logLevel = spdlog::level::trace;
+    const std::vector<std::pair<std::string, spdlog::level::level_enum>>
+        SPDLOG_LEVEL_NAMES_TO_LEVELS = {
+            { "trace", spdlog::level::trace },
+            { "debug", spdlog::level::debug },
+            { "info", spdlog::level::info },
+            { "warning", spdlog::level::warn },
+            { "error", spdlog::level::err },
+            { "critical", spdlog::level::critical },
+            { "off", spdlog::level::off }
+        };
+
+    bool noProgressBar = false;
+
+#if defined(USE_TBB) && defined(TBB_NUM_THREADS)
+    int numThreads = TBB_NUM_THREADS;
+#elif defined(USE_TBB)
+    int numThreads = tbb::task_scheduler_init::default_num_threads();
+#endif
+
+    CLIArgs(int argc, char* argv[])
+    {
+        CLI::App app{ "IPC" };
+
+        app.add_option("progMode", progMode, "program mode")
+            ->required()
+            ->transform(CLI::CheckedTransformer(
+                PROG_MODE_NAMES_TO_PROG_MODE, CLI::ignore_case))
+            ->default_val(progMode);
+
+        app.add_option("inputFileName", inputFileName, "input file name")
+            ->required();
+
+        app.add_option("-o,--output", outputDir, "output folder name");
+        app.add_option("folderTail", folderTail, "output folder name tail/suffix");
+
+        app.add_option("--log,--logLevel", logLevel, "log level")
+            ->transform(CLI::CheckedTransformer(
+                SPDLOG_LEVEL_NAMES_TO_LEVELS, CLI::ignore_case))
+            ->default_val(logLevel);
+
+        app.add_flag("--noProgressBar,--noPBar", noProgressBar,
+            "disable printing a progress bar");
+
+#ifdef USE_TBB
+        app.add_option("--numThreads", numThreads, "maximum number of threads to use")
+            ->default_val(numThreads);
+#endif
+
+        try {
+            app.parse(argc, argv);
+        }
+        catch (const CLI::ParseError& e) {
+            exit(app.exit(e));
+        }
+
+#ifdef USE_TBB
+        if (numThreads <= 0) {
+            numThreads = tbb::task_scheduler_init::default_num_threads();
+        }
+        else if (numThreads > tbb::task_scheduler_init::default_num_threads()) {
+            spdlog::warn(
+                "Attempting to use more threads than available ({:d} > {:d})!",
+                numThreads, tbb::task_scheduler_init::default_num_threads());
+        }
+#endif
+    }
+};
 
 int main(int argc, char* argv[])
 {
@@ -758,22 +815,15 @@ int main(int argc, char* argv[])
     igl::colormap(igl::COLOR_MAP_TYPE_VIRIDIS, 4.0 / 9.0, nonzeroDirichletVertsColor.data());
     igl::colormap(igl::COLOR_MAP_TYPE_VIRIDIS, 2.0 / 3.0, neumannVertsColor.data());
 
-#if defined(USE_TBB) && defined(TBB_NUM_THREADS)
-    tbb::task_scheduler_init init(TBB_NUM_THREADS);
+    CLIArgs args(argc, argv);
+
+#ifdef USE_TBB
+    tbb::global_control thread_limiter(
+        tbb::global_control::max_allowed_parallelism, args.numThreads);
 #endif
 
-    CLI::App app{ "IPC" };
-    CLIArgs args;
-    init_cli_app(app, args);
-    try {
-        app.parse(argc, argv);
-    }
-    catch (const CLI::ParseError& e) {
-        return app.exit(e);
-    }
-
-    spdlog::set_level(static_cast<spdlog::level::level_enum>(args.logLevel));
-    if (args.logLevel == 6) {
+    spdlog::set_level(args.logLevel);
+    if (args.logLevel == spdlog::level::off) {
         std::cout.setstate(std::ios_base::failbit);
     }
 
