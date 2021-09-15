@@ -1,0 +1,21 @@
+energy NH
+timeIntegration BE
+warmStart 0
+size 1.0
+time 100 0.04
+density 1000
+stiffness 2e4 0.4
+turnOffGravity
+
+script twist
+
+shapes input 1
+input/tetMeshes/mat100x100t40.msh 0 0 0  90 0 0  1 1 1
+
+constraintSolver interiorPoint
+selfCollisionOn
+
+CCDMethod FloatingPointRootParity
+
+view perspective
+cameraTracking

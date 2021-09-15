@@ -41,9 +41,7 @@ option(IPC_WITH_GUROBI       "Enable Gurobi QP solver for SQP method"           
 option(IPC_WITH_OSQP_MKL     "Use MKL Pardiso linear solver in OSQP if available"  ON)
 option(IPC_EXIT_UPON_QP_FAIL "Exit if the QP/SQP intersects or blows-up"          OFF)
 ## CCD options
-option(IPC_WITH_EXACT_CCD "Use exact CCD as a verification"                OFF)
-option(IPC_WITH_FPRP      "Use exact floating-point CCD as a verification" OFF)
-mark_as_advanced(IPC_WITH_FPRP)
+option(IPC_WITH_EXACT_CCD "Use exact CCD as a verification"                       OFF)
 ## Top level options
 option(IPC_WITH_TESTS "Build unit tests using Catch2" ${IPC_TOPLEVEL_PROJECT})
 
@@ -82,7 +80,6 @@ set(LIBIGL_WITH_PNG ${IPC_WITH_OPENGL} CACHE BOOL "" FORCE)
 set(IPC_EXTERNAL "${CMAKE_CURRENT_SOURCE_DIR}/external")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-# include(Warnings)
 include(${PROJECT_NAME}Dependencies)
 
 ################################################################################
@@ -129,6 +126,10 @@ target_include_directories(${PROJECT_NAME}_dev PUBLIC
   "src/TimeStepper"
 )
 
+include(IPCWarnings)
+target_link_libraries(${PROJECT_NAME}_dev PRIVATE IPC::warnings)
+
+
 ################################################################################
 # Simulations Executable
 ################################################################################
@@ -165,12 +166,12 @@ if(LIBIGL_WITH_PREDICATES)
 endif()
 
 # CCD
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC CCDWrapper)
+target_link_libraries(${PROJECT_NAME}_dev PUBLIC ccd_wrapper::ccd_wrapper)
 if(IPC_WITH_EXACT_CCD)
   message(WARNING "The exact CCD methods RootParity and BSC miss some collisions! Please use TightInclusion instead.")
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_EXACT_CCD)
 endif()
-if(IPC_WITH_FPRP)
+if(CCD_WRAPPER_WITH_FPRP)
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC IPC_WITH_FPRP_CCD)
 endif()
 if(CCD_WRAPPER_WITH_TIGHT_INCLUSION)
