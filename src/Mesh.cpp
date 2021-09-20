@@ -465,19 +465,8 @@ void Mesh<dim>::computeFeatures(bool multiComp, bool resetDBCV)
 
     computeMassMatrix(igl::MASSMATRIX_TYPE_VORONOI);
 
-    bbox.block(0, 0, 1, 3) = V_rest.row(0);
-    bbox.block(1, 0, 1, 3) = V_rest.row(0);
-    for (int vI = 1; vI < V_rest.rows(); vI++) {
-        const Eigen::RowVector3d& v = V_rest.row(vI);
-        for (int dimI = 0; dimI < 3; dimI++) {
-            if (v[dimI] < bbox(0, dimI)) {
-                bbox(0, dimI) = v[dimI];
-            }
-            if (v[dimI] > bbox(1, dimI)) {
-                bbox(1, dimI) = v[dimI];
-            }
-        }
-    }
+    bbox.row(0) = V_rest.colwise().minCoeff();
+    bbox.row(1) = V_rest.colwise().maxCoeff();
 
     vNeighbor.resize(0);
     vNeighbor.resize(V_rest.rows());

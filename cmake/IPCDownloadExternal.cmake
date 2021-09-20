@@ -76,7 +76,7 @@ endfunction()
 function(download_finite_diff)
     custom_download_project(finite-diff
         GIT_REPOSITORY https://github.com/zfergus/finite-diff.git
-        GIT_TAG        dac4e629defb0edef050e56050eefb00574ecbaa
+        GIT_TAG        0cda5b2222e3671aa4882e050632dcd04aeea08d
     )
 endfunction()
 

@@ -1216,7 +1216,7 @@ int main(int argc, char* argv[])
     else if (config.ccdMethod == ccd::CCDMethod::FLOATING_POINT_ROOT_PARITY) {
 #ifdef IPC_WITH_FPRP_CCD
         // shift entire mesh so the CCD will be exact in doubles
-        IPC::invShift = shiftVertices(*temp, config.meshCollisionObjects);
+        IPC::invShift = shiftWorld(*temp, config.meshCollisionObjects);
 #else
         spdlog::error("FPRP CCD is disabled in CMake (IPC_WITH_FPRP=OFF)!");
         exit(1);

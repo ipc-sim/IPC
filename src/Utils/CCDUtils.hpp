@@ -40,12 +40,12 @@ void computeTightInclusionError(
 
 #ifdef IPC_WITH_FPRP_CCD
 template <int dim>
-Eigen::Vector3d shiftVertices(
+Eigen::Vector3d shiftWorld(
     Mesh<dim>& mesh,
     std::vector<std::shared_ptr<CollisionObject<dim>>>& meshCollisionObjects);
 
 template <int dim>
-Eigen::Vector3d shiftVertices(
+Eigen::Vector3d shiftWorld(
     Mesh<dim>& mesh,
     std::vector<std::shared_ptr<CollisionObject<dim>>>& meshCollisionObjects,
     const Eigen::Vector3d& world_min,

@@ -19,7 +19,7 @@ target_link_libraries(${PROJECT_NAME}_tests PUBLIC ${PROJECT_NAME}_dev)
 target_link_libraries(${PROJECT_NAME}_tests PUBLIC Catch2::Catch2)
 
 # finite-diff
-target_link_libraries(${PROJECT_NAME}_tests PUBLIC FiniteDiff)
+target_link_libraries(${PROJECT_NAME}_tests PUBLIC finitediff::finitediff)
 
 ################################################################################
 # Add Tests

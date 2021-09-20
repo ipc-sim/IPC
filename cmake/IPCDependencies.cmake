@@ -75,10 +75,9 @@ if(IPC_WITH_TESTS AND NOT TARGET Catch2::Catch2)
 endif()
 
 # finite-diff
-if(NOT TARGET FiniteDiff::FiniteDiff)
+if(NOT TARGET finitediff::finitediff)
   download_finite_diff()
   add_subdirectory(${IPC_EXTERNAL}/finite-diff EXCLUDE_FROM_ALL)
-  add_library(FiniteDiff::FiniteDiff ALIAS FiniteDiff)
 endif()
 
 # CLI11
