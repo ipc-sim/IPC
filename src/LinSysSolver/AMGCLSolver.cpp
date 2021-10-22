@@ -5,7 +5,7 @@
 //  Created by Minchen Li on 11/06/19.
 //
 
-#ifdef USE_AMGCL
+#ifdef IPC_WITH_AMGCL
 
 #include "AMGCLSolver.hpp"
 #include "getRSS.hpp"

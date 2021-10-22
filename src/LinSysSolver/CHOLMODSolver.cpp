@@ -5,7 +5,7 @@
 //  Created by Minchen Li on 6/22/18.
 //
 
-#ifdef USE_CHOLMOD
+#ifdef IPC_WITH_CHOLMOD
 
 #include "CHOLMODSolver.hpp"
 #include "getRSS.hpp"

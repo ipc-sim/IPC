@@ -4,11 +4,9 @@
 //
 //  Created by Minchen Li on 11/06/19.
 //
+#pragma once
 
-#ifdef USE_AMGCL
-
-#ifndef AMGCLSolver_hpp
-#define AMGCLSolver_hpp
+#ifdef IPC_WITH_AMGCL
 
 #include "LinSysSolver.hpp"
 
@@ -76,9 +74,10 @@ public:
     AMGCLSolver(void);
     ~AMGCLSolver(void);
 
-    void set_pattern(const std::vector<std::set<int>>& vNeighbor,
-        const std::set<int>& fixedVert);
-    void load(const char* filePath, Eigen::VectorXd& rhs);
+    LinSysSolverType type() const override { return LinSysSolverType::AMGCL; }
+
+    void set_pattern(const std::vector<std::set<int>>& vNeighbor, const std::set<int>& fixedVert) override;
+    void load(const char* filePath, Eigen::VectorXd& rhs) override;
 
     void load_AMGCL(const char* filePath, Eigen::VectorXd& rhs);
     void write_AMGCL(const char* filePath, const Eigen::VectorXd& rhs) const;
@@ -86,16 +85,13 @@ public:
     void copyOffDiag_IJ(void);
     void copyOffDiag_a(void);
 
-    void analyze_pattern(void);
+    void analyze_pattern(void) override;
 
-    bool factorize(void);
+    bool factorize(void) override;
 
-    void solve(Eigen::VectorXd& rhs,
-        Eigen::VectorXd& result);
+    void solve(Eigen::VectorXd& rhs, Eigen::VectorXd& result) override;
 };
 
 } // namespace IPC
 
-#endif /* AMGCLSolver_hpp */
-
-#endif /* USE_AMGCL */
+#endif

@@ -4,9 +4,7 @@
 //
 //  Created by Minchen Li on 6/30/18.
 //
-
-#ifndef EigenLibSolver_hpp
-#define EigenLibSolver_hpp
+#pragma once
 
 #include "LinSysSolver.hpp"
 
@@ -26,30 +24,28 @@ protected:
     Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> simplicialLDLT;
 
 public:
-    void set_pattern(const std::vector<std::set<int>>& vNeighbor,
-        const std::set<int>& fixedVert);
-    void set_pattern(const Eigen::SparseMatrix<double>& mtr); //NOTE: mtr must be SPD
+    LinSysSolverType type() const override { return LinSysSolverType::EIGEN; }
 
-    void analyze_pattern(void);
+    void set_pattern(const std::vector<std::set<int>>& vNeighbor, const std::set<int>& fixedVert) override;
+    void set_pattern(const Eigen::SparseMatrix<double>& mtr) override; //NOTE: mtr must be SPD
 
-    bool factorize(void);
+    void analyze_pattern(void) override;
 
-    void solve(Eigen::VectorXd& rhs,
-        Eigen::VectorXd& result);
+    bool factorize(void) override;
 
-    double coeffMtr(int rowI, int colI) const;
+    void solve(Eigen::VectorXd& rhs, Eigen::VectorXd& result) override;
 
-    void setZero(void);
+    double coeffMtr(int rowI, int colI) const override;
 
-    virtual void setCoeff(int rowI, int colI, double val);
+    void setZero(void) override;
 
-    virtual void addCoeff(int rowI, int colI, double val);
+    virtual void setCoeff(int rowI, int colI, double val) override;
 
-    virtual void setUnit_row(int rowI);
+    virtual void addCoeff(int rowI, int colI, double val) override;
 
-    virtual void setUnit_col(int colI, const std::set<int>& rowVIs);
+    virtual void setUnit_row(int rowI) override;
+
+    virtual void setUnit_col(int colI, const std::set<int>& rowVIs) override;
 };
 
 } // namespace IPC
-
-#endif /* EigenLibSolver_hpp */

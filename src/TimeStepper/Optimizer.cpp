@@ -9,13 +9,7 @@
 
 #include "SelfCollisionHandler.hpp"
 
-#ifdef LINSYSSOLVER_USE_CHOLMOD
-#include "CHOLMODSolver.hpp"
-#elif defined(LINSYSSOLVER_USE_AMGCL)
-#include "AMGCLSolver.hpp"
-#else
-#include "EigenLibSolver.hpp"
-#endif
+#include "LinSysSolver.hpp"
 
 #include <igl/writeDMAT.h>
 
@@ -123,16 +117,8 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
 
     spdlog::info("dt and tol initialized");
 
-#ifdef LINSYSSOLVER_USE_CHOLMOD
-    linSysSolver = new CHOLMODSolver<Eigen::VectorXi, Eigen::VectorXd>();
-    dampingMtr = new CHOLMODSolver<Eigen::VectorXi, Eigen::VectorXd>();
-#elif defined(LINSYSSOLVER_USE_AMGCL)
-    linSysSolver = new AMGCLSolver<Eigen::VectorXi, Eigen::VectorXd>();
-    dampingMtr = new AMGCLSolver<Eigen::VectorXi, Eigen::VectorXd>();
-#else
-    linSysSolver = new EigenLibSolver<Eigen::VectorXi, Eigen::VectorXd>();
-    dampingMtr = new EigenLibSolver<Eigen::VectorXi, Eigen::VectorXd>();
-#endif
+    linSysSolver = LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>::create(animConfig.linSysSolverType);
+    dampingMtr = LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>::create(animConfig.linSysSolverType);
 
     setAnimScriptType(animConfig.animScriptType, animConfig.meshSeqFolderPath);
     solveWithQP = (animConfig.isConstrained && (animConfig.constraintSolverType == CST_QP));
@@ -2078,15 +2064,12 @@ bool Optimizer<dim>::solveSub_IP(double kappa, std::vector<std::vector<int>>& AH
             logFile << "tiny step size after armijo " << alpha_feasible << " " << alpha << std::endl;
         }
 
-#ifdef LINSYSSOLVER_USE_AMGCL
-        if (alpha < 1.0e-8) { // only for debugging tiny step size issue
+        if (linSysSolver->type() == LinSysSolverType::AMGCL && alpha < 1.0e-8) { // only for debugging tiny step size issue
             // output system in AMGCL format
             // Eigen::VectorXd minusG = -gradient;
             // dynamic_cast<AMGCLSolver<Eigen::VectorXi, Eigen::VectorXd>*>(linSysSolver)->write_AMGCL("Stiff", minusG);
             // exit(-1);
-#else
-        if (false) {
-#endif
+            //
             // tiny step size issue
             // if (useGD) {
             // MMCVID i = paraEEMMCVIDSet.back()[0];
@@ -3885,14 +3868,8 @@ void Optimizer<dim>::checkHessian(void)
     }
 
     Eigen::SparseMatrix<double> hessian_symbolicPK;
-    LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* linSysSolver;
-#ifdef LINSYSSOLVER_USE_CHOLMOD
-    linSysSolver = new CHOLMODSolver<Eigen::VectorXi, Eigen::VectorXd>();
-#elif defined(LINSYSSOLVER_USE_AMGCL)
-    linSysSolver = new AMGCLSolver<Eigen::VectorXi, Eigen::VectorXd>();
-#else
-    linSysSolver = new EigenLibSolver<Eigen::VectorXi, Eigen::VectorXd>();
-#endif
+    LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* linSysSolver
+        = LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>::create(animConfig.linSysSolverType);
     linSysSolver->set_pattern(result.vNeighbor, result.DBCVertexIds);
     computeConstraintSets(result);
     computePrecondMtr(result, true, linSysSolver);

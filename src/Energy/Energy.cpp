@@ -10,13 +10,7 @@
 #include "IglUtils.hpp"
 #include "Timer.hpp"
 
-#ifdef LINSYSSOLVER_USE_CHOLMOD
-#include "CHOLMODSolver.hpp"
-#elif defined(LINSYSSOLVER_USE_AMGCL)
-#include "AMGCLSolver.hpp"
-#else
-#include "EigenLibSolver.hpp"
-#endif
+#include "LinSysSolver.hpp"
 
 #include <igl/avg_edge_length.h>
 
@@ -182,13 +176,7 @@ void Energy<dim>::checkHessian(const Mesh<dim>& data, bool triplet) const
     Eigen::SparseMatrix<double> hessian_symbolicPK;
 
     LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* linSysSolver;
-#ifdef LINSYSSOLVER_USE_CHOLMOD
-    linSysSolver = new CHOLMODSolver<Eigen::VectorXi, Eigen::VectorXd>();
-#elif defined(LINSYSSOLVER_USE_AMGCL)
-    linSysSolver = new AMGCLSolver<Eigen::VectorXi, Eigen::VectorXd>();
-#else
-    linSysSolver = new EigenLibSolver<Eigen::VectorXi, Eigen::VectorXd>();
-#endif
+    linSysSolver = LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>::create(IPC_DEFAULT_LINSYSSOLVER);
     linSysSolver->set_pattern(data.vNeighbor, data.DBCVertexIds);
     linSysSolver->setZero();
     computeHessianByPK(data, true, svd, F, 1.0, linSysSolver, false);

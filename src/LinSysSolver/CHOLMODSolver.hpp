@@ -4,11 +4,9 @@
 //
 //  Created by Minchen Li on 6/22/18.
 //
+#pragma once
 
-#ifdef USE_CHOLMOD
-
-#ifndef CHOLMODSolver_hpp
-#define CHOLMODSolver_hpp
+#ifdef IPC_WITH_CHOLMOD
 
 #include "LinSysSolver.hpp"
 
@@ -38,26 +36,25 @@ public:
     CHOLMODSolver(void);
     ~CHOLMODSolver(void);
 
-    void set_pattern(const std::vector<std::set<int>>& vNeighbor,
-        const std::set<int>& fixedVert);
-    void set_pattern(const Eigen::SparseMatrix<double>& mtr); //NOTE: mtr must be SPD
-    void load(const char* filePath, Eigen::VectorXd& rhs);
+    LinSysSolverType type() const override { return LinSysSolverType::CHOLMOD; }
 
-    void analyze_pattern(void);
+    void set_pattern(const std::vector<std::set<int>>& vNeighbor, const std::set<int>& fixedVert) override;
+    void set_pattern(const Eigen::SparseMatrix<double>& mtr) override; //NOTE: mtr must be SPD
+    void load(const char* filePath, Eigen::VectorXd& rhs) override;
 
-    bool factorize(void);
+    void analyze_pattern(void) override;
+
+    bool factorize(void) override;
 
     void solve(Eigen::VectorXd& rhs,
-        Eigen::VectorXd& result);
+        Eigen::VectorXd& result) override;
 
     virtual void multiply(const Eigen::VectorXd& x,
-        Eigen::VectorXd& Ax);
+        Eigen::VectorXd& Ax) override;
 
-    virtual void outputFactorization(const std::string& filePath);
+    virtual void outputFactorization(const std::string& filePath) override;
 };
 
 } // namespace IPC
 
-#endif /* CHOLMODSolver_hpp */
-
-#endif /* USE_CHOLMOD */
+#endif

@@ -32,10 +32,10 @@ project(IPC DESCRIPTION "Incremental Potential Contact (IPC)" LANGUAGES CXX)
 
 # Project options
 option(IPC_WITH_OPENGL "Use libgil viewer for preview and output" ON)
-option(IPC_WITH_AMGCL "Enable AMGCL linear system solver (select with IPC_LINSYSSOLVER=\"AMGCL\")" ON)
-option(IPC_WITH_CHOLMOD "Enable CHOLMOD linear system solver (select with IPC_LINSYSSOLVER=\"CHOLMOD\")" ON)
-set(IPC_LINSYSSOLVER "CHOLMOD" CACHE STRING "Linear system solver to use (options: CHOLMOD, AMGCL, EIGEN)")
-set_property(CACHE IPC_LINSYSSOLVER PROPERTY STRINGS "CHOLMOD" "AMGCL" "EIGEN")
+option(IPC_WITH_AMGCL "Enable AMGCL linear system solver" ON)
+option(IPC_WITH_CHOLMOD "Enable CHOLMOD linear system solver" ON)
+set(IPC_DEFAULT_LINSYSSOLVER "CHOLMOD" CACHE STRING "Linear system solver to use (options: CHOLMOD, AMGCL, EIGEN)")
+set_property(CACHE IPC_DEFAULT_LINSYSSOLVER PROPERTY STRINGS "CHOLMOD" "AMGCL" "EIGEN")
 ## SQP and QP options
 option(IPC_WITH_GUROBI       "Enable Gurobi QP solver for SQP method"             OFF)
 option(IPC_WITH_OSQP_MKL     "Use MKL Pardiso linear solver in OSQP if available"  ON)
@@ -97,9 +97,7 @@ file(GLOB SRCFILES
   "src/CollisionObject/*.cpp"
   "src/CCD/*.cpp"
   "src/Utils/*.cpp"
-  "src/LinSysSolver/EigenLibSolver.cpp"
-  "src/LinSysSolver/CHOLMODSolver.cpp"
-  "src/LinSysSolver/AMGCLSolver.cpp"
+  "src/LinSysSolver/*.cpp"
   "src/TimeStepper/*.cpp"
 )
 
@@ -307,28 +305,20 @@ if(IPC_WITH_OSQP_MKL)
 endif()
 
 # Set the selected linear system solver
-if(IPC_LINSYSSOLVER STREQUAL "CHOLMOD")
-  if(IPC_WITH_CHOLMOD)
-    target_compile_definitions(${PROJECT_NAME}_dev PUBLIC LINSYSSOLVER_USE_CHOLMOD)
-  else()
-    message(FATAL_ERROR "CHOLMOD selected as IPC_LINSYSSOLVER, but CHOLMOD is disabled (IPC_WITH_CHOLMOD=OFF)!")
-  endif()
-elseif(IPC_LINSYSSOLVER STREQUAL "AMGCL")
-  if(IPC_WITH_AMGCL)
-    target_compile_definitions(${PROJECT_NAME}_dev PUBLIC LINSYSSOLVER_USE_AMGCL)
-  else()
-    message(FATAL_ERROR "AMGCL selected as IPC_LINSYSSOLVER, but AMGCL is disabled (IPC_WITH_AMGCL=OFF)!")
-  endif()
-elseif(NOT (IPC_LINSYSSOLVER STREQUAL "EIGEN"))
-  message(WARNING "Invalid linear system solver: ${IPC_LINSYSSOLVER}. Falling back to EIGEN.")
+if(IPC_DEFAULT_LINSYSSOLVER STREQUAL "CHOLMOD" AND NOT IPC_WITH_CHOLMOD)
+  message(FATAL_ERROR "CHOLMOD selected as IPC_DEFAULT_LINSYSSOLVER, but CHOLMOD is disabled (IPC_WITH_CHOLMOD=OFF)!")
 endif()
+if(IPC_DEFAULT_LINSYSSOLVER STREQUAL "AMGCL" AND NOT IPC_WITH_AMGCL)
+    message(FATAL_ERROR "AMGCL selected as IPC_DEFAULT_LINSYSSOLVER, but AMGCL is disabled (IPC_WITH_AMGCL=OFF)!")
+endif()
+string(TOUPPER "${IPC_DEFAULT_LINSYSSOLVER}" IPC_DEFAULT_LINSYSSOLVER)
+target_compile_definitions(${PROJECT_NAME}_dev PUBLIC "IPC_DEFAULT_LINSYSSOLVER=LinSysSolverType::${IPC_DEFAULT_LINSYSSOLVER}")
 
 if(IPC_WITH_AMGCL)
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_AMGCL)
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC IPC_WITH_AMGCL)
 endif()
-
 if(IPC_WITH_CHOLMOD)
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_CHOLMOD)
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC IPC_WITH_CHOLMOD)
 endif()
 
 # Quiet the viewer

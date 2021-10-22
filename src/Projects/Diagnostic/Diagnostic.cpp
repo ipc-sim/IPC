@@ -26,13 +26,8 @@
 
 #include "Optimizer.hpp"
 
-#ifdef LINSYSSOLVER_USE_CHOLMOD
-#include "CHOLMODSolver.hpp"
-#elif defined(LINSYSSOLVER_USE_AMGCL)
+#include "LinSysSolver.hpp"
 #include "AMGCLSolver.hpp"
-#else
-#include "EigenLibSolver.hpp"
-#endif
 
 // amgcl
 #ifdef USE_AMGCL
@@ -371,14 +366,8 @@ public:
 #endif
 
             case 23: { // test linear solver
-                LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* linSysSolver;
-#ifdef LINSYSSOLVER_USE_CHOLMOD
-                linSysSolver = new CHOLMODSolver<Eigen::VectorXi, Eigen::VectorXd>();
-#elif defined(LINSYSSOLVER_USE_AMGCL)
-                linSysSolver = new AMGCLSolver<Eigen::VectorXi, Eigen::VectorXd>();
-#else
-                linSysSolver = new EigenLibSolver<Eigen::VectorXi, Eigen::VectorXd>();
-#endif
+                LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* linSysSolver
+                    = LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>::create(IPC_DEFAULT_LINSYSSOLVER);
 
                 std::vector<std::set<int>> vNeighbor(10);
                 std::set<int> fixedVert;
@@ -704,24 +693,24 @@ public:
                     exit(-1);
                 }
 
-                LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* linSysSolver;
-#ifdef LINSYSSOLVER_USE_CHOLMOD
-                linSysSolver = new CHOLMODSolver<Eigen::VectorXi, Eigen::VectorXd>();
-#elif defined(LINSYSSOLVER_USE_AMGCL)
-                linSysSolver = new AMGCLSolver<Eigen::VectorXi, Eigen::VectorXd>();
-#else
-                linSysSolver = new EigenLibSolver<Eigen::VectorXi, Eigen::VectorXd>();
-#endif
+                LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* linSysSolver
+                    = LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>::create(IPC_DEFAULT_LINSYSSOLVER);
                 Eigen::VectorXd rhs, x;
 
                 // linSysSolver->load(argv[3], rhs);
                 // IglUtils::writeSparseMatrixToFile("M_MATLAB", linSysSolver, true);
-#ifdef LINSYSSOLVER_USE_AMGCL
-                dynamic_cast<AMGCLSolver<Eigen::VectorXi, Eigen::VectorXd>*>(linSysSolver)->load_AMGCL(argv[3], rhs);
-                dynamic_cast<AMGCLSolver<Eigen::VectorXi, Eigen::VectorXd>*>(linSysSolver)->write_AMGCL((std::string(argv[3]) + "check").c_str(), rhs);
-#else
-                linSysSolver->load(argv[3], rhs);
-                IglUtils::writeSparseMatrixToFile(std::string(argv[3]) + "check", linSysSolver, true);
+
+#ifdef IPC_WITH_AMGCL
+                if (IPC_DEFAULT_LINSYSSOLVER == LinSysSolverType::AMGCL) {
+                    dynamic_cast<AMGCLSolver<Eigen::VectorXi, Eigen::VectorXd>*>(linSysSolver)->load_AMGCL(argv[3], rhs);
+                    dynamic_cast<AMGCLSolver<Eigen::VectorXi, Eigen::VectorXd>*>(linSysSolver)->write_AMGCL((std::string(argv[3]) + "check").c_str(), rhs);
+                }
+                else {
+#endif
+                    linSysSolver->load(argv[3], rhs);
+                    IglUtils::writeSparseMatrixToFile(std::string(argv[3]) + "check", linSysSolver, true);
+#ifdef IPC_WITH_AMGCL
+                }
 #endif
 
                 linSysSolver->analyze_pattern();

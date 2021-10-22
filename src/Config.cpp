@@ -117,6 +117,11 @@ int Config::loadFromFile(const std::string& p_filePath)
                 }
                 timeIntegrationType = getTimeIntegrationTypeByStr(type);
             }
+            else if (token == "linearSolver" || token == "linSysSolver") {
+                std::string type;
+                ss >> type;
+                linSysSolverType = getLinSysSolverTypeByStr(type);
+            }
             else if (token == "size") {
                 ss >> size;
             }
@@ -138,7 +143,7 @@ int Config::loadFromFile(const std::string& p_filePath)
                 if (dampingStiff < 0.0) {
                     dampingStiff = 0.0;
                 }
-                std::cout << "dampingStiff = " << dampingStiff << std::endl;
+                spdlog::info("dampingStiff = {}", dampingStiff);
             }
             else if (token == "dampingRatio") {
                 ss >> dampingRatio;
@@ -400,7 +405,7 @@ int Config::loadFromFile(const std::string& p_filePath)
                 }
                 else {
                     orthographic = false;
-                    std::cout << "use default perspective view" << std::endl;
+                    spdlog::info("use default perspective view");
                 }
             }
             else if (token == "zoom") {
@@ -658,7 +663,7 @@ EnergyType Config::getEnergyTypeByStr(const std::string& str)
             return EnergyType(i);
         }
     }
-    std::cout << "use default energy type: NH" << std::endl;
+    spdlog::warn("Unknown energy type: {}; using default energy type: NH", str);
     return ET_NH;
 }
 std::string Config::getStrByEnergyType(EnergyType energyType)
@@ -673,13 +678,31 @@ TimeIntegrationType Config::getTimeIntegrationTypeByStr(const std::string& str)
             return TimeIntegrationType(i);
         }
     }
-    std::cout << "use default time integration type: BE" << std::endl;
+    spdlog::warn("Unknown time integration: {}; using default time integration type: BE", str);
     return TIT_BE;
 }
 std::string Config::getStrByTimeIntegrationType(TimeIntegrationType timeIntegrationType)
 {
     assert(timeIntegrationType < timeIntegrationTypeStrs.size());
     return timeIntegrationTypeStrs[timeIntegrationType];
+}
+LinSysSolverType Config::getLinSysSolverTypeByStr(const std::string& solver)
+{
+#ifdef IPC_WITH_CHOLMOD
+    if (solver == "cholmod" || solver == "CHOLMOD") {
+        return LinSysSolverType::CHOLMOD;
+    }
+#endif
+#ifdef IPC_WITH_AMGCL
+    if (solver == "amgcl" || solver == "AMGCL") {
+        return LinSysSolverType::AMGCL;
+    }
+#endif
+    if (solver == "eigen" || solver == "EIGEN" || solver == "Eigen") {
+        return LinSysSolverType::EIGEN;
+    }
+    spdlog::warn("Uknown linear system solver: {}; using default linear system solver: Eigen", solver);
+    return LinSysSolverType::EIGEN;
 }
 ConstraintSolverType Config::getConstraintSolverTypeByStr(const std::string& str)
 {
@@ -688,7 +711,7 @@ ConstraintSolverType Config::getConstraintSolverTypeByStr(const std::string& str
             return ConstraintSolverType(i);
         }
     }
-    std::cout << "use default constraint solver type: IP" << std::endl;
+    spdlog::warn("Uknown CCD method: {}; using default constraint solver type: IP", str);
     return CST_IP;
 }
 std::string Config::getStrByConstraintSolverType(ConstraintSolverType constraintSolverType)
@@ -703,9 +726,8 @@ ccd::CCDMethod Config::getCCDMethodTypeByStr(const std::string& str)
             return ccd::CCDMethod(i);
         }
     }
-    spdlog::error("Uknown CCD method: {}", str);
-    spdlog::info("Using default CCD method: {}",
-        ccd::method_names[ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER]);
+    spdlog::warn("Uknown CCD method: {}; using default CCD method: {}",
+        str, ccd::method_names[ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER]);
     return ccd::CCDMethod::FLOATING_POINT_ROOT_FINDER;
 }
 CollisionConstraintType Config::getConstraintTypeByStr(const std::string& str)
@@ -716,8 +738,7 @@ CollisionConstraintType Config::getConstraintTypeByStr(const std::string& str)
             return CollisionConstraintType(i);
         }
     }
-    spdlog::error("Uknown collision constraint type: {:s}", str);
-    spdlog::info("Using collision constraint type: volume");
+    spdlog::warn("Uknown collision constraint type: {:s}; using default collision constraint type: volume", str);
     return CollisionConstraintType::VOLUME;
 }
 QPSolverType Config::getQPSolverTypeByStr(const std::string& str)
@@ -728,8 +749,7 @@ QPSolverType Config::getQPSolverTypeByStr(const std::string& str)
             return QPSolverType(i);
         }
     }
-    spdlog::error("Uknown QP solver: {:s}", str);
-    spdlog::info("Using QP solver: {:s}", QPSolverTypeStrs[0]);
+    spdlog::warn("Uknown QP solver: {:s}; using default QP solver: {:s}", str, QPSolverTypeStrs[0]);
     return QPSolverType(0);
 }
 

@@ -11,6 +11,7 @@
 #include "AnimScripter.hpp"
 #include "CollisionObject.h"
 #include "CollisionConstraints.hpp"
+#include "LinSysSolver.hpp"
 #include <ccd.hpp>
 
 #include <iostream>
@@ -98,6 +99,8 @@ public:
     bool isConstrained = true, isSelfCollision = true;
     double selfFric = 0.0;
 
+    LinSysSolverType linSysSolverType = IPC_DEFAULT_LINSYSSOLVER;
+
     std::vector<double> tol;
     int warmStart = 0;
     ConstraintSolverType constraintSolverType = CST_IP;
@@ -168,6 +171,7 @@ public:
     static std::string getStrByEnergyType(EnergyType energyType);
     static TimeIntegrationType getTimeIntegrationTypeByStr(const std::string& str);
     static std::string getStrByTimeIntegrationType(TimeIntegrationType timeIntegrationType);
+    static LinSysSolverType getLinSysSolverTypeByStr(const std::string& str);
     static ConstraintSolverType getConstraintSolverTypeByStr(const std::string& str);
     static std::string getStrByConstraintSolverType(ConstraintSolverType constraintSolverType);
     static ccd::CCDMethod getCCDMethodTypeByStr(const std::string& str);
