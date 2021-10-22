@@ -548,7 +548,7 @@ int Config::loadFromFile(const std::string& p_filePath)
             else if (token == "useAbsParameters") {
                 useAbsParameters = true;
             }
-            else if (token == "kappaMinMultiplier") {
+            else if (token == "kappaMinMultiplier" || token == "minBarrierStiffnessScale") {
                 ss >> kappaMinMultiplier;
             }
 

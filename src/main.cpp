@@ -683,7 +683,7 @@ void converge_preDrawFunc()
 #endif
     spdlog::info("optimization converged, with {:d} inner iterations in {:g}s.", optimizer->getInnerIterAmt(), secPast);
     logFile << "optimization converged, with " << optimizer->getInnerIterAmt() << " inner iterations in " << secPast << "s." << std::endl;
-    spdlog::critical("simulation finished");
+    spdlog::info("simulation finished");
     outerLoopFinished = true;
 }
 
@@ -1318,7 +1318,7 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    spdlog::critical("output path: {:s}", outputFolderPath);
+    spdlog::info("output path: {:s}", outputFolderPath);
 
     // setup timer
     timer.new_activity("descent");
@@ -1448,7 +1448,7 @@ int main(int argc, char* argv[])
 #endif
         viewer.launch();
 #else
-        spdlog::critical("Only offline mode is supported when OpenGL is disabled. See --help for more details.");
+        spdlog::error("Only offline mode is supported when OpenGL is disabled. See --help for more details.");
 #endif
     }
 
