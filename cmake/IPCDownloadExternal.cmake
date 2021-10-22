@@ -60,7 +60,7 @@ endfunction()
 function(download_amgcl)
     custom_download_project(amgcl
        GIT_REPOSITORY https://github.com/ddemidov/amgcl.git
-       GIT_TAG        461a66ce6d197a3816218bf94ffd114a367c1ef1
+       GIT_TAG        1.4.2
     )
 endfunction()
 

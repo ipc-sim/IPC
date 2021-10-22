@@ -20,6 +20,30 @@ template <typename vectorTypeI, typename vectorTypeS>
 AMGCLSolver<vectorTypeI, vectorTypeS>::AMGCLSolver(void)
 {
     solver = NULL;
+
+    params.put("solver.tol", 1e-5); // relative
+    params.put("solver.maxiter", 1000);
+    params.put("precond.class", "amg");
+    params.put("precond.relax.type", "chebyshev");
+    // params.put("precond.relax.type", "gauss_seidel");
+    params.put("precond.relax.degree", 16);
+    params.put("precond.relax.power_iters", 100);
+    params.put("precond.relax.higher", 2.0f);
+    params.put("precond.relax.lower", 1.0f / 120.0f);
+    params.put("precond.relax.scale", true);
+    params.put("precond.max_levels", 6);
+    params.put("precond.direct_coarse", false);
+    params.put("precond.ncycle", 2);
+    params.put("precond.coarsening.type", "smoothed_aggregation");
+    params.put("precond.coarsening.estimate_spectral_radius", true);
+    params.put("precond.coarsening.relax", 1.0f);
+    params.put("precond.coarsening.aggr.eps_strong", 0.0);
+#if defined(USE_BW_AGGREGATION)
+    params.put("precond.coarsening.aggr.block_size", DIM);
+#endif
+    params.put("solver.type", "cg");
+    // params.put("solver.type", "lgmres");
+    params.put("solver.M", 100);
 }
 
 template <typename vectorTypeI, typename vectorTypeS>
@@ -153,20 +177,12 @@ bool AMGCLSolver<vectorTypeI, vectorTypeS>::factorize(void)
     if (solver) {
         delete solver;
     }
-    Solver::params prm;
-    prm.solver.tol = 1e-5; // relative
-    prm.solver.maxiter = 1000;
-    prm.precond.coarsening.aggr.eps_strong = 0.0;
-    prm.solver.M = 100;
 #ifdef USE_BW_BACKEND
     auto A = amgcl::adapter::block_matrix<value_type>(std::tie(Base::numRows, _ia, _ja, _a));
     std::cout << A.rows() << " " << A.cols() << std::endl; //NOTE: [a wierd bug] must keep this line as it is
-    solver = new Solver(A, prm);
+    solver = new Solver(A, params);
 #else
-#if defined(USE_BW_AGGREGATION)
-    prm.precond.coarsening.aggr.block_size = DIM;
-#endif
-    solver = new Solver(std::tie(Base::numRows, _ia, _ja, _a), prm);
+    solver = new Solver(std::tie(Base::numRows, _ia, _ja, _a), params);
 #endif
     std::cout << solver->precond() << std::endl;
     // std::cout << getCurrentRSS() << std::endl;
