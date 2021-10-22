@@ -16,7 +16,6 @@
 #include <igl/harmonic.h>
 #include <igl/euler_characteristic.h>
 #include <igl/per_vertex_normals.h>
-#include <igl/opengl/glfw/Viewer.h>
 #include <igl/copyleft/tetgen/tetrahedralize.h>
 
 #ifdef USE_TBB
@@ -28,8 +27,6 @@
 #include <cstdio>
 
 std::string outputFolderPath = "output/";
-
-igl::opengl::glfw::Viewer viewer;
 
 namespace IPC {
 class MeshProcessing {

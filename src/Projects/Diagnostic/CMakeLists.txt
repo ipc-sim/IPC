@@ -19,7 +19,7 @@ endif()
 target_link_libraries(diagnostic PUBLIC osqp::osqp)
 
 # libigl
-target_link_libraries(diagnostic PUBLIC igl::core igl::opengl_glfw igl::triangle igl::png igl::tetgen)
+target_link_libraries(diagnostic PUBLIC igl::core igl::triangle igl::tetgen)
 
 # tbb
 target_link_libraries(diagnostic PUBLIC TBB::tbb)

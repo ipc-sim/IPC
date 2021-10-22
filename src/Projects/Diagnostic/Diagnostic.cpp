@@ -50,7 +50,6 @@ std::ofstream logFile;
 std::string outputFolderPath = "output/";
 
 #include <igl/readOBJ.h>
-#include <igl/opengl/glfw/Viewer.h>
 #include <igl/boundary_loop.h>
 #include <igl/harmonic.h>
 #include <igl/copyleft/tetgen/tetrahedralize.h>
