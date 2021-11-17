@@ -2940,13 +2940,14 @@ void Optimizer<dim>::stepForward(const Eigen::MatrixXd& dataV0,
 template <int dim>
 void Optimizer<dim>::updateTargetGRes(void)
 {
-    targetGRes = std::sqrt(relGL2Tol * bboxDiagSize2 * dtSq);
+    targetGRes = std::sqrt(
+        relGL2Tol * (animConfig.useAbsParameters ? 1 : bboxDiagSize2 * dtSq));
 }
 
 template <int dim>
 void Optimizer<dim>::getFaceFieldForVis(Eigen::VectorXd& field)
 {
-    //        field = Eigen::VectorXd::Zero(result.F.rows());
+    // field = Eigen::VectorXd::Zero(result.F.rows());
     field = result.u;
 }
 

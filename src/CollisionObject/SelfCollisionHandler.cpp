@@ -749,7 +749,8 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_TightInclusion(
                 /*max_t=*/stepSize,
                 /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                 output_tolerance,
-                /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE);
+                /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
 
             if (has_collision && toi < 1e-6) {
                 has_collision = inclusion_ccd::edgeEdgeCCD_double(
@@ -768,7 +769,8 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_TightInclusion(
                     /*max_t=*/stepSize,
                     /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                    /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
                 if (has_collision) {
                     toi *= 0.8;
                 }
@@ -812,7 +814,8 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_TightInclusion(
                 /*max_t=*/stepSize,
                 /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                 output_tolerance,
-                /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE);
+                /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
 
             if (has_collision && toi < 1e-6) {
                 has_collision = inclusion_ccd::vertexFaceCCD_double(
@@ -831,7 +834,8 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_TightInclusion(
                     /*max_t=*/stepSize,
                     /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                    /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
                 if (has_collision) {
                     toi *= 0.8;
                 }
@@ -1427,7 +1431,8 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                     /*max_t=*/stepSize,
                     /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                    /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
 
                 if (has_collision && toi < 1e-6) {
                     has_collision = inclusion_ccd::vertexFaceCCD_double(
@@ -1446,7 +1451,8 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                         /*max_t=*/stepSize,
                         /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                         output_tolerance,
-                        /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE);
+                        /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                        /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
                     if (has_collision) {
                         toi *= 0.8;
                     }
@@ -1544,7 +1550,8 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                     /*max_t=*/stepSize,
                     /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                    /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
 
                 if (has_collision && toi < 1e-6) {
                     has_collision = inclusion_ccd::edgeEdgeCCD_double(
@@ -1563,7 +1570,8 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                         /*max_t=*/stepSize,
                         /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                         output_tolerance,
-                        /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE);
+                        /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                        /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
                     if (has_collision) {
                         toi *= 0.8;
                     }
@@ -1954,7 +1962,8 @@ bool SelfCollisionHandler<dim>::updateActiveSet_QP(
                     /*max_t=*/1,
                     /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                    /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
                 break;
 #else
                 spdlog::error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
@@ -2054,7 +2063,8 @@ bool SelfCollisionHandler<dim>::updateActiveSet_QP(
                     /*max_t=*/1,
                     /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                    /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
                 break;
 #else
                 spdlog::error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");

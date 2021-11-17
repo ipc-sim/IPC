@@ -783,10 +783,11 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
                     /*ms=*/std::min(TIGHT_INCLUSION_DIST_P * d_sqrt, TIGHT_INCLUSION_MIN_DIST),
                     toi,
                     tolerance,
-                    stepSize,
-                    /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
+                    /*t_max=*/stepSize,
+                    /*max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                    /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
 
                 if (has_collision && toi < 1e-6) {
                     has_collision = inclusion_ccd::vertexFaceCCD_double(
@@ -805,7 +806,8 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
                         /*max_t=*/stepSize,
                         /* max_itr=*/-1,
                         output_tolerance,
-                        /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
+                        /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                        /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
                     if (has_collision) {
                         toi *= 0.8;
                     }
@@ -851,7 +853,8 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
                     /*max_t=*/stepSize,
                     /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                    /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
 
                 if (has_collision && toi < 1e-6) {
                     has_collision = inclusion_ccd::vertexFaceCCD_double(
@@ -870,7 +873,8 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
                         /*max_t=*/stepSize,
                         /* max_itr=*/-1,
                         output_tolerance,
-                        /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
+                        /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                        /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
                     if (has_collision) {
                         toi *= 0.8;
                     }
@@ -917,7 +921,8 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
                 /*max_t=*/stepSize,
                 /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                 output_tolerance,
-                /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
+                /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
 
             if (has_collision && toi < 1e-6) {
                 double output_tolerance;
@@ -937,7 +942,8 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
                     /*max_t=*/stepSize,
                     /* max_itr=*/-1,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                    /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
 
                 if (has_collision) {
                     toi *= 0.8;
@@ -1416,7 +1422,8 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                 /*max_t=*/stepSize,
                 /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                 output_tolerance,
-                /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
+                /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
 
             if (has_collision && toi < 1e-6) {
                 has_collision = inclusion_ccd::vertexFaceCCD_double(
@@ -1435,7 +1442,8 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                     /*max_t=*/stepSize,
                     /* max_itr=*/-1,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                    /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
                 if (has_collision) {
                     toi *= 0.8;
                 }
@@ -1503,7 +1511,8 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                 /*max_t=*/stepSize,
                 /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                 output_tolerance,
-                /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
+                /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
 
             if (has_collision && toi < 1e-6) {
                 has_collision = inclusion_ccd::vertexFaceCCD_double(
@@ -1522,7 +1531,8 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                     /*max_t=*/stepSize,
                     /* max_itr=*/-1,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                    /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
                 if (has_collision) {
                     toi *= 0.8;
                 }
@@ -1587,7 +1597,8 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                 /*max_t=*/stepSize,
                 /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                 output_tolerance,
-                /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
+                /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
 
             if (has_collision && toi < 1e-6) {
                 has_collision = inclusion_ccd::vertexFaceCCD_double(
@@ -1606,7 +1617,8 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                     /*max_t=*/stepSize,
                     /* max_itr=*/-1,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                    /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
                 if (has_collision) {
                     toi *= 0.8;
                 }
@@ -2855,7 +2867,8 @@ bool MeshCO<dim>::updateActiveSet_QP(
                     /*max_t=*/1,
                     /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                    /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
                 break;
 #else
                 spdlog::error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
@@ -2941,7 +2954,8 @@ bool MeshCO<dim>::updateActiveSet_QP(
                     /*max_t=*/1,
                     /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                    /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
                 break;
 #else
                 spdlog::error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");
@@ -3062,7 +3076,8 @@ bool MeshCO<dim>::updateActiveSet_QP(
                     /*max_t=*/1,
                     /* max_itr=*/TIGHT_INCLUSION_MAX_ITER,
                     output_tolerance,
-                    /*CCD_TYPE=*/TIGHT_INCLUSION_MAX_ITER);
+                    /*CCD_TYPE=*/TIGHT_INCLUSION_CCD_TYPE,
+                    /*no_zero_toi=*/TIGHT_INCLUSION_NO_ZERO_TOI);
                 break;
 #else
                 spdlog::error("Tight Inclusion CCD is disabled in CMake (CCD_WRAPPER_WITH_TIGHT_INCLUSION=OFF)!");

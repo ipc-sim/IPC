@@ -9,14 +9,16 @@
 #include <CollisionObject/CollisionObject.h>
 #include <Mesh.hpp>
 
-#ifdef IPC_WITH_TIGHT_INCLUSION
-#define TIGHT_INCLUSION_MAX_ITER 1e6
-#define TIGHT_INCLUSION_CCD_TYPE 1
-#define TIGHT_INCLUSION_DIST_P 0.2
-#define TIGHT_INCLUSION_MIN_DIST tolerance
-#endif
-
 namespace IPC {
+
+static constexpr double DEFAULT_CCD_TOLERANCE = 1e-6;
+#ifdef IPC_WITH_TIGHT_INCLUSION
+static constexpr int TIGHT_INCLUSION_MAX_ITER = 1e6;
+static constexpr int TIGHT_INCLUSION_CCD_TYPE = 1;
+static constexpr bool TIGHT_INCLUSION_NO_ZERO_TOI = true;
+static constexpr double TIGHT_INCLUSION_DIST_P = 0.2;
+static constexpr double TIGHT_INCLUSION_MIN_DIST = DEFAULT_CCD_TOLERANCE;
+#endif
 
 #ifdef IPC_WITH_TIGHT_INCLUSION
 extern std::array<double, 3> tight_inclusion_vf_err, tight_inclusion_ee_err;
