@@ -39,6 +39,7 @@ namespace fs = std::experimental::filesystem;
 */
 
 #include <spdlog/spdlog.h>
+#include <spdlog/sinks/basic_file_sink.h>
 #include <CLI/CLI.hpp>
 
 // optimization/simulation
@@ -716,6 +717,12 @@ int main(int argc, char* argv[])
     }
     all_outputs = args.all_outputs;
 
+    // We want spdlog to log both in console and log file in file system
+    std::string log_path = args.outputDir;
+    if (log_path.empty()) log_path = "/tmp";
+    if (log_path.back() != '/') log_path.push_back('/');
+    log_path.append("ipc-binary-log.txt");
+    spdlog::default_logger()->sinks().emplace_back(new spdlog::sinks::basic_file_sink_mt(log_path));
     spdlog::set_level(static_cast<spdlog::level::level_enum>(args.logLevel));
     if (args.logLevel == 6) {
         std::cout.setstate(std::ios_base::failbit);
