@@ -178,6 +178,12 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
     animScripter.initAnimScript(result, animConfig.collisionObjects,
         animConfig.meshCollisionObjects, animConfig.DBCTimeRange, animConfig.NBCTimeRange);
     result.saveBCNodes(outputFolderPath + "/BC_0.txt");
+
+    // Initialize these to zero in case they are missing from the status file
+    velocity = Eigen::VectorXd::Zero(result.V.rows() * dim);
+    dx_Elastic = Eigen::MatrixXd::Zero(result.V.rows(), dim);
+    acceleration = Eigen::MatrixXd::Zero(result.V.rows(), dim);
+
     if (animConfig.restart) {
         std::ifstream in(animConfig.statusPath.c_str());
         assert(in.is_open());
@@ -197,7 +203,7 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
                 assert(dim_in == result.V.cols());
                 for (int vI = 0; vI < posRows; ++vI) {
                     in >> result.V(vI, 0) >> result.V(vI, 1);
-                    { // Note: it was if constexpr (dim == 3) {
+                    if constexpr (dim == 3) {
                         in >> result.V(vI, 2);
                     }
                 }
@@ -212,6 +218,20 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
                     in >> velocity[velI];
                 }
             }
+            else if (token == "acceleration") {
+                spdlog::info("read restart acceleration");
+                int accRows, dim_in;
+                ss >> accRows >> dim_in;
+                assert(accRows <= result.V.rows());
+                assert(dim_in == result.V.cols());
+                acceleration.setZero(result.V.rows(), dim);
+                for (int vI = 0; vI < accRows; ++vI) {
+                    in >> acceleration(vI, 0) >> acceleration(vI, 1);
+                    if constexpr (dim == 3) {
+                        in >> acceleration(vI, 2);
+                    }
+                }
+            }
             else if (token == "dx_Elastic") {
                 spdlog::info("read restart dx_Elastic");
                 int dxERows, dim_in;
@@ -221,19 +241,16 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
                 dx_Elastic.setZero(result.V.rows(), dim);
                 for (int vI = 0; vI < dxERows; ++vI) {
                     in >> dx_Elastic(vI, 0) >> dx_Elastic(vI, 1);
-                    { // Note: it was if constexpr (dim == 3) {
+                    if constexpr (dim == 3) {
                         in >> dx_Elastic(vI, 2);
                     }
                 }
             }
         }
         in.close();
-        //TODO: load acceleration, also save acceleration in the saveStatus() function
     }
     else {
         animScripter.initVelocity(result, animConfig.scriptParams, velocity);
-        dx_Elastic = Eigen::MatrixXd::Zero(result.V.rows(), dim);
-        acceleration = Eigen::MatrixXd::Zero(result.V.rows(), dim);
     }
     result.V_prev = result.V;
     computeXTilta();
@@ -2837,7 +2854,6 @@ void Optimizer<dim>::initStepSize(const Mesh<dim>& data, double& stepSize)
 template <int dim>
 void Optimizer<dim>::saveStatus(const std::string& appendStr)
 {
-#ifdef SERIALIZED_OUTPUT
     // We only output displacement data in serialized form
     const std::string path = outputFolderPath + "displacement" + std::to_string(globalIterNum) + appendStr + ".txt";
     spdlog::info("Results writting for Step {}", globalIterNum);
@@ -2857,36 +2873,57 @@ void Optimizer<dim>::saveStatus(const std::string& appendStr)
         ost << globalIterNum;
     }
     spdlog::info("Results written for Step {}", globalIterNum);
-#else
-    FILE* out = fopen((outputFolderPath + "status" + std::to_string(globalIterNum) + appendStr).c_str(), "w");
-    assert(out);
 
-    fprintf(out, "timestep %d\n", globalIterNum);
+    ///////////////////////////////////////////////////////////////////////////
 
-    fprintf(out, "\nposition %ld %ld\n", result.V.rows(), result.V.cols());
-    for (int vI = 0; vI < result.V.rows(); ++vI) {
-        fprintf(out, "%le %le", result.V(vI, 0),
-            result.V(vI, 1));
-        { // Note: it was if constexpr (dim == 3) {
-            fprintf(out, " %le\n", result.V(vI, 2));
+    std::string status_fname = fmt::format("{}restart_field_data{}.txt", outputFolderPath, appendStr);
+    std::ofstream status(status_fname, std::ios::out);
+    if (status.is_open()) {
+        // status << std::hexfloat;
+        status << std::setprecision(std::numeric_limits<long double>::digits10 + 2);
+
+        status << "timestep " << globalIterNum << "\n\n";
+
+        status << "position " << result.V.rows() << " " << result.V.cols() << "\n";
+        for (int vI = 0; vI < result.V.rows(); ++vI) {
+            status << result.V(vI, 0) << " " << result.V(vI, 1);
+            if constexpr (dim == 3) {
+                status << " " << result.V(vI, 2);
+            }
+            status << "\n";
         }
-    }
+        status << "\n";
 
-    fprintf(out, "\nvelocity %ld\n", velocity.size());
-    for (int velI = 0; velI < velocity.size(); ++velI) {
-        fprintf(out, "%le\n", velocity[velI]);
-    }
-
-    fprintf(out, "\ndx_Elastic %ld %d\n", dx_Elastic.rows(), dim);
-    for (int velI = 0; velI < dx_Elastic.rows(); ++velI) {
-        fprintf(out, "%le %le", dx_Elastic(velI, 0),
-            dx_Elastic(velI, 1));
-        { // Note: it was if constexpr (dim == 3) {
-            fprintf(out, " %le\n", dx_Elastic(velI, 2));
+        status << "velocity " << velocity.size() << "\n";
+        for (int velI = 0; velI < velocity.size(); ++velI) {
+            status << velocity[velI] << "\n";
         }
-    }
+        status << "\n";
 
-    fclose(out);
+        status << "acceleration " << acceleration.rows() << " " << dim << "\n";
+        for (int accI = 0; accI < acceleration.rows(); ++accI) {
+            status << acceleration(accI, 0) << " " << acceleration(accI, 1);
+            if constexpr (dim == 3) {
+                status << " " << acceleration(accI, 2);
+            }
+            status << "\n";
+        }
+        status << "\n";
+
+        status << "dx_Elastic " << dx_Elastic.rows() << " " << dim << "\n";
+        for (int velI = 0; velI < dx_Elastic.rows(); ++velI) {
+            status << dx_Elastic(velI, 0) << " " << dx_Elastic(velI, 1);
+            if constexpr (dim == 3) {
+                status << " " << dx_Elastic(velI, 2);
+            }
+            status << "\n";
+        }
+
+        status.close();
+    }
+    else {
+        spdlog::error("Unable to create status file ({})!", status_fname);
+    }
 
     // surface mesh, including codimensional surface CO
 #ifdef USE_TBB
@@ -2942,7 +2979,6 @@ void Optimizer<dim>::saveStatus(const std::string& appendStr)
         }
         fclose(out);
     }
-#endif
 }
 
 template <int dim>

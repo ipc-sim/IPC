@@ -526,6 +526,7 @@ int Config::loadFromFile(const std::string& p_filePath)
             else if (token == "restart") {
                 restart = true;
                 ss >> statusPath;
+                statusPath = resolvePath(statusPath, p_filePath);
             }
 
             else if (token == "disableCout") {
