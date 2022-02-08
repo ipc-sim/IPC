@@ -49,12 +49,13 @@ option(IPC_WITH_TESTS     "Build unit tests using Catch2"                       
 option(IPC_WITH_GUROBI    "Enable Gurobi QP solver for SQP method"             OFF)
 option(IPC_WITH_OSQP_MKL  "Use MKL Pardiso linear solver in OSQP if available"  OFF)
 option(IPC_WITH_OPENGL    "Use libgil viewer for preview and output"            OFF)
-set(IPC_LINSYSSOLVER "CHOLMOD" CACHE STRING "Linear system solver to use (options: CHOLMOD, AMGCL, EIGEN)")
-set_property(CACHE IPC_LINSYSSOLVER PROPERTY STRINGS "CHOLMOD" "AMGCL" "EIGEN")
 option(IPC_EXIT_UPON_QP_FAIL  "Exit if the QP/SQP intersects or blows-up" OFF)
 option(IPC_WITH_MAIN                 "Build binary with library"     ON)
-option(IPC_WITH_AMGCL                  "Build with AMGCL"              OFF)
-option(IPC_WITH_TBB                    "Build with TBB"                OFF)
+option(IPC_WITH_AMGCL                "Build with AMGCL"              ON)
+option(IPC_WITH_CHOLMOD              "Build with CHOLMOD"            ON)
+set(IPC_DEFAULT_LINSYSSOLVER "CHOLMOD" CACHE STRING "Linear system solver to use (options: CHOLMOD, AMGCL, EIGEN)")
+set_property(CACHE IPC_DEFAULT_LINSYSSOLVER PROPERTY STRINGS "CHOLMOD" "AMGCL" "EIGEN")
+option(IPC_WITH_TBB                  "Build with TBB"                OFF)
 option(IPC_WITH_PREBUILT_EXT "For externals, use prebuilt version" OFF)
 option(IPC_WITH_RATIONAL_CCD "With rational CCD if turned on when not using prebuilt externals" OFF)
 option(IPC_WITH_SERIALIZED_OUTPUT "With serialized output in IPC" ON)
@@ -85,9 +86,7 @@ file(GLOB SRCFILES
   "ipc/CollisionObject/*.cpp"
   "ipc/CCD/*.cpp"
   "ipc/Utils/*.cpp"
-  "ipc/LinSysSolver/EigenLibSolver.cpp"
-  "ipc/LinSysSolver/CHOLMODSolver.cpp"
-#  "src/LinSysSolver/AMGCLSolver.cpp"
+  "ipc/LinSysSolver/*.cpp"
   "ipc/TimeStepper/*.cpp"
 )
 
@@ -222,15 +221,10 @@ if(IPC_WITH_RATIONAL_CCD)
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC WITH_RATIONAL_CCD)
 endif()
 
-#TODO: Choosing linear solver should not be at compile time but rather at
+
 # Set the selected linear system solver
-if(IPC_LINSYSSOLVER STREQUAL "CHOLMOD")
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC LINSYSSOLVER_USE_CHOLMOD)
-elseif(IPC_LINSYSSOLVER STREQUAL "AMGCL")
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC LINSYSSOLVER_USE_AMGCL)
-elseif(NOT (IPC_LINSYSSOLVER STREQUAL "EIGEN"))
-  message(WARNING "Invalid linear system solver: ${IPC_LINSYSSOLVER}. Falling back to EIGEN.")
-endif()
+string(TOUPPER "${IPC_DEFAULT_LINSYSSOLVER}" IPC_DEFAULT_LINSYSSOLVER)
+target_compile_definitions(${PROJECT_NAME}_dev PUBLIC "IPC_DEFAULT_LINSYSSOLVER=LinSysSolverType::${IPC_DEFAULT_LINSYSSOLVER}")
 
 if(IPC_EXIT_UPON_QP_FAIL)
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC EXIT_UPON_QP_FAIL)

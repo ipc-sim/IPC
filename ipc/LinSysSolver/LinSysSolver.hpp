@@ -24,6 +24,12 @@
 
 namespace IPC {
 
+enum LinSysSolverType {
+    CHOLMOD,
+    AMGCL,
+    EIGEN
+};
+
 template <typename vectorTypeI, typename vectorTypeS>
 class LinSysSolver {
 protected:
@@ -34,6 +40,9 @@ protected:
 
 public:
     virtual ~LinSysSolver(void){};
+
+    static LinSysSolver<vectorTypeI, vectorTypeS>* create(const LinSysSolverType type);
+    virtual LinSysSolverType type() const = 0;
 
 public:
     virtual void set_pattern(const std::vector<std::set<int>>& vNeighbor,

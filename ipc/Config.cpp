@@ -121,6 +121,7 @@ std::string GetCwd(const std::string& in)
         }
     }
     std::cerr << "cwd: " << internal::g_cwd << ", size: " << internal::g_cwd.size() << std::endl;
+    // Add a new line as an example of patching
     assert(!internal::g_cwd.empty());
     return internal::g_cwd;
 }
@@ -182,6 +183,11 @@ int Config::loadFromFile(const std::string& p_filePath)
                     ss >> beta >> gamma;
                 }
                 timeIntegrationType = getTimeIntegrationTypeByStr(type);
+            }
+            else if (token == "linearSolver" || token == "linSysSolver") {
+                std::string type;
+                ss >> type;
+                linSysSolverType = getLinSysSolverTypeByStr(type);
             }
             else if (token == "size") {
                 ss >> size;
@@ -689,6 +695,22 @@ std::string Config::getStrByTimeIntegrationType(TimeIntegrationType timeIntegrat
 {
     assert(timeIntegrationType < timeIntegrationTypeStrs.size());
     return timeIntegrationTypeStrs[timeIntegrationType];
+}
+LinSysSolverType Config::getLinSysSolverTypeByStr(const std::string& solver)
+{
+    if (solver == "cholmod" || solver == "CHOLMOD") {
+        return LinSysSolverType::CHOLMOD;
+    }
+    else if (solver == "amgcl" || solver == "AMGCL") {
+        return LinSysSolverType::AMGCL;
+    }
+    else if (solver == "eigen" || solver == "EIGEN" || solver == "Eigen") {
+        return LinSysSolverType::EIGEN;
+    }
+    else {
+        spdlog::warn("Uknown linear system solver: {}; using default linear system solver: Eigen", solver);
+        return LinSysSolverType::EIGEN;
+    }
 }
 ConstraintSolverType Config::getConstraintSolverTypeByStr(const std::string& str)
 {

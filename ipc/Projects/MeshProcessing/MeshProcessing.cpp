@@ -8,14 +8,6 @@
 #ifndef MeshProcessing_hpp
 #define MeshProcessing_hpp
 
-#ifdef LINSYSSOLVER_USE_CHOLMOD
-#include "ipc/LinSysSolver/CHOLMODSolver.hpp"
-#elif defined(LINSYSSOLVER_USE_AMGCL)
-#include "ipc/LinSysSolver/AMGCLSolver.hpp"
-#else
-#include "ipc/LinSysSolver/EigenLibSolver.hpp"
-#endif
-
 #include "ipc/Utils/IglUtils.hpp"
 
 #include "ipc/Utils/Timer.hpp"

@@ -9,13 +9,7 @@
 
 #include "ipc/CollisionObject/SelfCollisionHandler.hpp"
 
-#ifdef LINSYSSOLVER_USE_CHOLMOD
-#include "ipc/LinSysSolver/CHOLMODSolver.hpp"
-#elif defined(LINSYSSOLVER_USE_AMGCL)
-#include "ipc/LinSysSolver/AMGCLSolver.hpp"
-#else
-#include "ipc/LinSysSolver/EigenLibSolver.hpp"
-#endif
+#include "ipc/LinSysSolver/LinSysSolver.hpp"
 
 #include "ipc/Utils/IglUtils.hpp"
 #include "ipc/Utils/BarrierFunctions.hpp"
@@ -65,6 +59,47 @@ extern std::vector<int> compFAccSize;
 extern int numOfCCDFail;
 
 namespace IPC {
+
+namespace {
+
+template <typename T>
+void Serialize(const T& in, std::ostream* ostr) {
+    if constexpr (std::is_fundamental_v<T>) {
+        ostr->write(reinterpret_cast<const char*>(&in), sizeof(T));
+    } else {
+        ostr->write(reinterpret_cast<const char*>(in.data()),
+                    sizeof(typename T::Scalar) * in.size());
+    }
+}
+
+void Deserialize(std::istream* istr,
+                 int* time_step,
+                 Eigen::MatrixXd* position,
+                 Eigen::VectorXd* velocity,
+                 Eigen::MatrixXd* acceleration,
+                 Eigen::MatrixXd* dx_Elastic) {
+    spdlog::info("restart deserialization");
+    istr->read(reinterpret_cast<char*>(time_step), sizeof(int));
+    spdlog::info("restart at step: {}", (*time_step));
+    spdlog::info("read position");
+    istr->read(reinterpret_cast<char*>(position->data()),
+               sizeof(double) * position->size());
+    spdlog::info("position norm: {}", position->norm());
+    spdlog::info("read velocity");
+    istr->read(reinterpret_cast<char*>(velocity->data()),
+               sizeof(double) * velocity->size());
+    spdlog::info("velocity norm: {}", velocity->norm());
+    spdlog::info("read acceleration");
+    istr->read(reinterpret_cast<char*>(acceleration->data()),
+               sizeof(double) * acceleration->size());
+    spdlog::info("acceleration norm: {}", acceleration->norm());
+    spdlog::info("read dx_Elastic");
+    istr->read(reinterpret_cast<char*>(dx_Elastic->data()),
+               sizeof(double) * dx_Elastic->size());
+    spdlog::info("dx_Elastic norm: {}", dx_Elastic->norm());
+}
+
+}  // namespace
 
 template <int dim>
 Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
@@ -117,17 +152,9 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
 
     spdlog::info("dt and tol initialized");
 
-#ifdef LINSYSSOLVER_USE_CHOLMOD
-    linSysSolver = new CHOLMODSolver<Eigen::VectorXi, Eigen::VectorXd>();
-    dampingMtr = new CHOLMODSolver<Eigen::VectorXi, Eigen::VectorXd>();
-#elif defined(LINSYSSOLVER_USE_AMGCL)
-    linSysSolver = new AMGCLSolver<Eigen::VectorXi, Eigen::VectorXd>();
-    dampingMtr = new AMGCLSolver<Eigen::VectorXi, Eigen::VectorXd>();
-#else
-    linSysSolver = new EigenLibSolver<Eigen::VectorXi, Eigen::VectorXd>();
-    dampingMtr = new EigenLibSolver<Eigen::VectorXi, Eigen::VectorXd>();
-#endif
-
+    linSysSolver = LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>::create(animConfig.linSysSolverType);
+    dampingMtr = LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>::create(animConfig.linSysSolverType);
+    
     setAnimScriptType(animConfig.animScriptType, animConfig.meshSeqFolderPath);
     solveWithQP = (animConfig.isConstrained && (animConfig.constraintSolverType == CST_QP));
     solveWithSQP = (animConfig.isConstrained && (animConfig.constraintSolverType == CST_SQP));
@@ -187,66 +214,10 @@ Optimizer<dim>::Optimizer(const Mesh<dim>& p_data0,
     if (animConfig.restart) {
         std::ifstream in(animConfig.statusPath.c_str());
         assert(in.is_open());
-        std::string line;
-        while (std::getline(in, line)) {
-            std::stringstream ss(line);
-            std::string token;
-            ss >> token;
-            if (token == "timestep") {
-                ss >> globalIterNum;
-            }
-            else if (token == "position") {
-                spdlog::info("read restart position");
-                int posRows, dim_in;
-                ss >> posRows >> dim_in;
-                assert(posRows <= result.V.rows());
-                assert(dim_in == result.V.cols());
-                for (int vI = 0; vI < posRows; ++vI) {
-                    in >> result.V(vI, 0) >> result.V(vI, 1);
-                    if constexpr (dim == 3) {
-                        in >> result.V(vI, 2);
-                    }
-                }
-            }
-            else if (token == "velocity") {
-                spdlog::info("read restart velocity");
-                int velDim;
-                ss >> velDim;
-                assert(velDim <= result.V.rows() * dim);
-                velocity.setZero(result.V.rows() * dim);
-                for (int velI = 0; velI < velDim; ++velI) {
-                    in >> velocity[velI];
-                }
-            }
-            else if (token == "acceleration") {
-                spdlog::info("read restart acceleration");
-                int accRows, dim_in;
-                ss >> accRows >> dim_in;
-                assert(accRows <= result.V.rows());
-                assert(dim_in == result.V.cols());
-                acceleration.setZero(result.V.rows(), dim);
-                for (int vI = 0; vI < accRows; ++vI) {
-                    in >> acceleration(vI, 0) >> acceleration(vI, 1);
-                    if constexpr (dim == 3) {
-                        in >> acceleration(vI, 2);
-                    }
-                }
-            }
-            else if (token == "dx_Elastic") {
-                spdlog::info("read restart dx_Elastic");
-                int dxERows, dim_in;
-                ss >> dxERows >> dim_in;
-                assert(dxERows <= result.V.rows());
-                assert(dim_in == dim);
-                dx_Elastic.setZero(result.V.rows(), dim);
-                for (int vI = 0; vI < dxERows; ++vI) {
-                    in >> dx_Elastic(vI, 0) >> dx_Elastic(vI, 1);
-                    if constexpr (dim == 3) {
-                        in >> dx_Elastic(vI, 2);
-                    }
-                }
-            }
-        }
+        velocity.setZero(result.V.rows() * dim);
+        acceleration.setZero(result.V.rows(), dim);
+        dx_Elastic.setZero(result.V.rows(), dim);
+        Deserialize(&in, &globalIterNum, &(result.V), &velocity, &acceleration, &dx_Elastic);
         in.close();
     }
     else {
@@ -1948,15 +1919,12 @@ bool Optimizer<dim>::solveSub_IP(double mu, std::vector<std::vector<int>>& AHat,
             logFile << "tiny step size after armijo " << alpha_feasible << " " << alpha << std::endl;
         }
 
-#ifdef LINSYSSOLVER_USE_AMGCL
-        if (alpha < 1.0e-8) { // only for debugging tiny step size issue
+        if (linSysSolver->type() == LinSysSolverType::AMGCL && alpha < 1.0e-8) { // only for debugging tiny step size issue
             // output system in AMGCL format
             // Eigen::VectorXd minusG = -gradient;
             // dynamic_cast<AMGCLSolver<Eigen::VectorXi, Eigen::VectorXd>*>(linSysSolver)->write_AMGCL("Stiff", minusG);
             // exit(-1);
-#else
-        if (false) {
-#endif
+            //
             // tiny step size issue
             // if (useGD) {
             // MMCVID i = paraEEMMCVIDSet.back()[0];
@@ -2879,46 +2847,11 @@ void Optimizer<dim>::saveStatus(const std::string& appendStr)
     std::string status_fname = fmt::format("{}restart_field_data{}.txt", outputFolderPath, appendStr);
     std::ofstream status(status_fname, std::ios::out);
     if (status.is_open()) {
-        // status << std::hexfloat;
-        status << std::setprecision(std::numeric_limits<long double>::digits10 + 2);
-
-        status << "timestep " << globalIterNum << "\n\n";
-
-        status << "position " << result.V.rows() << " " << result.V.cols() << "\n";
-        for (int vI = 0; vI < result.V.rows(); ++vI) {
-            status << result.V(vI, 0) << " " << result.V(vI, 1);
-            if constexpr (dim == 3) {
-                status << " " << result.V(vI, 2);
-            }
-            status << "\n";
-        }
-        status << "\n";
-
-        status << "velocity " << velocity.size() << "\n";
-        for (int velI = 0; velI < velocity.size(); ++velI) {
-            status << velocity[velI] << "\n";
-        }
-        status << "\n";
-
-        status << "acceleration " << acceleration.rows() << " " << dim << "\n";
-        for (int accI = 0; accI < acceleration.rows(); ++accI) {
-            status << acceleration(accI, 0) << " " << acceleration(accI, 1);
-            if constexpr (dim == 3) {
-                status << " " << acceleration(accI, 2);
-            }
-            status << "\n";
-        }
-        status << "\n";
-
-        status << "dx_Elastic " << dx_Elastic.rows() << " " << dim << "\n";
-        for (int velI = 0; velI < dx_Elastic.rows(); ++velI) {
-            status << dx_Elastic(velI, 0) << " " << dx_Elastic(velI, 1);
-            if constexpr (dim == 3) {
-                status << " " << dx_Elastic(velI, 2);
-            }
-            status << "\n";
-        }
-
+        Serialize(globalIterNum, &status);
+        Serialize(result.V, &status);
+        Serialize(velocity, &status);
+        Serialize(acceleration, &status);
+        Serialize(dx_Elastic, &status);
         status.close();
     }
     else {
@@ -3667,13 +3600,7 @@ void Optimizer<dim>::checkHessian(void)
 
     Eigen::SparseMatrix<double> hessian_symbolicPK;
     LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* linSysSolver;
-#ifdef LINSYSSOLVER_USE_CHOLMOD
-    linSysSolver = new CHOLMODSolver<Eigen::VectorXi, Eigen::VectorXd>();
-#elif defined(LINSYSSOLVER_USE_AMGCL)
-    linSysSolver = new AMGCLSolver<Eigen::VectorXi, Eigen::VectorXd>();
-#else
-    linSysSolver = new EigenLibSolver<Eigen::VectorXi, Eigen::VectorXd>();
-#endif
+    linSysSolver = LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>::create(animConfig.linSysSolverType);
     linSysSolver->set_pattern(result.vNeighbor, result.DBCVertexIds);
     computeConstraintSets(result);
     computePrecondMtr(result, true, linSysSolver);

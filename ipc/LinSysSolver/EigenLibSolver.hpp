@@ -26,6 +26,8 @@ protected:
     Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> simplicialLDLT;
 
 public:
+    LinSysSolverType type() const override { return LinSysSolverType::EIGEN; }
+
     void set_pattern(const std::vector<std::set<int>>& vNeighbor,
         const std::set<int>& fixedVert);
     void set_pattern(const Eigen::SparseMatrix<double>& mtr); //NOTE: mtr must be SPD
@@ -34,8 +36,7 @@ public:
 
     bool factorize(void);
 
-    void solve(Eigen::VectorXd& rhs,
-        Eigen::VectorXd& result);
+    void solve(Eigen::VectorXd& rhs, Eigen::VectorXd& result);
 
     double coeffMtr(int rowI, int colI) const;
 

@@ -11,6 +11,7 @@
 #include "ipc/AnimScripter.hpp"
 #include "ipc/CollisionObject/CollisionObject.h"
 #include "ipc/CollisionObject/CollisionConstraints.hpp"
+#include "ipc/LinSysSolver/LinSysSolver.hpp"
 #include "ipc/CCD/ExactCCD.hpp"
 #include <optional>
 #include <iostream>
@@ -70,6 +71,8 @@ public:
     double dampingRatio = 0.0, dampingStiff = 0.0;
     bool isConstrained = true, isSelfCollision = true;
     double selfFric = 0.0;
+
+    LinSysSolverType linSysSolverType = IPC_DEFAULT_LINSYSSOLVER;
 
     std::vector<double> tol;
     int warmStart = 0;
@@ -139,6 +142,7 @@ public:
     static std::string getStrByEnergyType(EnergyType energyType);
     static TimeIntegrationType getTimeIntegrationTypeByStr(const std::string& str);
     static std::string getStrByTimeIntegrationType(TimeIntegrationType timeIntegrationType);
+    static LinSysSolverType getLinSysSolverTypeByStr(const std::string& str);
     static ConstraintSolverType getConstraintSolverTypeByStr(const std::string& str);
     static std::string getStrByConstraintSolverType(ConstraintSolverType constraintSolverType);
     static ExactCCD::Method getExactCCDTypeByStr(const std::string& str);
