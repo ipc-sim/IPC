@@ -15,7 +15,7 @@
 #include <igl/avg_edge_length.h>
 
 #ifdef USE_TBB
-#include <tbb/tbb.h>
+#include <tbb/parallel_for.h>
 #endif
 
 #include <fstream>
@@ -460,7 +460,7 @@ void Energy<dim>::compute_dP_div_dF(const AutoFlipSVD<Eigen::Matrix<double, dim,
 #if (DIM == 2)
         IglUtils::makePD2d(d2E_div_dsigma2);
 #else
-        IglUtils::makePD(d2E_div_dsigma2); //TODO: use implicit QR to accelerate
+        IglUtils::makePD(d2E_div_dsigma2); // TODO: use implicit QR to accelerate
 #endif
     }
 

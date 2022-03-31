@@ -45,8 +45,6 @@ jobs:
             sudo apt-get install \
             xorg-dev \
             libsuitesparse-dev \
-            libmetis-dev \
-            libboost-all-dev \
             libblas-dev \
             libglu1-mesa-dev \
             liblapack-dev \
@@ -54,7 +52,7 @@ jobs:
 
       - name: Dependencies (macOS)
         if: runner.os == 'macOS'
-        run: brew install suite-sparse ccache boost
+        run: brew install suite-sparse ccache
 
       - name: Cache Build
         id: cache-build

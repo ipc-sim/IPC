@@ -430,7 +430,7 @@ if (SUITESPARSE_CONFIG_FOUND)
 endif (SUITESPARSE_CONFIG_FOUND)
 
 # METIS (Optional dependency).
-suitesparse_find_component(METIS REQUIRED FILES metis.h LIBRARIES metis)
+# suitesparse_find_component(METIS REQUIRED FILES metis.h LIBRARIES metis)
 
 # Only mark SuiteSparse as found if all required components and dependencies
 # have been found.
@@ -459,10 +459,10 @@ if (SUITESPARSE_FOUND)
     list(APPEND SUITESPARSE_INCLUDE_DIRS
       ${UFCONFIG_INCLUDE_DIR})
   endif (UFCONFIG_FOUND)
-  if (METIS_FOUND)
-    list(APPEND SUITESPARSE_INCLUDE_DIRS
-      ${METIS_INCLUDE_DIR})
-  endif (METIS_FOUND)
+  # if (METIS_FOUND)
+  #   list(APPEND SUITESPARSE_INCLUDE_DIRS
+  #     ${METIS_INCLUDE_DIR})
+  # endif (METIS_FOUND)
   # As SuiteSparse includes are often all in the same directory, remove any
   # repetitions.
   list(REMOVE_DUPLICATES SUITESPARSE_INCLUDE_DIRS)
@@ -482,10 +482,10 @@ if (SUITESPARSE_FOUND)
     list(APPEND SUITESPARSE_LIBRARIES
       ${SUITESPARSE_CONFIG_LIBRARY})
   endif (SUITESPARSE_CONFIG_FOUND)
-  if (METIS_FOUND)
-    list(APPEND SUITESPARSE_LIBRARIES
-      ${METIS_LIBRARY})
-  endif (METIS_FOUND)
+  # if (METIS_FOUND)
+  #   list(APPEND SUITESPARSE_LIBRARIES
+  #     ${METIS_LIBRARY})
+  # endif (METIS_FOUND)
 endif()
 
 # Determine if we are running on Ubuntu with the package install of SuiteSparse

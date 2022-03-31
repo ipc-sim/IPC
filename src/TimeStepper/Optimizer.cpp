@@ -25,7 +25,7 @@
 #include <igl/readOBJ.h>
 
 #ifdef USE_TBB
-#include <tbb/tbb.h>
+#include <tbb/parallel_for.h>
 #endif
 
 #include <spdlog/spdlog.h>
@@ -591,7 +591,7 @@ int Optimizer<dim>::solve(int maxIter)
             }
 
             if (animConfig.dampingStiff) {
-                computeDampingMtr(result, false, dampingMtr); //TODO: projectDBC?
+                computeDampingMtr(result, false, dampingMtr); // TODO: projectDBC?
             }
             timer_step.stop();
         }
@@ -697,7 +697,7 @@ void Optimizer<dim>::computeQPInequalityConstraint(
             mesh, activeSet[coI], A_triplet, b);
         constraintStartInds.emplace_back(b.size());
     }
-    //TODO: use input argument
+    // TODO: use input argument
     for (int coI = 0; coI < animConfig.meshCollisionObjects.size(); ++coI) {
         animConfig.meshCollisionObjects[coI]->updateConstraints_QP(
             mesh, MMActiveSet[coI], animConfig.constraintType, A_triplet, b);
@@ -1559,7 +1559,7 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
 
         if (animConfig.collisionObjects[coI]->friction > 0.0) {
             lambda_lastH[coI].resize(constraintVal.size() - startCI);
-            //TODO: parallelize
+            // TODO: parallelize
             for (int i = 0; i < lambda_lastH[coI].size(); ++i) {
                 compute_g_b(constraintVal[startCI + i], dHat, lambda_lastH[coI][i]);
                 lambda_lastH[coI][i] *= -kappa * 2.0 * std::sqrt(constraintVal[startCI + i]);
@@ -1581,7 +1581,7 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
 
         if (animConfig.selfFric > 0.0) {
             MMLambda_lastH.back().resize(constraintVal.size() - startCI);
-            //TODO: parallelize
+            // TODO: parallelize
             for (int i = 0; i < MMLambda_lastH.back().size(); ++i) {
                 compute_g_b(constraintVal[startCI + i], dHat, MMLambda_lastH.back()[i]);
                 MMLambda_lastH.back()[i] *= -kappa * 2.0 * std::sqrt(constraintVal[startCI + i]);
@@ -1626,7 +1626,7 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
 
             if (animConfig.collisionObjects[coI]->friction > 0.0) {
                 lambda_lastH[coI].resize(constraintVal.size() - startCI);
-                //TODO: parallelize
+                // TODO: parallelize
                 for (int i = 0; i < lambda_lastH[coI].size(); ++i) {
                     compute_g_b(constraintVal[startCI + i], dHat, lambda_lastH[coI][i]);
                     lambda_lastH[coI][i] *= -kappa * 2.0 * std::sqrt(constraintVal[startCI + i]);
@@ -1648,7 +1648,7 @@ bool Optimizer<dim>::fullyImplicit_IP(void)
 
             if (animConfig.selfFric > 0.0) {
                 MMLambda_lastH.back().resize(constraintVal.size() - startCI);
-                //TODO: parallelize
+                // TODO: parallelize
                 for (int i = 0; i < MMLambda_lastH.back().size(); ++i) {
                     compute_g_b(constraintVal[startCI + i], dHat, MMLambda_lastH.back()[i]);
                     MMLambda_lastH.back()[i] *= -kappa * 2.0 * std::sqrt(constraintVal[startCI + i]);
@@ -1860,7 +1860,7 @@ bool Optimizer<dim>::solveSub_IP(double kappa, std::vector<std::vector<int>>& AH
         timer_step.start(12);
         computeGradient(result, false, gradient, m_projectDBC);
         timer_step.stop();
-        //TODO: constraint val can be computed and reused for E, g, H
+        // TODO: constraint val can be computed and reused for E, g, H
 
         spdlog::info("# constraint = {:d}", MMActiveSet.size() ? MMActiveSet.back().size() : 0);
         spdlog::info("# paraEE = {:d}", paraEEMMCVIDSet.size() ? paraEEMMCVIDSet.back().size() : 0);
@@ -2194,7 +2194,7 @@ bool Optimizer<dim>::solveSub_IP(double kappa, std::vector<std::vector<int>>& AH
                         }
                         else {
                             animScripter.updateLambda(result, rho_DBC);
-                            //TODO: use second order dual update
+                            // TODO: use second order dual update
                             spdlog::info("MBC lambda updated with rho_DBC = {:g}", rho_DBC);
                         }
                     }
@@ -2235,7 +2235,7 @@ void Optimizer<dim>::suggestKappa(double& kappa)
 template <int dim>
 void Optimizer<dim>::initKappa(double& kappa)
 {
-    //TODO: optimize implementation and pipeline
+    // TODO: optimize implementation and pipeline
     buildConstraintStartIndsWithMM(activeSet, MMActiveSet, constraintStartInds);
     if (constraintStartInds.back()) {
         Eigen::VectorXd g_E;
@@ -2361,7 +2361,7 @@ void Optimizer<dim>::postLineSearch(double alpha)
         initKappa(kappa);
     }
     else {
-        //TODO: avoid recomputation of constraint functions
+        // TODO: avoid recomputation of constraint functions
         bool updateKappa = false;
         for (int i = 0; i < closeConstraintID.size(); ++i) {
             double d;
@@ -2678,7 +2678,7 @@ bool Optimizer<dim>::lineSearch(double& stepSize,
     }
     else {
         timer_step.start(9);
-        computeEnergyVal(result, false, lastEnergyVal); //TODO: only for updated constraints set and kappa
+        computeEnergyVal(result, false, lastEnergyVal); // TODO: only for updated constraints set and kappa
         timer_step.start(5);
     }
     msg << "E_last = " << lastEnergyVal << " stepSize: " << stepSize << " -> ";
@@ -3198,8 +3198,8 @@ void Optimizer<dim>::saveFrictionData(const Mesh<dim>& mesh) const
 template <int dim>
 void Optimizer<dim>::computeEnergyVal(const Mesh<dim>& data, int redoSVD, double& energyVal)
 {
-    //TODO: write inertia and augmented Lagrangian term into energyTerms
-    //        if(!mute) { timer_step.start(0); }
+    // TODO: write inertia and augmented Lagrangian term into energyTerms
+    //         if(!mute) { timer_step.start(0); }
     switch (animConfig.timeIntegrationType) {
     case TIT_BE: {
         energyTerms[0]->computeEnergyVal(data, redoSVD, svd, F,
@@ -3291,7 +3291,7 @@ void Optimizer<dim>::computeEnergyVal(const Mesh<dim>& data, int redoSVD, double
             int startCI = constraintVals.size();
             SelfCollisionHandler<dim>::evaluateConstraints(data, MMActiveSet.back(), constraintVals);
             bVals.conservativeResize(constraintVals.size());
-            //TODO: parallelize
+            // TODO: parallelize
             for (int cI = startCI; cI < constraintVals.size(); ++cI) {
                 if (constraintVals[cI] <= 0.0) {
                     spdlog::error("constraintVal = {:g} when evaluating constraints {:d} {:d} {:d} {:d}",
@@ -3828,7 +3828,7 @@ void Optimizer<dim>::checkGradient(void)
 template <int dim>
 void Optimizer<dim>::checkHessian(void)
 {
-    //TODO: needs to turn off SPD projection
+    // TODO: needs to turn off SPD projection
     spdlog::info("checking hessian computation...");
 
     Eigen::VectorXd gradient0;

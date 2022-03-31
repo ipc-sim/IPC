@@ -14,9 +14,9 @@
 
 #define USE_TBB
 #ifdef USE_TBB
-#include <tbb/tbb.h>
-#include <tbb/task_scheduler_init.h>
-#define TBB_NUM_THREADS (tbb::task_scheduler_init::default_num_threads())
+#include <tbb/parallel_for.h>
+#include <tbb/info.h>
+#define TBB_NUM_THREADS (tbb::info::default_concurrency())
 #endif
 
 #define USE_IQRSVD

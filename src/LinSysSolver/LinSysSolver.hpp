@@ -17,7 +17,7 @@
 #include <iostream>
 
 #ifdef USE_TBB
-#include <tbb/tbb.h>
+#include <tbb/parallel_for.h>
 #endif
 
 namespace IPC {
@@ -56,61 +56,60 @@ public:
         std::vector<Eigen::VectorXi> ja_v(vNeighbor.size());
         std::vector<int> rowNNZ(numRows);
 #ifdef USE_TBB
-        tbb::parallel_for(0, (int)vNeighbor.size(), 1, [&](int vI)
+        tbb::parallel_for(0, (int)vNeighbor.size(), 1, [&](int vI) {
 #else
-        for (int vI = 0; vI < vNeighbor.size(); ++vI)
+        for (int vI = 0; vI < vNeighbor.size(); ++vI) {
 #endif
-            {
-                ja_v[vI].resize((vNeighbor[vI].size() + 1) * DIM);
+            ja_v[vI].resize((vNeighbor[vI].size() + 1) * DIM);
 
-                ja_v[vI][0] = vI * DIM;
-                ja_v[vI][1] = ja_v[vI][0] + 1;
-                IJ2aI[ja_v[vI][0]][ja_v[vI][0]] = 0;
-                IJ2aI[ja_v[vI][0]][ja_v[vI][1]] = 1;
-                if constexpr (DIM == 3) {
-                    ja_v[vI][2] = ja_v[vI][0] + 2;
-                    IJ2aI[ja_v[vI][0]][ja_v[vI][2]] = 2;
-                }
+            ja_v[vI][0] = vI * DIM;
+            ja_v[vI][1] = ja_v[vI][0] + 1;
+            IJ2aI[ja_v[vI][0]][ja_v[vI][0]] = 0;
+            IJ2aI[ja_v[vI][0]][ja_v[vI][1]] = 1;
+            if constexpr (DIM == 3) {
+                ja_v[vI][2] = ja_v[vI][0] + 2;
+                IJ2aI[ja_v[vI][0]][ja_v[vI][2]] = 2;
+            }
 
-                int nnz = DIM;
-                for (const auto& nbVI : vNeighbor[vI]) {
-                    if (nbVI > vI) {
-                        ja_v[vI][nnz] = nbVI * DIM;
-                        ja_v[vI][nnz + 1] = ja_v[vI][nnz] + 1;
-                        IJ2aI[ja_v[vI][0]][ja_v[vI][nnz]] = nnz;
-                        IJ2aI[ja_v[vI][0]][ja_v[vI][nnz + 1]] = nnz + 1;
-                        if constexpr (DIM == 3) {
-                            ja_v[vI][nnz + 2] = ja_v[vI][nnz] + 2;
-                            IJ2aI[ja_v[vI][0]][ja_v[vI][nnz + 2]] = nnz + 2;
-                        }
-                        nnz += DIM;
+            int nnz = DIM;
+            for (const auto& nbVI : vNeighbor[vI]) {
+                if (nbVI > vI) {
+                    ja_v[vI][nnz] = nbVI * DIM;
+                    ja_v[vI][nnz + 1] = ja_v[vI][nnz] + 1;
+                    IJ2aI[ja_v[vI][0]][ja_v[vI][nnz]] = nnz;
+                    IJ2aI[ja_v[vI][0]][ja_v[vI][nnz + 1]] = nnz + 1;
+                    if constexpr (DIM == 3) {
+                        ja_v[vI][nnz + 2] = ja_v[vI][nnz] + 2;
+                        IJ2aI[ja_v[vI][0]][ja_v[vI][nnz + 2]] = nnz + 2;
                     }
-                }
-
-                rowNNZ[ja_v[vI][0]] = nnz;
-                if constexpr (DIM == 2) {
-                    ja_v[vI].conservativeResize(nnz * DIM - 1);
-                    ja_v[vI].tail(nnz - 1) = ja_v[vI].segment(1, nnz - 1);
-
-                    IJ2aI[ja_v[vI][0] + 1] = IJ2aI[ja_v[vI][0]];
-                    IJ2aI[ja_v[vI][0] + 1].erase(ja_v[vI][0]);
-
-                    rowNNZ[ja_v[vI][0] + 1] = nnz - 1;
-                }
-                else {
-                    ja_v[vI].conservativeResize(nnz * DIM - 3);
-                    ja_v[vI].segment(nnz, nnz - 1) = ja_v[vI].segment(1, nnz - 1);
-                    ja_v[vI].tail(nnz - 2) = ja_v[vI].segment(2, nnz - 2);
-
-                    IJ2aI[ja_v[vI][0] + 1] = IJ2aI[ja_v[vI][0]];
-                    IJ2aI[ja_v[vI][0] + 1].erase(ja_v[vI][0]);
-                    IJ2aI[ja_v[vI][0] + 2] = IJ2aI[ja_v[vI][0] + 1];
-                    IJ2aI[ja_v[vI][0] + 2].erase(ja_v[vI][0] + 1);
-
-                    rowNNZ[ja_v[vI][0] + 1] = nnz - 1;
-                    rowNNZ[ja_v[vI][0] + 2] = nnz - 2;
+                    nnz += DIM;
                 }
             }
+
+            rowNNZ[ja_v[vI][0]] = nnz;
+            if constexpr (DIM == 2) {
+                ja_v[vI].conservativeResize(nnz * DIM - 1);
+                ja_v[vI].tail(nnz - 1) = ja_v[vI].segment(1, nnz - 1);
+
+                IJ2aI[ja_v[vI][0] + 1] = IJ2aI[ja_v[vI][0]];
+                IJ2aI[ja_v[vI][0] + 1].erase(ja_v[vI][0]);
+
+                rowNNZ[ja_v[vI][0] + 1] = nnz - 1;
+            }
+            else {
+                ja_v[vI].conservativeResize(nnz * DIM - 3);
+                ja_v[vI].segment(nnz, nnz - 1) = ja_v[vI].segment(1, nnz - 1);
+                ja_v[vI].tail(nnz - 2) = ja_v[vI].segment(2, nnz - 2);
+
+                IJ2aI[ja_v[vI][0] + 1] = IJ2aI[ja_v[vI][0]];
+                IJ2aI[ja_v[vI][0] + 1].erase(ja_v[vI][0]);
+                IJ2aI[ja_v[vI][0] + 2] = IJ2aI[ja_v[vI][0] + 1];
+                IJ2aI[ja_v[vI][0] + 2].erase(ja_v[vI][0] + 1);
+
+                rowNNZ[ja_v[vI][0] + 1] = nnz - 1;
+                rowNNZ[ja_v[vI][0] + 2] = nnz - 2;
+            }
+        }
 #ifdef USE_TBB
         );
 #endif
@@ -121,34 +120,33 @@ public:
 
         ja.resize(ia[numRows] - 1);
 #ifdef USE_TBB
-        tbb::parallel_for(0, (int)vNeighbor.size(), 1, [&](int vI)
+        tbb::parallel_for(0, (int)vNeighbor.size(), 1, [&](int vI) {
 #else
-        for (int vI = 0; vI < vNeighbor.size(); ++vI)
+        for (int vI = 0; vI < vNeighbor.size(); ++vI) {
 #endif
-            {
-                int rowIStart = vI * DIM;
+            int rowIStart = vI * DIM;
 
-                ja.segment(ia[rowIStart] - 1, ja_v[vI].size()) = ja_v[vI];
+            ja.segment(ia[rowIStart] - 1, ja_v[vI].size()) = ja_v[vI];
 
-                for (auto& indexI : IJ2aI[rowIStart]) {
-                    indexI.second += ia[rowIStart] - 1;
-                }
-                for (auto& indexI : IJ2aI[rowIStart + 1]) {
-                    indexI.second += ia[rowIStart + 1] - 2;
-                }
-                if constexpr (DIM == 3) {
-                    for (auto& indexI : IJ2aI[rowIStart + 2]) {
-                        indexI.second += ia[rowIStart + 2] - 3;
-                    }
+            for (auto& indexI : IJ2aI[rowIStart]) {
+                indexI.second += ia[rowIStart] - 1;
+            }
+            for (auto& indexI : IJ2aI[rowIStart + 1]) {
+                indexI.second += ia[rowIStart + 1] - 2;
+            }
+            if constexpr (DIM == 3) {
+                for (auto& indexI : IJ2aI[rowIStart + 2]) {
+                    indexI.second += ia[rowIStart + 2] - 3;
                 }
             }
+        }
 #ifdef USE_TBB
         );
 #endif
         ja.array() += 1;
         a.resize(ja.size());
 
-        //NOTE: fixed verts nnz entries are not eliminated
+        // NOTE: fixed verts nnz entries are not eliminated
     }
 
     virtual void load(const char* filePath, Eigen::VectorXd& rhs)
@@ -212,7 +210,7 @@ public:
 
     virtual void set_pattern(const Eigen::SparseMatrix<double>& mtr)
     {
-        //NOTE: mtr must be SPD
+        // NOTE: mtr must be SPD
 
         numRows = static_cast<int>(mtr.rows());
 

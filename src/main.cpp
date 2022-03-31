@@ -27,8 +27,8 @@
 #include <CLI/CLI.hpp>
 
 #ifdef USE_TBB
+#include <tbb/info.h>
 #include <tbb/global_control.h>
-#include <tbb/task_scheduler_init.h>
 #endif
 
 // optimization/simulation
@@ -648,7 +648,7 @@ bool postDrawFunc()
         }
     }
 
-    if (outerLoopFinished) { //var name change!!!
+    if (outerLoopFinished) { // var name change!!!
         GifEnd(&GIFWriter);
         saveInfoForPresent();
         saveStats();
@@ -756,7 +756,7 @@ struct CLIArgs {
 #if defined(USE_TBB) && defined(TBB_NUM_THREADS)
     int numThreads = TBB_NUM_THREADS;
 #elif defined(USE_TBB)
-    int numThreads = tbb::task_scheduler_init::default_num_threads();
+    int numThreads = tbb::info::default_concurrency();
 #endif
 
     CLIArgs(int argc, char* argv[])
@@ -797,12 +797,12 @@ struct CLIArgs {
 
 #ifdef USE_TBB
         if (numThreads <= 0) {
-            numThreads = tbb::task_scheduler_init::default_num_threads();
+            numThreads = tbb::info::default_concurrency();
         }
-        else if (numThreads > tbb::task_scheduler_init::default_num_threads()) {
+        else if (numThreads > tbb::info::default_concurrency()) {
             spdlog::warn(
                 "Attempting to use more threads than available ({:d} > {:d})!",
-                numThreads, tbb::task_scheduler_init::default_num_threads());
+                numThreads, tbb::info::default_concurrency());
         }
 #endif
     }
@@ -1329,9 +1329,9 @@ int main(int argc, char* argv[])
     timer_step.new_activity("numericalFactorization");
     timer_step.new_activity("backSolve");
     timer_step.new_activity("lineSearch_other");
-    timer_step.new_activity("modifyGrad"); //previously boundarySplit
-    timer_step.new_activity("modifySearchDir"); //previously interiorSplit
-    timer_step.new_activity("updateHistory"); //previously cornerMerge
+    timer_step.new_activity("modifyGrad"); // previously boundarySplit
+    timer_step.new_activity("modifySearchDir"); // previously interiorSplit
+    timer_step.new_activity("updateHistory"); // previously cornerMerge
     timer_step.new_activity("lineSearch_eVal");
     timer_step.new_activity("fullyImplicit_eComp");
     timer_step.new_activity("solve_extraComp");

@@ -55,9 +55,6 @@ installed at a system level
     * IPC also supports using [Eigen](http://eigen.tuxfamily.org/) or [AMGCL](https://github.com/ddemidov/amgcl) as linear solver, which can be set via `IPC_LINSYSSOLVER` in `CMakeLists.txt`. To use custom linear solvers, you can implement a new interface (subclass) to our `LinSysSolver` class.
 * [AMGCL](https://github.com/ddemidov/amgcl): downloaded and built through CMake
     * Enabled by default, and it can be disabled using the CMake argument `-DIPC_WITH_AMGCL=OFF`
-    * Requires [Boost](https://www.boost.org/) to be installed at a system level
-        * Ubuntu: `sudo apt-get install libboost-all-dev`
-        * macOS: ` brew install boost`
 * [Catch2](https://github.com/catchorg/Catch2): downloaded and built through CMake
     * Used for unit-tests.
     * Enabled by default iff IPC is being built as the top-level project.

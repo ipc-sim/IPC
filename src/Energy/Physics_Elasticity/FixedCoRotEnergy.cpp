@@ -10,7 +10,7 @@
 #include "Timer.hpp"
 
 #ifdef USE_TBB
-#include <tbb/tbb.h>
+#include <tbb/parallel_for.h>
 #endif
 
 extern Timer timer_temp;

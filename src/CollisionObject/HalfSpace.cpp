@@ -11,7 +11,7 @@
 #include "IglUtils.hpp"
 
 #ifdef USE_TBB
-#include <tbb/tbb.h>
+#include <tbb/parallel_for.h>
 #endif
 
 namespace IPC {
@@ -229,7 +229,7 @@ void HalfSpace<dim>::filterSearchDir_QP(const Mesh<dim>& mesh,
                 }
                 // project out normal search direction so that stepSize won't be limited:
                 searchDir.segment<dim>(vI * dim) -= (1.0 - maxStepSize) * coef * normal;
-                //NOTE: clamp search direction colinearly will fail the line search
+                // NOTE: clamp search direction colinearly will fail the line search
             }
         }
     }
@@ -278,7 +278,7 @@ void HalfSpace<dim>::computeFrictionEnergy(const Eigen::MatrixXd& V,
     double eps = std::sqrt(eps2);
 
     if constexpr (dim == 3) {
-        //TODO: parallelize
+        // TODO: parallelize
         Ef = 0.0;
         int contactPairI = 0;
         for (const auto& vI : activeSet) {
@@ -307,7 +307,7 @@ void HalfSpace<dim>::augmentFrictionGradient(const Eigen::MatrixXd& V,
     double eps = std::sqrt(eps2);
 
     if constexpr (dim == 3) {
-        //TODO: parallelize
+        // TODO: parallelize
         int contactPairI = 0;
         for (const auto& vI : activeSet) {
             Eigen::Matrix<double, dim, 1> VDiff = (V.row(vI) - Vt.row(vI)).transpose();
@@ -334,7 +334,7 @@ void HalfSpace<dim>::augmentFrictionHessian(const Mesh<dim>& mesh,
     assert(multipliers.size() == activeSet.size());
     double eps = std::sqrt(eps2);
 
-    //TODO: parallelize
+    // TODO: parallelize
     int contactPairI = 0;
     for (const auto& vI : activeSet) {
         if (projectDBC && mesh.isDBCVertex(vI)) {
@@ -437,7 +437,7 @@ void HalfSpace<dim>::initRenderingData(double extensionScale)
             }
             Base::V.row(vI).leftCols(dim) = (rotMtr * coord.transpose() + Base::origin).transpose();
             if constexpr (dim == 2) {
-                //TODO: debug
+                // TODO: debug
                 Base::V(vI, 2) = 0.0;
             }
         }

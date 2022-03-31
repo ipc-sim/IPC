@@ -7,7 +7,7 @@ else()
 endif()
 
 # Check required CMake version
-set(REQUIRED_CMAKE_VERSION "3.9")
+set(REQUIRED_CMAKE_VERSION "3.14.0")
 if(IPC_TOPLEVEL_PROJECT)
   cmake_minimum_required(VERSION ${REQUIRED_CMAKE_VERSION})
 else()
@@ -45,42 +45,12 @@ option(IPC_WITH_EXACT_CCD "Use exact CCD as a verification"                     
 ## Top level options
 option(IPC_WITH_TESTS "Build unit tests using Catch2" ${IPC_TOPLEVEL_PROJECT})
 
-# libigl
-# WARNING: LIBIGL_USE_STATIC_LIBRARY=ON does not work with C++ 17
-option(LIBIGL_USE_STATIC_LIBRARY     "Use libigl as static library" OFF)
-option(LIBIGL_WITH_ANTTWEAKBAR       "Use AntTweakBar"              OFF)
-option(LIBIGL_WITH_CGAL              "Use CGAL"                     OFF)
-option(LIBIGL_WITH_COMISO            "Use CoMiso"                   OFF)
-option(LIBIGL_WITH_CORK              "Use Cork"                     OFF)
-option(LIBIGL_WITH_EMBREE            "Use Embree"                   OFF)
-option(LIBIGL_WITH_LIM               "Use LIM"                      OFF)
-option(LIBIGL_WITH_MATLAB            "Use Matlab"                   OFF)
-option(LIBIGL_WITH_MOSEK             "Use MOSEK"                    OFF)
-option(LIBIGL_WITH_OPENGL            "Use OpenGL"                   ON)
-option(LIBIGL_WITH_OPENGL_GLFW       "Use GLFW"                     ON)
-option(LIBIGL_WITH_OPENGL_GLFW_IMGUI "Use ImGui"                    ON)
-option(LIBIGL_WITH_PNG               "Use PNG"                      ON)
-option(LIBIGL_WITH_PYTHON            "Use Python"                   OFF)
-option(LIBIGL_WITH_TETGEN            "Use Tetgen"                   ON)
-option(LIBIGL_WITH_TRIANGLE          "Use Triangle"                 ON)
-option(LIBIGL_WITH_VIEWER            "Use OpenGL viewer"            ON)
-option(LIBIGL_QUIET_VIEWER           "Suppress viewer messages"     ON)
-option(LIBIGL_WITH_XML               "Use XML"                      OFF)
-option(LIBIGL_WITH_PREDICATES        "Use exact predicates"         ON)
-
-set(LIBIGL_WITH_VIEWER ${IPC_WITH_OPENGL} CACHE BOOL "" FORCE)
-set(LIBIGL_WITH_OPENGL_GLFW_IMGUI ${IPC_WITH_OPENGL} CACHE BOOL "" FORCE)
-set(LIBIGL_WITH_OPENGL_GLFW ${IPC_WITH_OPENGL} CACHE BOOL "" FORCE)
-set(LIBIGL_WITH_OPENGL ${IPC_WITH_OPENGL} CACHE BOOL "" FORCE)
-set(LIBIGL_WITH_PNG ${IPC_WITH_OPENGL} CACHE BOOL "" FORCE)
-
 ################################################################################
 
 ### Configuration
-set(IPC_EXTERNAL "${CMAKE_CURRENT_SOURCE_DIR}/external")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-
-include(${PROJECT_NAME}Dependencies)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/find)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/recipes)
 
 ################################################################################
 # IPC Library
@@ -124,34 +94,34 @@ target_include_directories(${PROJECT_NAME}_dev PUBLIC
   "src/TimeStepper"
 )
 
-include(IPCWarnings)
-target_link_libraries(${PROJECT_NAME}_dev PRIVATE IPC::warnings)
-
-
-################################################################################
-# Simulations Executable
-################################################################################
-
-add_executable(${PROJECT_NAME}_bin "src/main.cpp")
-# Link against the library
-target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME}_dev)
-# CLI11
-target_link_libraries(${PROJECT_NAME}_bin PUBLIC CLI11::CLI11)
-
 ################################################################################
 # Required Libraries
 ################################################################################
 
+# Extra warnings
+include(IPCWarnings)
+target_link_libraries(${PROJECT_NAME}_dev PRIVATE IPC::warnings)
+
+# tbb
+include(onetbb)
+target_link_libraries(${PROJECT_NAME}_dev PUBLIC TBB::tbb)
+
 # SuiteSparse
 if(IPC_WITH_CHOLMOD)
+  set(SUITESPARSE_INCLUDE_DIR_HINTS $ENV{SUITESPARSE_INC})
+  set(SUITESPARSE_LIBRARY_DIR_HINTS $ENV{SUITESPARSE_LIB})
+  find_package(SuiteSparse REQUIRED)
   target_link_libraries(${PROJECT_NAME}_dev PUBLIC ${SUITESPARSE_LIBRARIES})
   target_include_directories(${PROJECT_NAME}_dev PUBLIC ${SUITESPARSE_INCLUDE_DIRS})
 endif()
 
 # OSQP
+include(osqp)
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC osqp::osqp)
 
 # libigl
+include(eigen)
+include(libigl)
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::core igl::triangle igl::tetgen)
 if(IPC_WITH_OPENGL)
   target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::opengl_glfw igl::opengl_glfw_imgui igl::png)
@@ -164,6 +134,7 @@ if(LIBIGL_WITH_PREDICATES)
 endif()
 
 # CCD
+include(ccd_wrapper)
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC ccd_wrapper::ccd_wrapper)
 if(IPC_WITH_EXACT_CCD)
   message(WARNING "The exact CCD methods RootParity and BSC miss some collisions! Please use TightInclusion instead.")
@@ -176,16 +147,29 @@ if(CCD_WRAPPER_WITH_TIGHT_INCLUSION)
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC IPC_WITH_TIGHT_INCLUSION)
 endif()
 
-# tbb
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC TBB::tbb)
-
 # Logger
+include(spdlog)
 target_link_libraries(${PROJECT_NAME}_dev PUBLIC spdlog::spdlog)
 
 # AMGCL
 if(IPC_WITH_AMGCL)
+  include(amgcl)
   target_link_libraries(${PROJECT_NAME}_dev PUBLIC amgcl::amgcl)
 endif()
+
+if(IPC_WITH_GUROBI)
+  include(eigen_gurobi)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC EigenGurobi::EigenGurobi)
+  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_GUROBI)
+endif()
+
+# MshIO
+include(mshio)
+target_link_libraries(${PROJECT_NAME}_dev PUBLIC mshio::mshio)
+
+# Filesystem
+include(filesystem)
+target_link_libraries(${PROJECT_NAME}_dev PUBLIC ghc::filesystem)
 
 # target_link_libraries(${PROJECT_NAME}_dev PUBLIC pardiso600-GNU720-X86-64 gfortran)
 # find_package(Pardiso)
@@ -211,19 +195,16 @@ endif()
 # endif()
 # target_link_libraries(${PROJECT_NAME}_dev PUBLIC gfortran)
 
-if(IPC_WITH_GUROBI)
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC EigenGurobi::EigenGurobi)
-  target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_GUROBI)
-endif()
+################################################################################
+# Simulations Executable
+################################################################################
 
-# Extra warnings
-# target_link_libraries(${PROJECT_NAME}_dev PRIVATE warnings::all)
-
-# MshIO
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC mshio::mshio)
-
-# Filesystem
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC ghc::filesystem)
+add_executable(${PROJECT_NAME}_bin "src/main.cpp")
+# Link against the library
+target_link_libraries(${PROJECT_NAME}_bin PUBLIC ${PROJECT_NAME}_dev)
+# CLI11
+include(cli11)
+target_link_libraries(${PROJECT_NAME}_bin PUBLIC CLI11::CLI11)
 
 ################################################################################
 # Sub-Projects

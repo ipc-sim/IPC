@@ -19,7 +19,7 @@
 #include <igl/copyleft/tetgen/tetrahedralize.h>
 
 #ifdef USE_TBB
-#include <tbb/tbb.h>
+#include <tbb/parallel_for.h>
 #endif
 
 #include <immintrin.h>

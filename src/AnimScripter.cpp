@@ -15,7 +15,7 @@
 #include "IglUtils.hpp"
 
 #ifdef USE_TBB
-#include <tbb/tbb.h>
+#include <tbb/parallel_for.h>
 #endif
 
 #include <spdlog/spdlog.h>

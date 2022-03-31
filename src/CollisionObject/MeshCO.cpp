@@ -24,6 +24,11 @@
 #include <igl/readOBJ.h>
 #include <spdlog/spdlog.h>
 
+#ifdef USE_TBB
+#include <tbb/parallel_for.h>
+#include <mutex>
+#endif
+
 extern Timer timer_temp3, timer_mt;
 
 namespace IPC {
@@ -120,7 +125,7 @@ void MeshCO<dim>::leftMultiplyConstraintJacobianT(const Mesh<dim>& mesh,
     Eigen::VectorXd& output_incremental,
     double coef) const
 {
-    //TODO: parallelize
+    // TODO: parallelize
 
     if constexpr (dim == 3) {
         int constraintI = 0;
@@ -190,7 +195,7 @@ void MeshCO<dim>::leftMultiplyConstraintJacobianT(const Mesh<dim>& mesh,
         }
     }
     else {
-        //TODO: 2D collision
+        // TODO: 2D collision
     }
 }
 
@@ -300,7 +305,7 @@ void MeshCO<dim>::leftMultiplyConstraintJacobianTQP(
     Eigen::VectorXd& output_incremental,
     double coef) const
 {
-    //TODO: parallelize
+    // TODO: parallelize
     if constexpr (dim == 3) {
         int constraintI = 0;
         for (const auto& MMCVIDI : activeSet) {
@@ -394,7 +399,7 @@ void MeshCO<dim>::leftMultiplyConstraintJacobianTQP(
         }
     }
     else {
-        //TODO: 2D collision
+        // TODO: 2D collision
     }
 }
 
@@ -404,7 +409,7 @@ void MeshCO<dim>::augmentIPHessian(const Mesh<dim>& mesh,
     LinSysSolver<Eigen::VectorXi, Eigen::VectorXd>* mtr_incremental,
     double dHat, double coef, bool projectDBC) const
 {
-    //TODO: parallelize
+    // TODO: parallelize
 
     if constexpr (dim == 3) {
         std::vector<Eigen::Matrix<double, 4 * dim, 4 * dim>> IPHessian(activeSet.size());
@@ -576,7 +581,7 @@ void MeshCO<dim>::augmentIPHessian(const Mesh<dim>& mesh,
         }
     }
     else {
-        //TODO: 2D collision
+        // TODO: 2D collision
     }
 }
 
@@ -745,9 +750,8 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
 #if (CFL_FOR_CCD != 0)
     if (!constraintSet.size()) { return; }
 
-    tbb::mutex stepSizeLock;
-
 #ifdef USE_TBB
+    std::mutex stepSizeLock;
     tbb::parallel_for(0, (int)constraintSet.size(), 1, [&](int cI) {
 #else
     for (int cI = 0; cI < constraintSet.size(); ++cI) {
@@ -764,7 +768,9 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
                 d_sqrt = std::sqrt(d_sqrt);
                 if (d_sqrt == 0) {
                     spdlog::error("Initial CCD distance is zero! Returning 0 stepSize.");
-                    tbb::mutex::scoped_lock lock(stepSizeLock);
+#ifdef USE_TBB
+                    std::scoped_lock lock(stepSizeLock);
+#endif
                     stepSize = 0;
                     return;
                 }
@@ -814,7 +820,9 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
                 }
 
                 if (has_collision) {
-                    tbb::mutex::scoped_lock lock(stepSizeLock);
+#ifdef USE_TBB
+                    std::scoped_lock lock(stepSizeLock);
+#endif
                     if (toi < stepSize) {
                         stepSize = toi;
                     }
@@ -831,7 +839,9 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
                 d_sqrt = std::sqrt(d_sqrt);
                 if (d_sqrt == 0) {
                     spdlog::error("Initial CCD distance is zero! Returning 0 stepSize.");
-                    tbb::mutex::scoped_lock lock(stepSizeLock);
+#ifdef USE_TBB
+                    std::scoped_lock lock(stepSizeLock);
+#endif
                     stepSize = 0;
                     return;
                 }
@@ -881,7 +891,9 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
                 }
 
                 if (has_collision) {
-                    tbb::mutex::scoped_lock lock(stepSizeLock);
+#ifdef USE_TBB
+                    std::scoped_lock lock(stepSizeLock);
+#endif
                     if (toi < stepSize) {
                         stepSize = toi;
                     }
@@ -899,7 +911,9 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
             d_sqrt = std::sqrt(d_sqrt);
             if (d_sqrt == 0) {
                 spdlog::error("Initial CCD distance is zero! Returning 0 stepSize.");
-                tbb::mutex::scoped_lock lock(stepSizeLock);
+#ifdef USE_TBB
+                std::scoped_lock lock(stepSizeLock);
+#endif
                 stepSize = 0;
                 return;
             }
@@ -951,7 +965,9 @@ void MeshCO<dim>::largestFeasibleStepSize_TightInclusion(
             }
 
             if (has_collision) {
-                tbb::mutex::scoped_lock lock(stepSizeLock);
+#ifdef USE_TBB
+                std::scoped_lock lock(stepSizeLock);
+#endif
                 if (toi < stepSize) {
                     stepSize = toi;
                 }
@@ -1071,7 +1087,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD(const Mesh<dim>& mesh,
             largestAlphaPT[sfI] = 1.0;
             const RowVector3i& sfVInd = Base::F.row(sfI);
 #ifdef USE_SH_LFSS
-            std::unordered_set<int> pointInds; //NOTE: different constraint order will result in numerically different results
+            std::unordered_set<int> pointInds; // NOTE: different constraint order will result in numerically different results
             sh.queryTriangleForPoints(Base::V.row(sfVInd[0]), Base::V.row(sfVInd[1]), Base::V.row(sfVInd[2]),
                 0.0, pointInds);
             for (const auto& svI : pointInds)
@@ -1131,7 +1147,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD(const Mesh<dim>& mesh,
         {
             largestAlphaTP[vI] = 1.0;
 #ifdef USE_SH_LFSS
-            std::unordered_set<int> svInds, edgeInds, triInds; //NOTE: different constraint order will result in numerically different results
+            std::unordered_set<int> svInds, edgeInds, triInds; // NOTE: different constraint order will result in numerically different results
             sh.queryPointForPrimitives(Base::V.row(vI), Eigen::Matrix<double, 1, dim>::Zero(),
                 svInds, edgeInds, triInds);
 
@@ -1267,7 +1283,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD(const Mesh<dim>& mesh,
             largestAlphaEE[eJ] = 1.0;
             const auto& meshEJ = edges[eJ];
 #ifdef USE_SH_LFSS
-            std::vector<int> svInds, edgeInds; //NOTE: different constraint order will result in numerically different results
+            std::vector<int> svInds, edgeInds; // NOTE: different constraint order will result in numerically different results
             sh.queryEdgeForPE(Base::V.row(meshEJ.first), Base::V.row(meshEJ.second),
                 svInds, edgeInds);
 
@@ -1375,17 +1391,16 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
     const Eigen::VectorXd& searchDir,
     double tolerance, double& stepSize)
 {
-    tbb::mutex stepSizeLock;
-
     // point-triangle
 #ifdef USE_TBB
+    std::mutex stepSizeLock;
     tbb::parallel_for(0, (int)Base::F.rows(), 1, [&](int sfI) {
 #else
     for (int sfI = 0; sfI < Base::F.rows(); ++sfI) {
 #endif
         const RowVector3i& sfVInd = Base::F.row(sfI);
 #ifdef USE_SH_LFSS
-        std::unordered_set<int> pointInds; //NOTE: different constraint order will result in numerically different results
+        std::unordered_set<int> pointInds; // NOTE: different constraint order will result in numerically different results
         sh.queryTriangleForPoints(Base::V.row(sfVInd[0]), Base::V.row(sfVInd[1]), Base::V.row(sfVInd[2]),
             0.0, pointInds);
         for (const auto& svI : pointInds) {
@@ -1400,7 +1415,9 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
             d_sqrt = std::sqrt(d_sqrt);
             if (d_sqrt == 0) {
                 spdlog::error("Initial CCD distance is zero! Returning 0 stepSize.");
-                tbb::mutex::scoped_lock lock(stepSizeLock);
+#ifdef USE_TBB
+                std::scoped_lock lock(stepSizeLock);
+#endif
                 stepSize = 0;
                 return;
             }
@@ -1450,7 +1467,9 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
             }
 
             if (has_collision) {
-                tbb::mutex::scoped_lock lock(stepSizeLock);
+#ifdef USE_TBB
+                std::scoped_lock lock(stepSizeLock);
+#endif
                 if (toi < stepSize) {
                     stepSize = toi;
                 }
@@ -1468,7 +1487,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
     for (int vI = 0; vI < Base::V.rows(); ++vI) {
 #endif
 #ifdef USE_SH_LFSS
-        std::unordered_set<int> svInds, edgeInds, triInds; //NOTE: different constraint order will result in numerically different results
+        std::unordered_set<int> svInds, edgeInds, triInds; // NOTE: different constraint order will result in numerically different results
         sh.queryPointForPrimitives(Base::V.row(vI), Eigen::Matrix<double, 1, dim>::Zero(),
             svInds, edgeInds, triInds);
 
@@ -1489,7 +1508,9 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
             d_sqrt = std::sqrt(d_sqrt);
             if (d_sqrt == 0) {
                 spdlog::error("Initial CCD distance is zero! Returning 0 stepSize.");
-                tbb::mutex::scoped_lock lock(stepSizeLock);
+#ifdef USE_TBB
+                std::scoped_lock lock(stepSizeLock);
+#endif
                 stepSize = 0;
                 return;
             }
@@ -1539,7 +1560,9 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
             }
 
             if (has_collision) {
-                tbb::mutex::scoped_lock lock(stepSizeLock);
+#ifdef USE_TBB
+                std::scoped_lock lock(stepSizeLock);
+#endif
                 if (toi < stepSize) {
                     stepSize = toi;
                 }
@@ -1558,7 +1581,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
 #endif
         const auto& meshEJ = edges[eJ];
 #ifdef USE_SH_LFSS
-        std::vector<int> svInds, edgeInds; //NOTE: different constraint order will result in numerically different results
+        std::vector<int> svInds, edgeInds; // NOTE: different constraint order will result in numerically different results
         sh.queryEdgeForPE(Base::V.row(meshEJ.first), Base::V.row(meshEJ.second),
             svInds, edgeInds);
 
@@ -1575,7 +1598,9 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
             d_sqrt = std::sqrt(d_sqrt);
             if (d_sqrt == 0) {
                 spdlog::error("Initial CCD distance is zero! Returning 0 stepSize.");
-                tbb::mutex::scoped_lock lock(stepSizeLock);
+#ifdef USE_TBB
+                std::scoped_lock lock(stepSizeLock);
+#endif
                 stepSize = 0;
                 return;
             }
@@ -1625,7 +1650,9 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_TightInclusion(
             }
 
             if (has_collision) {
-                tbb::mutex::scoped_lock lock(stepSizeLock);
+#ifdef USE_TBB
+                std::scoped_lock lock(stepSizeLock);
+#endif
                 if (toi < stepSize) {
                     stepSize = toi;
                 }
@@ -1654,7 +1681,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_exact(const Mesh<dim>& mesh,
             largestAlphaPT[sfI] = stepSize;
             const RowVector3i& sfVInd = Base::F.row(sfI);
 #ifdef USE_SH_LFSS
-            std::unordered_set<int> pointInds; //NOTE: different constraint order will result in numerically different results
+            std::unordered_set<int> pointInds; // NOTE: different constraint order will result in numerically different results
             sh.queryTriangleForPoints(Base::V.row(sfVInd[0]), Base::V.row(sfVInd[1]), Base::V.row(sfVInd[2]),
                 0.0, pointInds);
             for (const auto& svI : pointInds)
@@ -1693,7 +1720,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_exact(const Mesh<dim>& mesh,
         {
             largestAlphaTP[vI] = stepSize;
 #ifdef USE_SH_LFSS
-            std::unordered_set<int> triInds; //NOTE: different constraint order will result in numerically different results
+            std::unordered_set<int> triInds; // NOTE: different constraint order will result in numerically different results
             sh.queryPointForTriangles(Base::V.row(vI), 0.0, triInds);
 
             // triangle-point
@@ -1734,7 +1761,7 @@ void MeshCO<dim>::largestFeasibleStepSize_CCD_exact(const Mesh<dim>& mesh,
             largestAlphaEE[eJ] = stepSize;
             const auto& meshEJ = edges[eJ];
 #ifdef USE_SH_LFSS
-            std::vector<int> edgeInds; //NOTE: different constraint order will result in numerically different results
+            std::vector<int> edgeInds; // NOTE: different constraint order will result in numerically different results
             sh.queryEdgeForEdges(Base::V.row(meshEJ.first), Base::V.row(meshEJ.second),
                 0.0, edgeInds);
 
@@ -1788,7 +1815,7 @@ void MeshCO<dim>::computeConstraintSet(const Mesh<dim>& mesh,
             double dHatFI = dHat;
             const RowVector3i& sfVInd = Base::F.row(sfI);
 #ifdef USE_SH_CCS
-            std::unordered_set<int> pointInds; //NOTE: different constraint order will result in numerically different results
+            std::unordered_set<int> pointInds; // NOTE: different constraint order will result in numerically different results
             sh.queryTriangleForPoints(Base::V.row(sfVInd[0]), Base::V.row(sfVInd[1]), Base::V.row(sfVInd[2]),
                 std::sqrt(dHatFI), pointInds);
             for (const auto& svI : pointInds)
@@ -1884,7 +1911,7 @@ void MeshCO<dim>::computeConstraintSet(const Mesh<dim>& mesh,
         {
             double dHatVI = dHat;
 #ifdef USE_SH_CCS
-            std::unordered_set<int> triInds; //NOTE: different constraint order will result in numerically different results
+            std::unordered_set<int> triInds; // NOTE: different constraint order will result in numerically different results
             sh.queryPointForTriangles(Base::V.row(vI), std::sqrt(dHatVI), triInds);
             for (const auto& sfI : triInds)
 #else
@@ -1984,7 +2011,7 @@ void MeshCO<dim>::computeConstraintSet(const Mesh<dim>& mesh,
             const auto& meshEJ = edges[eJ];
             timer_mt.stop();
 #ifdef USE_SH_CCS
-            std::vector<int> edgeInds; //NOTE: different constraint order will result in numerically different results
+            std::vector<int> edgeInds; // NOTE: different constraint order will result in numerically different results
             // timer_mt.start(0);
             sh.queryEdgeForEdges(Base::V.row(meshEJ.first), Base::V.row(meshEJ.second), std::sqrt(dHatEJ), edgeInds);
             // timer_mt.stop();
@@ -2464,7 +2491,7 @@ void MeshCO<dim>::augmentParaEEHessian(const Mesh<dim>& mesh,
         );
 #endif
 
-        //TODO: parallelize
+        // TODO: parallelize
         for (int cI = 0; cI < paraEEMMCVIDSet.size(); ++cI) {
             for (int i = 0; i < rowIStart[cI].size(); ++i) {
                 int rowIStartI = rowIStart[cI][i];
@@ -2819,7 +2846,7 @@ bool MeshCO<dim>::updateActiveSet_QP(
 
         // Loop over FEM mesh surface vertices
 #ifdef USE_SH_CCS
-        std::unordered_set<int> pointInds; //NOTE: different constraint order will result in numerically different results
+        std::unordered_set<int> pointInds; // NOTE: different constraint order will result in numerically different results
         sh.queryTriangleForPoints(
             this->V.row(MCTriVInd[0]),
             this->V.row(MCTriVInd[1]),
@@ -2911,7 +2938,7 @@ bool MeshCO<dim>::updateActiveSet_QP(
     for (int vI = 0; vI < Base::V.rows(); ++vI) {
         // Loop over FEM mesh surface faces
 #ifdef USE_SH_CCS
-        std::unordered_set<int> triInds; //NOTE: different constraint order will result in numerically different results
+        std::unordered_set<int> triInds; // NOTE: different constraint order will result in numerically different results
         sh.queryPointForTriangles(Base::V.row(vI), eta, triInds);
         for (const int& sfI : triInds) {
 #else
@@ -3134,7 +3161,7 @@ bool MeshCO<dim>::isIntersected(
         return false;
     }
 
-    //TODO: spatial hashing
+    // TODO: spatial hashing
 #ifdef USE_SH_INTERSECTED
     Eigen::MatrixXd searchDir = mesh.V - V0;
     searchDir = Map<VectorXd>(searchDir.data(), searchDir.size());
@@ -3147,7 +3174,7 @@ bool MeshCO<dim>::isIntersected(
         const RowVector3i& MCTriVInd = this->F.row(MCOFI);
         // Loop over FEM mesh surface vertices
 #ifdef USE_SH_INTERSECTED
-        std::unordered_set<int> pointInds; //NOTE: different constraint order will result in numerically different results
+        std::unordered_set<int> pointInds; // NOTE: different constraint order will result in numerically different results
         sh.queryTriangleForPoints(
             this->V.row(MCTriVInd[0]),
             this->V.row(MCTriVInd[1]),
@@ -3178,7 +3205,7 @@ bool MeshCO<dim>::isIntersected(
     for (int vI = 0; vI < this->V.rows(); ++vI) {
         // Loop over FEM mesh surface faces
 #ifdef USE_SH_INTERSECTED
-        std::unordered_set<int> triInds; //NOTE: different constraint order will result in numerically different results
+        std::unordered_set<int> triInds; // NOTE: different constraint order will result in numerically different results
         sh.queryPointForTriangles(Base::V.row(vI), /*radius=*/0, triInds);
         for (const int& sfI : triInds) {
 #else
@@ -3239,8 +3266,8 @@ void MeshCO<dim>::filterSearchDir_QP(const Mesh<dim>& mesh,
     Eigen::VectorXd& searchDir,
     std::vector<MMCVID>& activeSet_next)
 {
-    //TODO: spatial hashing
-    //TODO: parallelize
+    // TODO: spatial hashing
+    // TODO: parallelize
 
     // point-triangle
     double stepsize = 1.0;
@@ -3282,7 +3309,7 @@ void MeshCO<dim>::filterSearchDir_QP(const Mesh<dim>& mesh,
                         Base::V.row(MCTriVInd[1]))) {
                     activeSet_next.emplace_back(-vI - 1, MCTriVInd[0], MCTriVInd[2], MCTriVInd[1]);
 
-                    searchDir.segment<dim>(vI * dim) *= largestAlpha; //NOTE: will possibly result in non-descent direction
+                    searchDir.segment<dim>(vI * dim) *= largestAlpha; // NOTE: will possibly result in non-descent direction
                 }
                 else {
                     // std::cout << "non-intersecting constraint 'violation' not counted for largest step size" << std::endl;
@@ -3291,9 +3318,9 @@ void MeshCO<dim>::filterSearchDir_QP(const Mesh<dim>& mesh,
         }
     }
 
-    //TODO: triangle-point
+    // TODO: triangle-point
 
-    //TODO: edge-edge
+    // TODO: edge-edge
 }
 
 template <int dim>
@@ -3319,7 +3346,7 @@ void MeshCO<dim>::move(const Eigen::Matrix<double, dim, 1>& deltaX,
             largestAlphaPT[sfI] = 1.0;
             const RowVector3i& sfVInd = Base::F.row(sfI);
 #ifdef USE_SH_CCS
-            std::unordered_set<int> pointInds; //NOTE: different constraint order will result in numerically different results
+            std::unordered_set<int> pointInds; // NOTE: different constraint order will result in numerically different results
             sh.queryTriangleForPoints(Base::V.row(sfVInd[0]), Base::V.row(sfVInd[1]), Base::V.row(sfVInd[2]),
                 Base::V_target.row(sfVInd[0]) - Base::V.row(sfVInd[0]),
                 Base::V_target.row(sfVInd[1]) - Base::V.row(sfVInd[1]),
@@ -3381,7 +3408,7 @@ void MeshCO<dim>::move(const Eigen::Matrix<double, dim, 1>& deltaX,
         {
             largestAlphaTP[vI] = 1.0;
 #ifdef USE_SH_CCS
-            std::unordered_set<int> triInds; //NOTE: different constraint order will result in numerically different results
+            std::unordered_set<int> triInds; // NOTE: different constraint order will result in numerically different results
             sh.queryPointForTriangles(Base::V.row(vI), Base::V_target.row(vI) - Base::V.row(vI), triInds);
             for (const auto& sfI : triInds)
 #else
@@ -3441,7 +3468,7 @@ void MeshCO<dim>::move(const Eigen::Matrix<double, dim, 1>& deltaX,
             largestAlphaEE[eJ] = 1.0;
             const auto& meshEJ = edges[eJ];
 #ifdef USE_SH_CCS
-            std::vector<int> edgeInds; //NOTE: different constraint order will result in numerically different results
+            std::vector<int> edgeInds; // NOTE: different constraint order will result in numerically different results
             sh.queryEdgeForEdges(Base::V.row(meshEJ.first), Base::V.row(meshEJ.second),
                 Base::V_target.row(meshEJ.first) - Base::V.row(meshEJ.first),
                 Base::V_target.row(meshEJ.second) - Base::V.row(meshEJ.second), edgeInds);

@@ -10,7 +10,10 @@
 
 #include <stdexcept>
 
-#include <tbb/mutex.h>
+#ifdef USE_TBB
+#include <mutex>
+#include <tbb/parallel_for.h>
+#endif
 
 // Etienne Vouga's CCD using a root finder in floating points
 #include <CTCD.h>
@@ -84,7 +87,7 @@ void SelfCollisionHandler<dim>::leftMultiplyConstraintJacobianT(const Mesh<dim>&
     Eigen::VectorXd& output_incremental,
     double coef)
 {
-    //TODO: parallelize
+    // TODO: parallelize
     if constexpr (dim == 3) {
         int constraintI = 0;
         for (const auto& MMCVIDI : activeSet) {
@@ -140,7 +143,7 @@ void SelfCollisionHandler<dim>::leftMultiplyConstraintJacobianT(const Mesh<dim>&
         }
     }
     else {
-        //TODO: 2D collision
+        // TODO: 2D collision
     }
 }
 
@@ -195,7 +198,7 @@ void SelfCollisionHandler<dim>::evaluateConstraintQP(
         }
     }
     else {
-        //TODO: 2D collision
+        // TODO: 2D collision
     }
 }
 
@@ -250,7 +253,7 @@ void SelfCollisionHandler<dim>::leftMultiplyConstraintJacobianTQP(
     Eigen::VectorXd& output_incremental,
     double coef)
 {
-    //TODO: parallelize
+    // TODO: parallelize
     if constexpr (dim == 3) {
         int constraintI = 0;
         for (const auto& MMCVIDI : activeSet) {
@@ -319,7 +322,7 @@ void SelfCollisionHandler<dim>::leftMultiplyConstraintJacobianTQP(
         }
     }
     else {
-        //TODO: 2D collision
+        // TODO: 2D collision
     }
 }
 
@@ -328,7 +331,7 @@ void SelfCollisionHandler<dim>::augmentConnectivity(const Mesh<dim>& mesh,
     const std::vector<MMCVID>& activeSet,
     std::vector<std::set<int>>& vNeighbor)
 {
-    //TODO: parallelize?
+    // TODO: parallelize?
 
     for (const auto& MMCVIDI : activeSet) {
         if (MMCVIDI[0] >= 0) {
@@ -378,7 +381,7 @@ void SelfCollisionHandler<dim>::augmentConnectivity(const Mesh<dim>& mesh,
     const std::vector<std::pair<int, int>>& paraEEeIeJSet,
     std::vector<std::set<int>>& vNeighbor)
 {
-    //TODO: parallelize?
+    // TODO: parallelize?
     for (const auto& eIeJ : paraEEeIeJSet) {
         if (eIeJ.first < 0 || eIeJ.second < 0) {
             continue;
@@ -526,7 +529,7 @@ void SelfCollisionHandler<dim>::augmentIPHessian(const Mesh<dim>& mesh,
         );
 #endif
 
-        //TODO: parallelize
+        // TODO: parallelize
         for (int cI = 0; cI < activeSet.size(); ++cI) {
             for (int i = 0; i < rowIStart[cI].size(); ++i) {
                 int rowIStartI = rowIStart[cI][i];
@@ -553,7 +556,7 @@ void SelfCollisionHandler<dim>::augmentIPHessian(const Mesh<dim>& mesh,
         }
     }
     else {
-        //TODO: 2D collision
+        // TODO: 2D collision
     }
 }
 
@@ -696,9 +699,8 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_TightInclusion(
 #if (CFL_FOR_CCD != 0)
     if (!constraintSet.size()) { return; }
 
-    tbb::mutex stepSizeLock;
-
 #ifdef USE_TBB
+    std::mutex stepSizeLock;
     tbb::parallel_for(0, (int)constraintSet.size(), 1, [&](int cI) {
 #else
     for (int cI = 0; cI < constraintSet.size(); ++cI) {
@@ -727,7 +729,9 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_TightInclusion(
             d_sqrt = std::sqrt(d_sqrt);
             if (d_sqrt == 0) {
                 spdlog::error("Initial CCD distance is zero! Returning 0 stepSize.");
-                tbb::mutex::scoped_lock lock(stepSizeLock);
+#ifdef USE_TBB
+                std::scoped_lock lock(stepSizeLock);
+#endif
                 stepSize = 0;
                 return;
             }
@@ -777,7 +781,9 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_TightInclusion(
             }
 
             if (has_collision) {
-                tbb::mutex::scoped_lock lock(stepSizeLock);
+#ifdef USE_TBB
+                std::scoped_lock lock(stepSizeLock);
+#endif
                 if (toi < stepSize) {
                     stepSize = toi;
                 }
@@ -842,7 +848,9 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_TightInclusion(
             }
 
             if (has_collision) {
-                tbb::mutex::scoped_lock lock(stepSizeLock);
+#ifdef USE_TBB
+                std::scoped_lock lock(stepSizeLock);
+#endif
                 if (toi < stepSize) {
                     stepSize = toi;
                 }
@@ -996,7 +1004,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD(const Mesh<dim>& mes
 #ifdef USE_SH_LFSS
         std::unordered_set<int> sVInds, sEdgeInds, sTriInds;
         sh.queryPointForPrimitives(svI, sVInds, sEdgeInds, sTriInds);
-        //NOTE: results may differ when computing step size with large eta as long-distance pairs are dropped
+        // NOTE: results may differ when computing step size with large eta as long-distance pairs are dropped
 #endif
 
         // point-point
@@ -1210,7 +1218,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD(const Mesh<dim>& mes
             timer_mt.start(3);
             sh.queryEdgeForEdgesWithBBoxCheck(mesh, searchDir, stepSize, eI, sEdgeInds);
             timer_mt.stop();
-            //NOTE: results may differ when computing step size with large eta as long-distance pairs are dropped
+            // NOTE: results may differ when computing step size with large eta as long-distance pairs are dropped
             for (const auto& eJ : sEdgeInds) {
                 timer_mt.start(7);
                 const auto& meshEJ = mesh.SFEdges[eJ];
@@ -1369,12 +1377,11 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_TightInclusion(
 {
     timer_temp3.start(12);
 
-    tbb::mutex stepSizeLock;
-
 #ifdef CCD_FILTERED_CS
     std::vector<std::vector<int>> PTCandidates(mesh.SVI.size());
 #endif
 #ifdef USE_TBB
+    std::mutex stepSizeLock;
     tbb::parallel_for(0, (int)mesh.SVI.size(), 1, [&](int svI) {
 #else
     for (int svI = 0; svI < mesh.SVI.size(); ++svI) {
@@ -1385,7 +1392,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_TightInclusion(
 #ifdef USE_SH_LFSS
         std::unordered_set<int> sVInds, sEdgeInds, sTriInds;
         sh.queryPointForPrimitives(svI, sVInds, sEdgeInds, sTriInds);
-        //NOTE: results may differ when computing step size with large eta as long-distance pairs are dropped
+        // NOTE: results may differ when computing step size with large eta as long-distance pairs are dropped
 #endif
 
         // point-triangle
@@ -1409,7 +1416,9 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                 d_sqrt = std::sqrt(d_sqrt);
                 if (d_sqrt == 0) {
                     spdlog::error("Initial CCD distance is zero! Returning 0 stepSize.");
-                    tbb::mutex::scoped_lock lock(stepSizeLock);
+#ifdef USE_TBB
+                    std::scoped_lock lock(stepSizeLock);
+#endif
                     stepSize = 0;
                     return;
                 }
@@ -1459,7 +1468,9 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                 }
 
                 if (has_collision) {
-                    tbb::mutex::scoped_lock lock(stepSizeLock);
+#ifdef USE_TBB
+                    std::scoped_lock lock(stepSizeLock);
+#endif
                     if (toi < stepSize) {
                         stepSize = toi;
                     }
@@ -1498,7 +1509,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_TightInclusion(
         timer_mt.start(3);
         sh.queryEdgeForEdgesWithBBoxCheck(mesh, searchDir, stepSize, eI, sEdgeInds);
         timer_mt.stop();
-        //NOTE: results may differ when computing step size with large eta as long-distance pairs are dropped
+        // NOTE: results may differ when computing step size with large eta as long-distance pairs are dropped
         for (const auto& eJ : sEdgeInds) {
             timer_mt.start(7);
             const auto& meshEJ = mesh.SFEdges[eJ];
@@ -1528,7 +1539,9 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                 timer_mt.stop();
                 if (d_sqrt == 0) {
                     spdlog::error("Initial CCD distance is zero! Returning 0 stepSize.");
-                    tbb::mutex::scoped_lock lock(stepSizeLock);
+#ifdef USE_TBB
+                    std::scoped_lock lock(stepSizeLock);
+#endif
                     stepSize = 0;
                     return;
                 }
@@ -1578,7 +1591,9 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_TightInclusion(
                 }
 
                 if (has_collision) {
-                    tbb::mutex::scoped_lock lock(stepSizeLock);
+#ifdef USE_TBB
+                    std::scoped_lock lock(stepSizeLock);
+#endif
                     if (toi < stepSize) {
                         stepSize = toi;
                     }
@@ -1636,7 +1651,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(const Mesh<dim
 #ifdef USE_SH_LFSS
             std::unordered_set<int> sTriInds;
             sh.queryPointForTriangles(svI, sTriInds);
-        //NOTE: results may differ when computing step size with large eta as long-distance pairs are dropped
+        // NOTE: results may differ when computing step size with large eta as long-distance pairs are dropped
 #endif
 
         // point-triangle
@@ -1715,7 +1730,7 @@ void SelfCollisionHandler<dim>::largestFeasibleStepSize_CCD_exact(const Mesh<dim
             timer_mt.start(3);
             sh.queryEdgeForEdgesWithBBoxCheck(mesh, searchDir, stepSize, eI, sEdgeInds);
             timer_mt.stop();
-            //NOTE: results may differ when computing step size with large eta as long-distance pairs are dropped
+            // NOTE: results may differ when computing step size with large eta as long-distance pairs are dropped
             for (const auto& eJ : sEdgeInds) {
                 timer_mt.start(7);
                 const auto& meshEJ = mesh.SFEdges[eJ];
@@ -2158,7 +2173,7 @@ void SelfCollisionHandler<dim>::computeConstraintSet(const Mesh<dim>& mesh,
             int vI = mesh.SVI[svI];
             int vICoDim = mesh.vICoDim(vI);
 #ifdef USE_SH_CCS
-            std::unordered_set<int> triInds; //NOTE: different constraint order will result in numerically different results
+            std::unordered_set<int> triInds; // NOTE: different constraint order will result in numerically different results
             sh.queryPointForTriangles(mesh.V.row(vI), sqrtDHat, triInds);
             for (const auto& sfI : triInds)
 #else
@@ -2264,7 +2279,7 @@ void SelfCollisionHandler<dim>::computeConstraintSet(const Mesh<dim>& mesh,
             int eICoDim = mesh.vICoDim(meshEI.first);
 
 #ifdef USE_SH_CCS
-            std::vector<int> edgeInds; //NOTE: different constraint order will result in numerically different results
+            std::vector<int> edgeInds; // NOTE: different constraint order will result in numerically different results
             // timer_mt.start(0);
             sh.queryEdgeForEdgesWithBBoxCheck(mesh, mesh.V.row(meshEI.first), mesh.V.row(meshEI.second), sqrtDHat, edgeInds, eI);
             // timer_mt.stop();
@@ -2469,7 +2484,7 @@ void SelfCollisionHandler<dim>::computeDistCoordAndTanBasis(
     std::vector<Eigen::Vector2d>& MMDistCoord,
     std::vector<Eigen::Matrix<double, 3, 2>>& MMTanBasis)
 {
-    //TODO: parallelize
+    // TODO: parallelize
     MMDistCoord.resize(constraintSet.size());
     MMTanBasis.resize(constraintSet.size());
     for (int cI = 0; cI < constraintSet.size(); ++cI) {
@@ -2591,7 +2606,7 @@ void SelfCollisionHandler<dim>::augmentFrictionGradient(const Eigen::MatrixXd& V
 {
     double eps = std::sqrt(eps2);
 
-    //TODO: parallelize
+    // TODO: parallelize
     for (int cI = 0; cI < constraintSet.size(); ++cI) {
         Eigen::RowVector3d relDX3D;
 
@@ -2944,7 +2959,7 @@ void SelfCollisionHandler<dim>::augmentFrictionHessian(const Mesh<dim>& mesh,
     );
 #endif
 
-    //TODO: parallelize
+    // TODO: parallelize
     for (int cI = 0; cI < constraintSet.size(); ++cI) {
         for (int i = 0; i < rowIStart[cI].size(); ++i) {
             int rowIStartI = rowIStart[cI][i];
@@ -3157,7 +3172,7 @@ void SelfCollisionHandler<dim>::augmentParaEEHessian(const Mesh<dim>& mesh,
         );
 #endif
 
-        //TODO: parallelize
+        // TODO: parallelize
         for (int cI = 0; cI < paraEEMMCVIDSet.size(); ++cI) {
             for (int i = 0; i < rowIStart[cI].size(); ++i) {
                 int rowIStartI = rowIStart[cI][i];

@@ -11,7 +11,7 @@
 #include "Timer.hpp"
 
 #ifdef USE_TBB
-#include <tbb/tbb.h>
+#include <tbb/parallel_for.h>
 #endif
 
 #include <set>
@@ -202,7 +202,7 @@ double Signed2DTriArea(const Eigen::RowVector2d& a, const Eigen::RowVector2d& b,
 
 void IglUtils::findSurfaceTris(const Eigen::MatrixXi& TT, Eigen::MatrixXi& F)
 {
-    //TODO: merge with below
+    // TODO: merge with below
     std::unordered_map<Triplet, int> tri2Tet(4 * TT.rows());
     for (int elemI = 0; elemI < TT.rows(); elemI++) {
         const Eigen::RowVector4i& elemVInd = TT.row(elemI);
@@ -212,7 +212,7 @@ void IglUtils::findSurfaceTris(const Eigen::MatrixXi& TT, Eigen::MatrixXi& F)
         tri2Tet[Triplet(elemVInd[1], elemVInd[2], elemVInd[3])] = elemI;
     }
 
-    //TODO: parallelize
+    // TODO: parallelize
     std::vector<Eigen::RowVector3i> tmpF;
     for (const auto& triI : tri2Tet) {
         const Triplet& triVInd = triI.first;
@@ -234,7 +234,7 @@ void IglUtils::findSurfaceTris(const Eigen::MatrixXi& TT, Eigen::MatrixXi& F)
 void IglUtils::buildSTri2Tet(const Eigen::MatrixXi& F, const Eigen::MatrixXi& SF,
     std::vector<int>& sTri2Tet)
 {
-    //TODO: merge with above
+    // TODO: merge with above
     std::map<Triplet, int> tri2Tet;
     for (int elemI = 0; elemI < F.rows(); elemI++) {
         const Eigen::RowVector4i& elemVInd = F.row(elemI);

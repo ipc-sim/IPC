@@ -20,7 +20,7 @@
 #include <igl/harmonic.h>
 
 #ifdef USE_TBB
-#include <tbb/tbb.h>
+#include <tbb/parallel_for.h>
 #endif
 
 #include <fstream>
@@ -718,7 +718,7 @@ bool Mesh<dim>::checkInversion(int triI, bool mute) const
 {
     assert(triI < F.rows());
 
-    const double eps = 0.0; //1.0e-20 * avgEdgeLen * avgEdgeLen;
+    const double eps = 0.0; // 1.0e-20 * avgEdgeLen * avgEdgeLen;
 
     const Eigen::Matrix<int, 1, dim + 1>& triVInd = F.row(triI);
 
