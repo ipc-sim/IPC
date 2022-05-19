@@ -14,6 +14,7 @@
 #include "ipc/CollisionObject/MeshCollisionUtils.hpp"
 #include "ipc/Energy/Physics_Elasticity/NeoHookeanEnergy.hpp"
 #include "ipc/Energy/Physics_Elasticity/FixedCoRotEnergy.hpp"
+#include "ipc/Energy/Physics_Elasticity/HyperFoamEnergy.hpp"
 
 #include "ipc/CollisionObject/MeshCollisionUtils.hpp"
 #include "ipc/CollisionObject/FrictionUtils.hpp"
@@ -64,6 +65,7 @@ public:
                 std::vector<Energy<DIM>*> e;
                 e.emplace_back(new FixedCoRotEnergy<DIM>);
                 e.emplace_back(new NeoHookeanEnergy<DIM>);
+                e.emplace_back(new HyperFoamEnergy<DIM>);
                 for (const auto eI : e) {
                     eI->unitTest_dE_div_dsigma();
                     eI->unitTest_d2E_div_dsigma2();
@@ -227,14 +229,14 @@ public:
                 // check element inversion:
                 IPC::Mesh<DIM> mesh(V0, F, SF, Eigen::MatrixXi(0, 2), V,
                     std::vector<int>(), std::vector<int>(), std::vector<int>(), std::vector<int>(),
-                    std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>>(),
+                    std::vector<std::pair<Eigen::Vector3i, Eigen::Vector4d>>(),
                     std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>>(),
                     std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>>(),
                     std::vector<std::pair<Eigen::Vector3i, std::array<Eigen::Vector3d, 2>>>(),
                     std::vector<std::pair<std::vector<int>, std::array<Eigen::Vector3d, 2>>>(),
                     std::map<int, Eigen::Matrix<double, 1, DIM>>(),
                     std::vector<std::pair<int, std::string>>(),
-                    1e5, 0.4, 1e3);
+                    1e5, 0.4, 1e3, 2.0);
                 int numOfInv = 0, numOfBInv = 0;
                 for (int i = 0; i < mesh.F.rows(); ++i) {
                     if (!mesh.checkInversion(i, true)) {

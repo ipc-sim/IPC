@@ -21,7 +21,8 @@ namespace IPC {
 
 enum EnergyType {
     ET_NH,
-    ET_FCR
+    ET_FCR,
+    ET_HF,
 };
 
 enum TimeIntegrationType {
@@ -64,6 +65,8 @@ public:
     bool withGravity = true;
     EnergyType energyType = ET_NH;
     double YM = 1e5, PR = 0.4;
+    // HyperFoam parameter - 2.0 is equivalent to NeoHookean.
+    double HF_ALPHA = 2.0;
 
     TimeIntegrationType timeIntegrationType = TIT_BE;
     double beta = 0.25, gamma = 0.5;
@@ -84,7 +87,7 @@ public:
     std::vector<Eigen::Vector3d> inputShapeTranslates;
     std::vector<Eigen::Matrix3d> inputShapeRotates;
     std::vector<Eigen::Vector3d> inputShapeScales;
-    std::vector<Eigen::Vector3d> inputShapeMaterials;
+    std::vector<Eigen::Vector4d> inputShapeMaterials;
     std::vector<Eigen::Vector3d> inputShapeLVels;
     std::vector<Eigen::Vector3d> inputShapeAVels;
     std::vector<std::array<Eigen::Vector3d, 2>> inputShapeInitVels;

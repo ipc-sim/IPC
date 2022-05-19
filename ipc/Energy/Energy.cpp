@@ -221,9 +221,7 @@ void Energy<dim>::getEnergyValPerElemBySVD(const Mesh<dim>& data, int redoSVD,
                 //                fprintf(out, "%le %le %le %le\n", F(0, 0), F(0, 1), F(1, 0), F(1, 1));
             }
 
-            compute_E(svd[triI].singularValues(),
-                data.u[triI], data.lambda[triI],
-                energyValPerElem[triI]);
+            compute_E(svd[triI].singularValues(), data.matProps[triI], energyValPerElem[triI]);
             if (!uniformWeight) {
                 energyValPerElem[triI] *= data.triArea[triI];
             }
@@ -364,8 +362,7 @@ void Energy<dim>::computeGradientByPK(const Mesh<dim>& data,
     }
 
     Eigen::Matrix<double, dim, dim> P;
-    compute_dE_div_dF(F, svd,
-        data.u[elemI], data.lambda[elemI], P);
+    compute_dE_div_dF(F, svd, data.matProps[elemI], P);
 
     const double w = coef * data.triArea[elemI];
     P *= w;
@@ -400,8 +397,7 @@ void Energy<dim>::computeHessianByPK(const Mesh<dim>& data,
 
     Eigen::Matrix<double, dim * dim, dim * dim> wdP_div_dF;
     const double w = coef * data.triArea[elemI];
-    compute_dP_div_dF(svd, data.u[elemI], data.lambda[elemI],
-        wdP_div_dF, w, projectSPD);
+    compute_dP_div_dF(svd, data.matProps[elemI], wdP_div_dF, w, projectSPD);
 
     Eigen::Matrix<double, dim*(dim + 1), dim * dim> wdP_div_dx;
     IglUtils::dF_div_dx_mult<dim * dim>(wdP_div_dF.transpose(), A, wdP_div_dx, false);
@@ -417,28 +413,28 @@ void Energy<dim>::computeHessianByPK(const Mesh<dim>& data,
 
 template <int dim>
 void Energy<dim>::compute_E(const Eigen::Matrix<double, dim, 1>& singularValues,
-    double u, double lambda,
+    const MaterialProps& mat,
     double& E) const
 {
     assert(0 && "please implement this method in the subclass!");
 }
 template <int dim>
 void Energy<dim>::compute_dE_div_dsigma(const Eigen::Matrix<double, dim, 1>& singularValues,
-    double u, double lambda,
+    const MaterialProps& mat,
     Eigen::Matrix<double, dim, 1>& dE_div_dsigma) const
 {
     assert(0 && "please implement this method in the subclass!");
 }
 template <int dim>
 void Energy<dim>::compute_d2E_div_dsigma2(const Eigen::Matrix<double, dim, 1>& singularValues,
-    double u, double lambda,
+    const MaterialProps& mat,
     Eigen::Matrix<double, dim, dim>& d2E_div_dsigma2) const
 {
     assert(0 && "please implement this method in the subclass!");
 }
 template <int dim>
 void Energy<dim>::compute_BLeftCoef(const Eigen::Matrix<double, dim, 1>& singularValues,
-    double u, double lambda,
+    const MaterialProps& mat,
     Eigen::Matrix<double, dim*(dim - 1) / 2, 1>& BLeftCoef) const
 {
     assert(0 && "please implement this method in the subclass!");
@@ -446,7 +442,7 @@ void Energy<dim>::compute_BLeftCoef(const Eigen::Matrix<double, dim, 1>& singula
 template <int dim>
 void Energy<dim>::compute_dE_div_dF(const Eigen::Matrix<double, dim, dim>& F,
     const AutoFlipSVD<Eigen::Matrix<double, dim, dim>>& svd,
-    double u, double lambda,
+    const MaterialProps& mat,
     Eigen::Matrix<double, dim, dim>& dE_div_dF) const
 {
     assert(0 && "please implement this method in the subclass!");
@@ -454,16 +450,16 @@ void Energy<dim>::compute_dE_div_dF(const Eigen::Matrix<double, dim, dim>& F,
 
 template <int dim>
 void Energy<dim>::compute_dP_div_dF(const AutoFlipSVD<Eigen::Matrix<double, dim, dim>>& svd,
-    double u, double lambda,
+    const MaterialProps& mat,
     Eigen::Matrix<double, dim * dim, dim * dim>& dP_div_dF,
     double w, bool projectSPD) const
 {
     // compute A
     const Eigen::Matrix<double, dim, 1>& sigma = svd.singularValues();
     Eigen::Matrix<double, dim, 1> dE_div_dsigma;
-    compute_dE_div_dsigma(sigma, u, lambda, dE_div_dsigma);
+    compute_dE_div_dsigma(sigma, mat, dE_div_dsigma);
     Eigen::Matrix<double, dim, dim> d2E_div_dsigma2;
-    compute_d2E_div_dsigma2(sigma, u, lambda, d2E_div_dsigma2);
+    compute_d2E_div_dsigma2(sigma, mat, d2E_div_dsigma2);
     if (projectSPD) {
 #if (DIM == 2)
         IglUtils::makePD2d(d2E_div_dsigma2);
@@ -475,7 +471,7 @@ void Energy<dim>::compute_dP_div_dF(const AutoFlipSVD<Eigen::Matrix<double, dim,
     // compute B
     const int Cdim2 = dim * (dim - 1) / 2;
     Eigen::Matrix<double, Cdim2, 1> BLeftCoef;
-    compute_BLeftCoef(sigma, u, lambda, BLeftCoef);
+    compute_BLeftCoef(sigma, mat, BLeftCoef);
     Eigen::Matrix2d B[Cdim2];
     for (int cI = 0; cI < Cdim2; cI++) {
         int cI_post = (cI + 1) % dim;
@@ -613,8 +609,7 @@ void Energy<dim>::unitTest_dE_div_dsigma(std::ostream& os) const
     }
 
     double YM = 100, PR = 0.4;
-    double u = YM / 2.0 / (1.0 + PR);
-    double lambda = YM * PR / (1.0 + PR) / (1.0 - 2.0 * PR);
+    MaterialProps mat = {YM, PR};
 
     const double h = 1.0e-6;
     int testI = 0;
@@ -624,21 +619,21 @@ void Energy<dim>::unitTest_dE_div_dsigma(std::ostream& os) const
            << testSigmaI << std::endl;
 
         double E0;
-        compute_E(testSigmaI, u, lambda, E0);
+        compute_E(testSigmaI, mat, E0);
 
         Eigen::Matrix<double, dim, 1> dE_div_dsigma_FD;
         for (int dimI = 0; dimI < dim; dimI++) {
             Eigen::Matrix<double, dim, 1> sigma_perterb = testSigmaI;
             sigma_perterb[dimI] += h;
             double E;
-            compute_E(sigma_perterb, u, lambda, E);
+            compute_E(sigma_perterb, mat, E);
             dE_div_dsigma_FD[dimI] = (E - E0) / h;
         }
         os << "dE_div_dsigma_FD =\n"
            << dE_div_dsigma_FD << std::endl;
 
         Eigen::Matrix<double, dim, 1> dE_div_dsigma_S;
-        compute_dE_div_dsigma(testSigmaI, u, lambda, dE_div_dsigma_S);
+        compute_dE_div_dsigma(testSigmaI, mat, dE_div_dsigma_S);
         os << "dE_div_dsigma_S =\n"
            << dE_div_dsigma_S << std::endl;
 
@@ -674,8 +669,7 @@ void Energy<dim>::unitTest_d2E_div_dsigma2(std::ostream& os) const
     }
 
     double YM = 100, PR = 0.4;
-    double u = YM / 2.0 / (1.0 + PR);
-    double lambda = YM * PR / (1.0 + PR) / (1.0 - 2.0 * PR);
+    MaterialProps mat = {YM, PR};
 
     const double h = 1.0e-6;
     int testI = 0;
@@ -685,21 +679,21 @@ void Energy<dim>::unitTest_d2E_div_dsigma2(std::ostream& os) const
            << testSigmaI << std::endl;
 
         Eigen::Matrix<double, dim, 1> dE_div_dsigma0;
-        compute_dE_div_dsigma(testSigmaI, u, lambda, dE_div_dsigma0);
+        compute_dE_div_dsigma(testSigmaI, mat, dE_div_dsigma0);
 
         Eigen::Matrix<double, dim, dim> d2E_div_dsigma2_FD;
         for (int dimI = 0; dimI < dim; dimI++) {
             Eigen::Matrix<double, dim, 1> sigma_perterb = testSigmaI;
             sigma_perterb[dimI] += h;
             Eigen::Matrix<double, dim, 1> dE_div_dsigma;
-            compute_dE_div_dsigma(sigma_perterb, u, lambda, dE_div_dsigma);
+            compute_dE_div_dsigma(sigma_perterb, mat, dE_div_dsigma);
             d2E_div_dsigma2_FD.row(dimI) = ((dE_div_dsigma - dE_div_dsigma0) / h).transpose();
         }
         os << "d2E_div_dsigma2_FD =\n"
            << d2E_div_dsigma2_FD << std::endl;
 
         Eigen::Matrix<double, dim, dim> d2E_div_dsigma2_S;
-        compute_d2E_div_dsigma2(testSigmaI, u, lambda, d2E_div_dsigma2_S);
+        compute_d2E_div_dsigma2(testSigmaI, mat, d2E_div_dsigma2_S);
         os << "d2E_div_dsigma2_S =\n"
            << d2E_div_dsigma2_S << std::endl;
 
@@ -734,8 +728,7 @@ void Energy<dim>::unitTest_BLeftCoef(std::ostream& os) const
     }
 
     double YM = 100, PR = 0.4;
-    double u = YM / 2.0 / (1.0 + PR);
-    double lambda = YM * PR / (1.0 + PR) / (1.0 - 2.0 * PR);
+    MaterialProps mat = {YM, PR};
 
     int testI = 0;
     for (const auto& testSigmaI : testSigma) {
@@ -745,7 +738,7 @@ void Energy<dim>::unitTest_BLeftCoef(std::ostream& os) const
 
         Eigen::Matrix<double, dim*(dim - 1) / 2, 1> BLeftCoef_div;
         Eigen::Matrix<double, dim, 1> dE_div_dsigma;
-        compute_dE_div_dsigma(testSigmaI, u, lambda, dE_div_dsigma);
+        compute_dE_div_dsigma(testSigmaI, mat, dE_div_dsigma);
         if constexpr (dim == 2) {
             BLeftCoef_div[0] = (dE_div_dsigma[0] - dE_div_dsigma[1]) / (testSigmaI[0] - testSigmaI[1]) / 2.0;
         }
@@ -758,7 +751,7 @@ void Energy<dim>::unitTest_BLeftCoef(std::ostream& os) const
            << BLeftCoef_div << std::endl;
 
         Eigen::Matrix<double, dim*(dim - 1) / 2, 1> BLeftCoef_S;
-        compute_BLeftCoef(testSigmaI, u, lambda, BLeftCoef_S);
+        compute_BLeftCoef(testSigmaI, mat, BLeftCoef_S);
         os << "BLeftCoef_S =\n"
            << BLeftCoef_S << std::endl;
 
@@ -791,8 +784,7 @@ void Energy<dim>::unitTest_dE_div_dF(std::ostream& os) const
     }
 
     double YM = 100, PR = 0.4;
-    double u = YM / 2.0 / (1.0 + PR);
-    double lambda = YM * PR / (1.0 + PR) / (1.0 - 2.0 * PR);
+    MaterialProps mat = {YM, PR};
 
     int testI = 0;
     for (const auto& testFI : testF) {
@@ -802,7 +794,7 @@ void Energy<dim>::unitTest_dE_div_dF(std::ostream& os) const
 
         AutoFlipSVD<Eigen::Matrix<double, dim, dim>> svd0(testFI, Eigen::ComputeFullU | Eigen::ComputeFullV);
         double E0;
-        compute_E(svd0.singularValues(), u, lambda, E0);
+        compute_E(svd0.singularValues(), mat, E0);
 
         Eigen::Matrix<double, dim, dim> P_FD;
         for (int dimI = 0; dimI < dim; dimI++) {
@@ -812,7 +804,7 @@ void Energy<dim>::unitTest_dE_div_dF(std::ostream& os) const
 
                 AutoFlipSVD<Eigen::Matrix<double, dim, dim>> svd(F_perterb, Eigen::ComputeFullU | Eigen::ComputeFullV);
                 double E;
-                compute_E(svd.singularValues(), u, lambda, E);
+                compute_E(svd.singularValues(), mat, E);
 
                 P_FD(dimI, dimJ) = (E - E0) / h;
             }
@@ -821,7 +813,7 @@ void Energy<dim>::unitTest_dE_div_dF(std::ostream& os) const
            << P_FD << std::endl;
 
         Eigen::Matrix<double, dim, dim> P_S;
-        compute_dE_div_dF(testFI, svd0, u, lambda, P_S);
+        compute_dE_div_dF(testFI, svd0, mat, P_S);
         os << "P_S =\n"
            << P_S << std::endl;
 
@@ -854,8 +846,7 @@ void Energy<dim>::unitTest_dP_div_dF(std::ostream& os) const
     }
 
     double YM = 100, PR = 0.4;
-    double u = YM / 2.0 / (1.0 + PR);
-    double lambda = YM * PR / (1.0 + PR) / (1.0 - 2.0 * PR);
+    MaterialProps mat = {YM, PR};
 
     int testI = 0;
     for (const auto& testFI : testF) {
@@ -865,7 +856,7 @@ void Energy<dim>::unitTest_dP_div_dF(std::ostream& os) const
 
         AutoFlipSVD<Eigen::Matrix<double, dim, dim>> svd(testFI, Eigen::ComputeFullU | Eigen::ComputeFullV);
         Eigen::Matrix<double, dim, dim> P0;
-        compute_dE_div_dF(testFI, svd, u, lambda, P0);
+        compute_dE_div_dF(testFI, svd, mat, P0);
 
         Eigen::Matrix<double, dim * dim, dim * dim> dP_div_dF_FD;
         for (int dimI = 0; dimI < dim; dimI++) {
@@ -874,7 +865,7 @@ void Energy<dim>::unitTest_dP_div_dF(std::ostream& os) const
                 F_perterb(dimI, dimJ) += h;
                 Eigen::Matrix<double, dim, dim> P;
                 AutoFlipSVD<Eigen::Matrix<double, dim, dim>> svd(F_perterb, Eigen::ComputeFullU | Eigen::ComputeFullV);
-                compute_dE_div_dF(F_perterb, svd, u, lambda, P);
+                compute_dE_div_dF(F_perterb, svd, mat, P);
 
                 Eigen::Matrix<double, dim, dim> FD = (P - P0) / h;
                 dP_div_dF_FD.block(0, dimI * dim + dimJ, dim, 1) = FD.row(0).transpose();
@@ -889,7 +880,7 @@ void Energy<dim>::unitTest_dP_div_dF(std::ostream& os) const
 
         Eigen::Matrix<double, dim * dim, dim * dim> dP_div_dF_S;
         svd.compute(testFI, Eigen::ComputeFullU | Eigen::ComputeFullV);
-        compute_dP_div_dF(svd, u, lambda, dP_div_dF_S, 1.0, false);
+        compute_dP_div_dF(svd, mat, dP_div_dF_S, 1.0, false);
         os << "dP_div_dF_S =\n"
            << dP_div_dF_S << std::endl;
 

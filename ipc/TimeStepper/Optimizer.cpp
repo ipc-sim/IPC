@@ -2805,8 +2805,10 @@ void Optimizer<dim>::updateTargetGRes(void)
 template <int dim>
 void Optimizer<dim>::getFaceFieldForVis(Eigen::VectorXd& field)
 {
-    //        field = Eigen::VectorXd::Zero(result.F.rows());
-    field = result.u;
+    // field = Eigen::VectorXd::Zero(result.F.rows());
+    field.resize(result.matProps.size());
+    for (int I = 0; I < result.matProps.size(); I++)
+        field[I] = result.matProps[I].u;
 }
 
 template <int dim>

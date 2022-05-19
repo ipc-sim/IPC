@@ -51,14 +51,14 @@ Mesh<dim>::Mesh(const Eigen::MatrixXd& V_mesh,
     const std::vector<int>& p_componentSFRange,
     const std::vector<int>& p_componentCERange,
     const std::vector<int>& p_componentCoDim,
-    const std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>>& p_componentMaterial,
+    const std::vector<std::pair<Eigen::Vector3i, Eigen::Vector4d>>& p_componentMaterial,
     const std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>>& p_componentLVels,
     const std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>>& p_componentAVels,
     const std::vector<std::pair<Eigen::Vector3i, std::array<Eigen::Vector3d, 2>>>& p_componentInitVels,
     const std::vector<std::pair<std::vector<int>, std::array<Eigen::Vector3d, 2>>>& p_DBCInfo,
     const std::map<int, Eigen::Matrix<double, 1, dim>>& p_NeumannBC,
     const std::vector<std::pair<int, std::string>>& p_meshSeqFolderPath,
-    double YM, double PR, double rho)
+    double YM, double PR, double rho, double HF_ALPHA)
 {
     assert(V_mesh.rows() > 0);
     assert(F_mesh.rows() > 0);
@@ -92,8 +92,8 @@ Mesh<dim>::Mesh(const Eigen::MatrixXd& V_mesh,
     m_PR = PR;
     computeFeatures(false, true);
 
-    // initialize default lame parameters per element
-    setLameParam(YM, PR);
+    // initialize default material parameters per element
+    setMaterialParam(YM, PR, HF_ALPHA);
 }
 
 template <int dim>
@@ -633,16 +633,19 @@ int Mesh<dim>::sfICoDim(int sfI) const
 }
 
 template <int dim>
-void Mesh<dim>::setLameParam(double YM, double PR)
+void Mesh<dim>::setMaterialParam(double YM, double PR, double HF_ALPHA)
 {
-    u = Eigen::VectorXd::Constant(F.rows(), YM / 2.0 / (1.0 + PR));
-    lambda = Eigen::VectorXd::Constant(F.rows(), YM * PR / (1.0 + PR) / (1.0 - 2.0 * PR));
+    matProps.resize(F.rows());
+    for (int I = 0; I < F.rows(); I++) {
+        matProps[I] = {YM, PR, HF_ALPHA};
+    }
     for (const auto& matI : componentMaterial) {
         massMatrix.diagonal().segment(componentNodeRange[matI.first[0]],
             componentNodeRange[matI.first[0] + 1] - componentNodeRange[matI.first[0]])
             *= matI.second[0] / density;
-        u.segment(matI.first[1], matI.first[2] - matI.first[1]).setConstant(matI.second[1] / 2.0 / (1.0 + matI.second[2]));
-        lambda.segment(matI.first[1], matI.first[2] - matI.first[1]).setConstant(matI.second[1] * matI.second[2] / (1.0 + matI.second[2]) / (1.0 - 2.0 * matI.second[2]));
+        for (int J = matI.first[1]; J < matI.first[2]; J++) {
+            matProps[J] = {matI.second[1], matI.second[2], matI.second[3]};
+        }
     }
 
     //        int nSeg = 8;
@@ -721,14 +724,14 @@ bool Mesh<dim>::checkInversion(bool mute, const std::vector<int>& triangles) con
 {
     if (triangles.empty()) {
         for (int triI = 0; triI < F.rows(); triI++) {
-            if (u[triI] && lambda[triI] && !checkInversion(triI, mute)) {
+            if (matProps[triI].u && matProps[triI].lambda && !checkInversion(triI, mute)) {
                 return false;
             }
         }
     }
     else {
         for (const auto& triI : triangles) {
-            if (u[triI] && lambda[triI] && !checkInversion(triI, mute)) {
+            if (matProps[triI].u && matProps[triI].lambda && !checkInversion(triI, mute)) {
                 return false;
             }
         }

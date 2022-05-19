@@ -36,7 +36,7 @@ std::string g_cwd = "";
 namespace IPC {
 
 const std::vector<std::string> Config::energyTypeStrs = {
-    "NH", "FCR"
+    "NH", "FCR", "HF",
 };
 const std::vector<std::string> Config::timeIntegrationTypeStrs = {
     "BE", "NM"
@@ -201,6 +201,7 @@ int Config::loadFromFile(const std::string& p_filePath)
             }
             else if (token == "stiffness") {
                 ss >> YM >> PR;
+                if (energyType == ET_HF) ss >> HF_ALPHA;
             }
             else if (token == "turnOffGravity") {
                 withGravity = false;
@@ -254,7 +255,7 @@ int Config::loadFromFile(const std::string& p_filePath)
                 inputShapeTranslates.push_back(Eigen::Vector3d::Zero());
                 inputShapeRotates.push_back(Eigen::Matrix3d::Identity());
                 inputShapeScales.push_back(Eigen::Vector3d::Ones());
-                inputShapeMaterials.push_back(Eigen::Vector3d::Constant(-1));
+                inputShapeMaterials.push_back(Eigen::Vector4d::Constant(-1));
                 inputShapeLVels.emplace_back(NAN, NAN, NAN);
                 inputShapeAVels.emplace_back(NAN, NAN, NAN);
                 inputShapeInitVels.push_back(
@@ -287,7 +288,7 @@ int Config::loadFromFile(const std::string& p_filePath)
                     ss_shapes >> x >> y >> z;
                     inputShapeScales.push_back(Eigen::Vector3d(x, y, z));
 
-                    double density = -1, E = -1, nu = -1;
+                    double density = -1, E = -1, nu = -1, alpha = -1;
                     double vx = NAN, vy = NAN, vz = NAN, avx = NAN, avy = NAN, avz = NAN;
                     double initLV[3] = { NAN, NAN, NAN }, initAV[3] = { NAN, NAN, NAN };
                     std::string extra;
@@ -295,6 +296,7 @@ int Config::loadFromFile(const std::string& p_filePath)
                         ss_shapes >> extra;
                         if (extra == "material") {
                             ss_shapes >> density >> E >> nu;
+                            if (energyType == ET_HF) ss_shapes >> alpha;
                         }
                         else if (extra == "linearVelocity") {
                             ss_shapes >> vx >> vy >> vz;
@@ -328,7 +330,7 @@ int Config::loadFromFile(const std::string& p_filePath)
                             inputShapeMeshSeqFolderPath.emplace_back(shapeI, meshSeqFolderPath);
                         }
                     }
-                    inputShapeMaterials.push_back(Eigen::Vector3d(density, E, nu));
+                    inputShapeMaterials.push_back(Eigen::Vector4d(density, E, nu, alpha));
                     inputShapeLVels.push_back(Eigen::Vector3d(vx, vy, vz));
                     inputShapeAVels.push_back(Eigen::Vector3d(avx, avy, avz));
                     inputShapeInitVels.push_back({ Eigen::Vector3d(initLV[0], initLV[1], initLV[2]), Eigen::Vector3d(initAV[0], initAV[1], initAV[2]) * M_PI / 180 });
@@ -371,12 +373,13 @@ int Config::loadFromFile(const std::string& p_filePath)
                 ss_shapes >> x >> y >> z;
                 Eigen::Vector3d scale(x, y, z);
 
-                Eigen::Vector3d material;
+                Eigen::Vector4d material;
                 material.setConstant(-1.0);
                 std::string extra;
                 ss_shapes >> extra;
                 if (extra == "material") {
                     ss_shapes >> material[0] >> material[1] >> material[2];
+                    if (energyType == ET_HF) ss_shapes >> material[3];
                 }
 
                 for (int xi = 0; xi < count[0]; ++xi) {

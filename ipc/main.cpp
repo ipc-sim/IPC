@@ -4,6 +4,7 @@
 #include "ipc/TimeStepper/Optimizer.hpp"
 #include "ipc/Energy/Physics_Elasticity/NeoHookeanEnergy.hpp"
 #include "ipc/Energy/Physics_Elasticity/FixedCoRotEnergy.hpp"
+#include "ipc/Energy/Physics_Elasticity/HyperFoamEnergy.hpp"
 #include "ipc/Utils/GIF.hpp"
 #include "ipc/Utils/Timer.hpp"
 #include "ipc/Utils/getRSS.hpp"
@@ -777,7 +778,8 @@ int main(int argc, char* argv[])
     bool loadSucceed = false;
     std::vector<std::vector<int>> borderVerts_primitive;
     std::vector<int> componentNodeRange, componentSFRange, componentCERange, componentCoDim;
-    std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>> componentMaterial, componentLVels, componentAVels;
+    std::vector<std::pair<Eigen::Vector3i, Eigen::Vector4d>> componentMaterial;
+    std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>> componentLVels, componentAVels;
     std::vector<std::pair<Eigen::Vector3i, std::array<Eigen::Vector3d, 2>>> componentInitVels;
     std::vector<std::pair<std::vector<int>, std::array<Eigen::Vector3d, 2>>> DBCInfo;
     std::map<int, Eigen::Matrix<double, 1, DIM>> NBCInfo;
@@ -1092,7 +1094,7 @@ int main(int argc, char* argv[])
         componentNodeRange, componentSFRange, componentCERange, componentCoDim,
         componentMaterial, componentLVels, componentAVels, componentInitVels, DBCInfo, NBCInfo,
         config.inputShapeMeshSeqFolderPath,
-        config.YM, config.PR, config.rho);
+        config.YM, config.PR, config.rho, config.HF_ALPHA);
     // primitive test cases
     if ((suffix == ".txt") || (suffix == ".primitive")) {
         temp->borderVerts_primitive = borderVerts_primitive;
@@ -1272,6 +1274,11 @@ int main(int argc, char* argv[])
     case IPC::ET_FCR:
         energyTerms.emplace_back(new IPC::FixedCoRotEnergy<DIM>());
         break;
+
+    case IPC::ET_HF:
+        energyTerms.emplace_back(new IPC::HyperFoamEnergy<DIM>());
+        break;
+
     }
     //        energyTerms.back()->checkEnergyVal(*triSoup[0]);
     //        energyTerms.back()->checkGradient(*triSoup[0]);

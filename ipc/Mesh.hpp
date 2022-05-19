@@ -26,6 +26,17 @@ enum class DirichletBCType {
     NONZERO = 2
 };
 
+struct MaterialProps {
+    double u, lambda;
+    double beta, alpha;
+    MaterialProps(double YM = 0., double PR = 0., double HF_ALPHA = 2.) {
+        lambda = YM * PR / (1. + PR) / (1. - 2. * PR);
+        u = YM / 2.0 / (1. + PR);
+        beta = PR / (1. - 2. * PR);
+        alpha = HF_ALPHA;
+    }
+};
+
 template <int dim>
 class Mesh {
 public: // owned data
@@ -42,7 +53,7 @@ public: // owned data
     std::vector<int> componentSFRange; ///< @brief SF range of each loaded component [0(start0), end0(start1), end1(start2), ...]
     std::vector<int> componentCERange; ///< @brief CE range of each loaded component [0(start0), end0(start1), end1(start2), ...]
     std::vector<int> componentCoDim; ///< @brief codimension of each loaded component [coDim0, coDim1, ...]
-    std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>> componentMaterial; ///< @brief E and nu of each loaded component [compI, startElemI, endElemI, density, E, nu]
+    std::vector<std::pair<Eigen::Vector3i, Eigen::Vector4d>> componentMaterial; ///< @brief E and nu of each loaded component [compI, startElemI, endElemI, density, E, nu, alpha]
     std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>> componentLVels; ///< @brief scripted linear velocity if any of each loaded component [compI, startElemI, endElemI, density, E, nu]
     std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>> componentAVels; ///< @brief scripted angular velocity if any of each loaded component [compI, startElemI, endElemI, density, E, nu]
     std::vector<std::pair<Eigen::Vector3i, std::array<Eigen::Vector3d, 2>>> componentInitVels; ///< @brief initial linear and angular velocity for any of each loaded component [compI, startElemI, endElemI, density, E, nu]
@@ -51,8 +62,8 @@ public: // owned data
 
 public: // owned features
     Eigen::SparseMatrix<double> massMatrix; // V.rows() wide
-    double density, m_YM, m_PR;
-    Eigen::VectorXd u, lambda;
+    double density, m_YM, m_PR, m_ALPHA;
+    std::vector<MaterialProps> matProps;
     Eigen::VectorXd triArea; // triangle rest area
     double avgEdgeLen;
     std::map<int, Eigen::Matrix<double, 1, dim>> NeumannBC;
@@ -83,14 +94,14 @@ public: // constructor
         const std::vector<int>& p_componentSFRange,
         const std::vector<int>& p_componentCERange,
         const std::vector<int>& p_componentCoDim,
-        const std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>>& componentMaterial,
+        const std::vector<std::pair<Eigen::Vector3i, Eigen::Vector4d>>& componentMaterial,
         const std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>>& componentLVels,
         const std::vector<std::pair<Eigen::Vector3i, Eigen::Vector3d>>& componentAVels,
         const std::vector<std::pair<Eigen::Vector3i, std::array<Eigen::Vector3d, 2>>>& componentInitVels,
         const std::vector<std::pair<std::vector<int>, std::array<Eigen::Vector3d, 2>>>& DBCInfo,
         const std::map<int, Eigen::Matrix<double, 1, dim>>& NeumannBC,
         const std::vector<std::pair<int, std::string>>& meshSeqFolderPath,
-        double YM, double PR, double rho);
+        double YM, double PR, double rho, double HF_ALPHA);
 
 public: // API
     void computeMassMatrix(const igl::MassMatrixType type = igl::MASSMATRIX_TYPE_VORONOI);
@@ -116,7 +127,7 @@ public: // API
     int vICoDim(int vI) const;
     int sfICoDim(int sfI) const;
 
-    void setLameParam(double YM, double PR);
+    void setMaterialParam(double YM, double PR, double HF_ALPHA = 2.0);
 
     bool checkInversion(int triI, bool mute) const;
     bool checkInversion(bool mute = false, const std::vector<int>& triangles = std::vector<int>()) const;

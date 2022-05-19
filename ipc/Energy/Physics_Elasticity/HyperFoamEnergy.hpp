@@ -1,19 +1,19 @@
 //
-//  FixedCoRotEnergy.hpp
+//  HyperFoamEnergy.hpp
 //  IPC
 //
-//  Created by Minchen Li on 6/20/18.
+//  Created by Minchen Li on 6/19/18.
 //
 
-#ifndef FixedCoRotEnergy_hpp
-#define FixedCoRotEnergy_hpp
+#ifndef HyperFoamEnergy_hpp
+#define HyperFoamEnergy_hpp
 
 #include "ipc/Energy/Energy.hpp"
 
 namespace IPC {
 
 template <int dim>
-class FixedCoRotEnergy : public Energy<dim> {
+class HyperFoamEnergy : public Energy<dim> {
     typedef Energy<dim> Base;
 
 public:
@@ -54,12 +54,13 @@ public:
         const AutoFlipSVD<Eigen::Matrix<double, dim, dim>>& svd,
         const MaterialProps& mat,
         Eigen::Matrix<double, dim, dim>& dE_div_dF) const;
+
     virtual void checkEnergyVal(const Mesh<dim>& data) const; // check with isometric case
 
 public:
-    FixedCoRotEnergy(void);
+    HyperFoamEnergy(void);
 };
 
 } // namespace IPC
 
-#endif /* FixedCoRotEnergy_hpp */
+#endif /* HyperFoamEnergy_hpp */

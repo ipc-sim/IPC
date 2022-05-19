@@ -106,23 +106,23 @@ public:
 
     // subclass interfaces -- components
     virtual void compute_E(const Eigen::Matrix<double, dim, 1>& singularValues,
-        double u, double lambda,
+        const MaterialProps& mat,
         double& E) const;
     virtual void compute_dE_div_dsigma(const Eigen::Matrix<double, dim, 1>& singularValues,
-        double u, double lambda,
+        const MaterialProps& mat,
         Eigen::Matrix<double, dim, 1>& dE_div_dsigma) const;
     virtual void compute_d2E_div_dsigma2(const Eigen::Matrix<double, dim, 1>& singularValues,
-        double u, double lambda,
+        const MaterialProps& mat,
         Eigen::Matrix<double, dim, dim>& d2E_div_dsigma2) const;
     virtual void compute_BLeftCoef(const Eigen::Matrix<double, dim, 1>& singularValues,
-        double u, double lambda,
+        const MaterialProps& mat,
         Eigen::Matrix<double, dim*(dim - 1) / 2, 1>& BLeftCoef) const;
     virtual void compute_dE_div_dF(const Eigen::Matrix<double, dim, dim>& F,
         const AutoFlipSVD<Eigen::Matrix<double, dim, dim>>& svd,
-        double u, double lambda,
+        const MaterialProps& mat,
         Eigen::Matrix<double, dim, dim>& dE_div_dF) const;
     virtual void compute_dP_div_dF(const AutoFlipSVD<Eigen::Matrix<double, dim, dim>>& svd,
-        double u, double lambda,
+        const MaterialProps& mat,
         Eigen::Matrix<double, dim * dim, dim * dim>& dP_div_dF,
         double w, bool projectSPD = true) const;
 
