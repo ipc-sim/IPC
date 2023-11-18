@@ -24,14 +24,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-18.04, ubuntu-20.04, macos-latest]
+        os: [ubuntu-latest, macos-latest]
         config: [Debug, Release]
         include:
           - os: macos-latest
             name: macOS
-          - os: ubuntu-18.04
-            name: Linux
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             name: Linux
     steps:
       - name: Checkout repository
