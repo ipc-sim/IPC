@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
 
 env:
   CTEST_OUTPUT_ON_FAILURE: ON
@@ -24,16 +24,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, macos-latest]
+        os: [ubuntu-latest, macos-latest]
         config: [Debug, Release]
         include:
           - os: macos-latest
             name: macOS
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             name: Linux
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v4.0.0
         with:
           fetch-depth: 10
 
@@ -55,15 +55,16 @@ jobs:
 
       - name: Cache Build
         id: cache-build
-        uses: actions/cache@v1
+        uses: actions/cache@v3.0.11
         with:
-          path: ~/.ccache
+          path: ${{ env.CACHE_PATH }}
           key: ${{ runner.os }}-${{ matrix.config }}-cache
 
       - name: Prepare ccache
         run: |
           ccache --max-size=1.0G
-          ccache -V && ccache --show-stats && ccache --zero-stats
+          ccache -V && ccache --show-config
+          ccache --show-stats && ccache --zero-stats
 
       - name: Configure
         run: |
