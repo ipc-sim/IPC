@@ -11,7 +11,7 @@ set_target_properties(meshprocessing PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE
 target_link_libraries(meshprocessing PUBLIC ${PROJECT_NAME}_dev)
 
 # libigl
-target_link_libraries(meshprocessing PUBLIC igl::core igl::triangle igl::tetgen)
+target_link_libraries(meshprocessing PUBLIC igl::core igl_copyleft::tetgen)
 
 # tbb
 target_link_libraries(meshprocessing PUBLIC TBB::tbb)

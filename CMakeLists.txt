@@ -124,9 +124,9 @@ target_link_libraries(${PROJECT_NAME}_dev PUBLIC osqp::osqp)
 # libigl
 include(eigen)
 include(libigl)
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::core igl::triangle igl::tetgen)
+target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::core)
 if(IPC_WITH_OPENGL)
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::opengl_glfw igl::opengl_glfw_imgui igl::png)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::glfw igl::imgui igl::stb)
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_OPENGL)
 endif()
 

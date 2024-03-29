@@ -47,7 +47,6 @@ std::string outputFolderPath = "output/";
 #include <igl/readOBJ.h>
 #include <igl/boundary_loop.h>
 #include <igl/harmonic.h>
-#include <igl/copyleft/tetgen/tetrahedralize.h>
 
 #include <cstdio>
 
