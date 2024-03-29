@@ -11,6 +11,7 @@
 #include <cassert>
 
 #include <iostream>
+#include <array>
 
 #include <boost/functional/hash.hpp>
 

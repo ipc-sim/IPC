@@ -45,12 +45,18 @@ option(IPC_WITH_EXACT_CCD "Use exact CCD as a verification"                     
 ## Top level options
 option(IPC_WITH_TESTS "Build unit tests using Catch2" ${IPC_TOPLEVEL_PROJECT})
 
+# project-options
+option(IPC_BUILD_DIAGNOSTIC_PROJECT      "Build the Diagnostic sub-project"     ${IPC_TOPLEVEL_PROJECT})
+option(IPC_BUILD_MESH_PROCESSING_PROJECT "Build the MeshProcessing sub-project" ${IPC_TOPLEVEL_PROJECT})
+
 ################################################################################
 
 ### Configuration
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ipc)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/find)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/recipes)
+
+include(ipc_cpm_cache)
 
 ################################################################################
 # IPC Library
@@ -99,7 +105,7 @@ target_include_directories(${PROJECT_NAME}_dev PUBLIC
 ################################################################################
 
 # Extra warnings
-include(IPCWarnings)
+include(ipc_warnings)
 target_link_libraries(${PROJECT_NAME}_dev PRIVATE IPC::warnings)
 
 # tbb
@@ -122,9 +128,9 @@ target_link_libraries(${PROJECT_NAME}_dev PUBLIC osqp::osqp)
 # libigl
 include(eigen)
 include(libigl)
-target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::core igl::triangle igl::tetgen)
+target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::core)
 if(IPC_WITH_OPENGL)
-  target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::opengl_glfw igl::opengl_glfw_imgui igl::png)
+  target_link_libraries(${PROJECT_NAME}_dev PUBLIC igl::glfw igl::imgui igl::stb)
   target_compile_definitions(${PROJECT_NAME}_dev PUBLIC USE_OPENGL)
 endif()
 

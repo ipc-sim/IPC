@@ -5,12 +5,7 @@ endif()
 
 message(STATUS "Third-party: creating target 'ghc::filesystem'")
 
-include(FetchContent)
-FetchContent_Declare(
-    filesystem
-    GIT_REPOSITORY https://github.com/gulrak/filesystem.git
-    GIT_TAG v1.5.10
-)
-FetchContent_MakeAvailable(filesystem)
+include(CPM)
+CPMAddPackage("gh:gulrak/filesystem@1.5.10")
 
 add_library(ghc::filesystem ALIAS ghc_filesystem)

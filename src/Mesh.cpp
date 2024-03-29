@@ -11,7 +11,6 @@
 #include "Timer.hpp"
 #include "CCDUtils.hpp"
 
-#include <igl/triangle/triangulate.h>
 #include <igl/cotmatrix.h>
 #include <igl/avg_edge_length.h>
 #include <igl/writeOBJ.h>
@@ -204,7 +203,7 @@ void Mesh<dim>::computeMassMatrix(const igl::MassMatrixType type)
             cosines.col(1) = (l.col(0).array().pow(2) + l.col(2).array().pow(2) - l.col(1).array().pow(2)) / (l.col(2).array() * l.col(0).array() * 2.0);
             cosines.col(2) = (l.col(1).array().pow(2) + l.col(0).array().pow(2) - l.col(2).array().pow(2)) / (l.col(0).array() * l.col(1).array() * 2.0);
             Matrix<Scalar, Dynamic, 3> barycentric = cosines.array() * l.array();
-            normalize_row_sums(barycentric, barycentric);
+            barycentric = (barycentric.array().colwise() / barycentric.array().rowwise().sum()).eval();
             Matrix<Scalar, Dynamic, 3> partial = barycentric;
             partial.col(0).array() *= dblA.array() * 0.5;
             partial.col(1).array() *= dblA.array() * 0.5;
@@ -354,7 +353,7 @@ void Mesh<dim>::computeMassMatrix(const igl::MassMatrixType type)
                     cosines.col(1) = (l.col(0).array().pow(2) + l.col(2).array().pow(2) - l.col(1).array().pow(2)) / (l.col(2).array() * l.col(0).array() * 2.0);
                     cosines.col(2) = (l.col(1).array().pow(2) + l.col(0).array().pow(2) - l.col(2).array().pow(2)) / (l.col(0).array() * l.col(1).array() * 2.0);
                     Matrix<Scalar, Dynamic, 3> barycentric = cosines.array() * l.array();
-                    normalize_row_sums(barycentric, barycentric);
+                    barycentric = (barycentric.array().colwise() / barycentric.array().rowwise().sum()).eval();
                     Matrix<Scalar, Dynamic, 3> partial = barycentric;
                     partial.col(0).array() *= dblA.array() * 0.5;
                     partial.col(1).array() *= dblA.array() * 0.5;

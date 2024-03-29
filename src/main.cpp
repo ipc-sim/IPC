@@ -12,7 +12,7 @@
 #include <igl/readOBJ.h>
 #ifdef USE_OPENGL
 #include <igl/opengl/glfw/Viewer.h>
-#include <igl/png/writePNG.h>
+#include <igl/stb/write_image.h>
 #endif
 #include <igl/colormap.h>
 
@@ -384,7 +384,7 @@ void saveScreenshot(const std::string& filePath, double scale, bool writeGIF, bo
 
     if (writePNG) {
         // Save it to a PNG
-        igl::png::writePNG(R, G, B, A, filePath);
+        igl::stb::write_image(filePath, R, G, B, A);
     }
 
     if (writeGIF && (iterNum % GIFStep == 0)) {

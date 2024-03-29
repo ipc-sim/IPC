@@ -16,14 +16,6 @@ endif()
 
 message(STATUS "Third-party: creating target 'amgcl::amgcl'")
 
-include(FetchContent)
-FetchContent_Declare(
-    amgcl
-    GIT_REPOSITORY https://github.com/ddemidov/amgcl.git
-    GIT_TAG 1.4.2
-    GIT_SHALLOW TRUE
-)
-
 function(amgcl_import_target)
     macro(ignore_package NAME VERSION_NUM)
         include(CMakePackageConfigHelpers)
@@ -40,6 +32,7 @@ function(amgcl_import_target)
     include(boost)
 
     ignore_package(Boost 1.71.0)
+    set(Boost_ROOT "")
     set(Boost_INCLUDE_DIRS "")
     set(Boost_LIBRARIES "")
 
@@ -47,7 +40,12 @@ function(amgcl_import_target)
     set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
 
     # Ready to include third-party lib
-    FetchContent_MakeAvailable(amgcl)
+    include(CPM)
+    CPMAddPackage(
+        NAME amgcl
+        GITHUB_REPOSITORY ddemidov/amgcl
+        GIT_TAG 1.4.2
+    )
 
     target_link_libraries(amgcl INTERFACE Boost::boost)
 endfunction()
