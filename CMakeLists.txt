@@ -48,9 +48,11 @@ option(IPC_WITH_TESTS "Build unit tests using Catch2" ${IPC_TOPLEVEL_PROJECT})
 ################################################################################
 
 ### Configuration
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ipc)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/find)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/recipes)
+
+include(ipc_cpm_cache)
 
 ################################################################################
 # IPC Library
@@ -99,7 +101,7 @@ target_include_directories(${PROJECT_NAME}_dev PUBLIC
 ################################################################################
 
 # Extra warnings
-include(IPCWarnings)
+include(ipc_warnings)
 target_link_libraries(${PROJECT_NAME}_dev PRIVATE IPC::warnings)
 
 # tbb

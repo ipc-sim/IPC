@@ -22,8 +22,6 @@
 #include <tbb/parallel_for.h>
 #endif
 
-#include <immintrin.h>
-
 #include <cstdio>
 
 std::string outputFolderPath = "output/";

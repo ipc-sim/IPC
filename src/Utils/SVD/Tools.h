@@ -52,8 +52,10 @@ Sample usage:
 #include <Eigen/SVD>
 #pragma GCC diagnostic pop
 
+#if !defined(__APPLE__) || defined(__i386__) || defined(__x86_64__)
 #include <mmintrin.h>
 #include <xmmintrin.h>
+#endif
 #include <cmath>
 #include <random>
 #include <chrono>
@@ -112,7 +114,12 @@ The relative error is less than  1.5*2^-12
 */
 inline float approx_rsqrt(float a)
 {
+    // return 1.0f / std::sqrt(a);
+#if !defined(__APPLE__) || defined(__i386__) || defined(__x86_64__)
     return _mm_cvtss_f32(_mm_rsqrt_ss(_mm_set_ss(a)));
+#else
+    return vgetq_lane_f32(vrsqrteq_f32(vld1q_dup_f32(&a)), 0);
+#endif
 }
 
 /**
@@ -150,15 +157,15 @@ public:
     ~Timer() {}
 
     /**
- 	  \brief Start timing
-	*/
+          \brief Start timing
+        */
     void start()
     {
         start_time = std::chrono::steady_clock::now();
     }
 
     /**
-  	 \return time elapsed since last click in seconds
+         \return time elapsed since last click in seconds
 */
     double click()
     {
