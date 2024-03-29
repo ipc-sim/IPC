@@ -45,6 +45,10 @@ option(IPC_WITH_EXACT_CCD "Use exact CCD as a verification"                     
 ## Top level options
 option(IPC_WITH_TESTS "Build unit tests using Catch2" ${IPC_TOPLEVEL_PROJECT})
 
+# project-options
+option(IPC_BUILD_DIAGNOSTIC_PROJECT      "Build the Diagnostic sub-project"     ${IPC_TOPLEVEL_PROJECT})
+option(IPC_BUILD_MESH_PROCESSING_PROJECT "Build the MeshProcessing sub-project" ${IPC_TOPLEVEL_PROJECT})
+
 ################################################################################
 
 ### Configuration
