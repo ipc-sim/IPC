@@ -17,4 +17,4 @@ set(LIBIGL_COPYLEFT_TETGEN ${IPC_BUILD_MESH_PROCESSING_PROJECT} CACHE BOOL "Use 
 include(eigen)
 
 include(CPM)
-CPMAddPackage("gh:libigl/libigl@2.5.0")
+CPMAddPackage("gh:libigl/libigl#36930e5d19bed6c7703ec194fed4fa36df945284")
