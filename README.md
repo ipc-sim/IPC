@@ -1,4 +1,4 @@
-[![Build status](https://github.com/ipc-sim/IPC/workflows/Build/badge.svg?event=push)](https://github.com/ipc-sim/IPC/actions?query=workflow%3ABuild+branch%3Amain+event%3Apush)
+[![Build](https://github.com/ipc-sim/IPC/actions/workflows/continuous.yml/badge.svg)](https://github.com/ipc-sim/IPC/actions/workflows/continuous.yml)
 [![License](https://img.shields.io/github/license/ipc-sim/IPC.svg?color=blue)](https://github.com/ipc-sim/IPC/blob/main/LICENSE)
 
 # IPC
